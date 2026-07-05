@@ -283,6 +283,13 @@ const getTranslatedMessageText = (msg: ChatMessage, lang: 'EN' | 'ES') => {
 
 const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const [isConnected, setIsConnected] = useState(false);
+  const [isListenOnly, setIsListenOnly] = useState(false);
+  const isListenOnlyRef = useRef(isListenOnly);
+  
+  useEffect(() => {
+    isListenOnlyRef.current = isListenOnly;
+  }, [isListenOnly]);
+
   const [volume, setVolume] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [statusText, setStatusText] = useState("Disconnected");
@@ -899,6 +906,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
         
         processor.onaudioprocess = (e) => {
           if (ws.readyState !== WebSocket.OPEN) return;
+          if (isListenOnlyRef.current) return;
           const resampled = resampleAudioBuffer(e.inputBuffer, 16000);
           const pcm16 = float32ToPcm16(resampled);
           const pcmBytes = new Uint8Array(pcm16.buffer);
@@ -1639,11 +1647,35 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                 ) : (
                     <>
                         {rightPanelTab === 'chat' ? (
-                            <div className={`flex-1 p-4 pt-2 tab-content-area ${
-                                hasInteracted 
-                                ? 'overflow-y-auto max-h-[350px] md:max-h-[440px]' 
-                                : 'h-full flex flex-col items-center justify-center'
-                            }`}>
+                            <div className="flex-grow flex flex-col overflow-hidden h-full">
+                                {hasInteracted && (
+                                    <div className="px-4 py-2 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50 flex-shrink-0 z-10">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-400'}`} />
+                                            <span className="text-[11px] font-sans font-semibold text-zinc-500 uppercase tracking-wider">
+                                                {isConnected ? (selectedLang === 'EN' ? 'Active Session' : 'Sesión Activa') : (selectedLang === 'EN' ? 'Disconnected' : 'Desconectado')}
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Listen Only Option Toggle */}
+                                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                                            <input 
+                                                type="checkbox"
+                                                checked={isListenOnly}
+                                                onChange={(e) => setIsListenOnly(e.target.checked)}
+                                                className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                            />
+                                            <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
+                                                {selectedLang === 'EN' ? 'Listen Only' : 'Solo Escuchar'}
+                                            </span>
+                                        </label>
+                                    </div>
+                                )}
+                                <div className={`flex-1 p-4 pt-2 tab-content-area overflow-y-auto ${
+                                    hasInteracted 
+                                    ? 'max-h-[310px] md:max-h-[390px]' 
+                                    : 'h-full flex flex-col items-center justify-center'
+                                }`}>
                             {!hasInteracted ? (
                                 <div className="w-full h-full flex flex-col items-center justify-center text-center animate-fade-in">
                                     {/* Slideshow Phone Mockup Wrapper */}
@@ -2047,6 +2079,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 <div ref={chatEndRef} />
                             </div>
                         )}
+                            </div>
                             </div>
                         ) : (
                             <div className="flex-1 overflow-y-auto p-4 max-h-[390px] md:max-h-[440px] tab-content-area">
