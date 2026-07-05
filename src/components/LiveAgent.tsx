@@ -477,9 +477,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
 
   useEffect(() => {
     const phrases = [
-      "Text to start...",
-      "Ask me how I can help?...",
-      "I am your AI Voice and chat agent..."
+      "Empieza aca...",
+      "Pregúntame cómo te puedo ayudar...",
+      "Soy tu agente de voz y chat de IA..."
     ];
     let timer: any;
     const currentPhrase = phrases[placeholderIndex];
