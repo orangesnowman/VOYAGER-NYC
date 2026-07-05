@@ -286,10 +286,6 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const [isListenOnly, setIsListenOnly] = useState(false);
   const isListenOnlyRef = useRef(isListenOnly);
   
-  useEffect(() => {
-    isListenOnlyRef.current = isListenOnly;
-  }, [isListenOnly]);
-
   const [volume, setVolume] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [statusText, setStatusText] = useState("Disconnected");
@@ -452,6 +448,38 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   // Session Elapsed Time
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [selectedLang, setSelectedLang] = useState<'EN' | 'ES'>('ES');
+
+  useEffect(() => {
+    const wasListenOnly = isListenOnlyRef.current;
+    isListenOnlyRef.current = isListenOnly;
+    
+    if (wasListenOnly !== isListenOnly) {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        const msgText = isListenOnly 
+          ? "[SYSTEM MESSAGE: You are now in Monitor/Listen-only mode. The user is practicing by talking to a real person. You must only listen and analyze their English interaction. Do NOT speak. You can only respond via text. In your text responses, offer helpful, subtle language corrections or tips about their conversation, and if you want to speak aloud, explicitly ask the user for permission to talk (e.g. '¿Puedo hablar?').]"
+          : "[SYSTEM MESSAGE: You are now back in normal interactive voice mode. You can speak and respond aloud normally.]";
+        
+        wsRef.current.send(JSON.stringify({ text: msgText }));
+      }
+      
+      setChatMessages(prev => [
+        ...prev,
+        {
+          id: `msg_sys_listen_${Date.now()}`,
+          sender: 'system',
+          text: isListenOnly 
+            ? (selectedLang === 'EN' 
+              ? 'ℹ️ Monitor mode active: VOYAGER is listening only and will not speak. Feedback will be provided via text.'
+              : 'ℹ️ Modo monitor activo: VOYAGER está solo escuchando y no hablará. Las correcciones se mostrarán por texto.')
+            : (selectedLang === 'EN'
+              ? 'ℹ️ Normal mode active: VOYAGER can speak and respond normally.'
+              : 'ℹ️ Modo normal activo: VOYAGER hablará y responderá con voz.'),
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timeMs: Date.now()
+        }
+      ]);
+    }
+  }, [isListenOnly, selectedLang]);
 
   const hasInteracted = isConnected || statusText === "Connecting..." || chatMessages.length > 1;
 
@@ -906,7 +934,6 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
         
         processor.onaudioprocess = (e) => {
           if (ws.readyState !== WebSocket.OPEN) return;
-          if (isListenOnlyRef.current) return;
           const resampled = resampleAudioBuffer(e.inputBuffer, 16000);
           const pcm16 = float32ToPcm16(resampled);
           const pcmBytes = new Uint8Array(pcm16.buffer);
@@ -923,7 +950,10 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
         sourceRef.current = source;
         processorRef.current = processor;
 
-        const greeting = initialPrompt || "Hello";
+        let greeting = initialPrompt || "Hello";
+        if (isListenOnlyRef.current) {
+          greeting += "\n\n[SYSTEM MESSAGE: You are now starting in Monitor/Listen-only mode. The user is practicing by talking to a real person. You must only listen and analyze their English interaction. Do NOT speak. You can only respond via text. In your text responses, offer helpful, subtle language corrections or tips about their conversation, and if you want to speak aloud, explicitly ask the user for permission to talk (e.g. '¿Puedo hablar?').]";
+        }
         setTimeout(() => {
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ text: greeting }));
@@ -1050,7 +1080,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
              });
           }
 
-          if (msg.audio && audioContextRef.current) {
+          if (msg.audio && audioContextRef.current && !isListenOnlyRef.current) {
             const ctx = audioContextRef.current;
             const pcmData = new Int16Array(base64ToBytes(msg.audio).buffer);
             const audioBuffer = createAudioBufferFromPCM(ctx, pcmData, 24000);
