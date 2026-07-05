@@ -243,22 +243,35 @@ export const NYC_SUBWAY_INFO: SubwayInfo = {
 };
 
 export const SYSTEM_INSTRUCTION = `
-You are VOYAGER, an exceptional bilingual language tutor (English & Spanish) and local guide for New York City (NYC). Your role is to help users practice English and Spanish while acting as their virtual guide to the streets, landmarks, restaurants, neighborhoods, and the extensive NYC Subway system.
+You are VOYAGER, the world's first AI English immersion companion that turns New York City into a live language school. Your product is English fluency, and New York is your classroom.
 
-Because you operate in a real-time, interactive voice and text environment, adhere strictly to these conversational guidelines:
+You simultaneously act as the user's Tour Guide, English Teacher, Pronunciation Coach, Conversation Partner, Cultural Interpreter, Navigation Assistant, Real-time Translator, and Personal Tutor.
+
+CONVERSATIONAL GUIDELINES:
 - Be encouraging, enthusiastic, warm, and highly conversational.
-- Speak in a mixture of English and Spanish, or adapt to the user's preferred practice language. If they are learning Spanish, prompt them in English and encourage them to reply in Spanish (and vice versa). Correct their grammar and vocabulary gently.
+- Speak in a mixture of English and Spanish. When the user speaks Spanish, translate/explain and encourage them to reply in English. Correct their grammar and vocabulary gently.
 - Ask ONLY ONE question at a time. Keep responses concise and natural (1-3 sentences) to facilitate back-and-forth practice.
+- CRITICAL: When speaking English, please speak a bit slower and clearer than usual. Pronounce your words deliberately and use short pauses between clauses to ensure the language learner can easily follow.
 - You have access to Google Maps tools. Whenever the user asks about a location in NYC, wants to see where something is, or requests recommendations (e.g. pizza, museums, parks, or subway stations/hubs), you MUST call 'map_show_location' to display it.
-- Whenever they ask how to get somewhere or want a route (including using the Subway!), you MUST call 'map_draw_route' to display the path.
-- Explain the places, local history, or neighborhood vibes as part of their learning journey.
-- You are a master of the NYC Subway system! You teach essential bilingual subway vocabulary (e.g. "turnstile/torniquete", "swipe/deslizar", "tap/tocar", "transfer/transbordo", "express vs local", "uptown vs downtown"). Teach these terms dynamically and prompt the user to practice using them in sentence exercises.
+- Whenever they ask how to get somewhere or want a route, you MUST call 'map_draw_route' to display the path.
 
-NYC EXPLORER TOOLS & GUIDELINES:
-1. 'map_show_location(placeName, latitude, longitude, description)': Use this whenever a user wants to view a specific venue, restaurant, monument, neighborhood, or subway station in NYC. Always specify reasonable NYC coordinates.
-2. 'map_draw_route(origin, destination, travelMode, description)': Use this to trace directions between two points in NYC.
+THE IMMERSION LEARNING LOOP:
+1. PREPARE: Before the user walks into a scenario (e.g., ordering coffee, entering a museum, buying tickets), prepare them with natural English phrases. E.g., teach them "I'd like a latte, please" and explain that "I'd like" is much more polite than "I want".
+2. PRONUNCIATION COACH: Analyze the user's pronunciation, stress, rhythm, and intonation. Give them accent coaching tips (e.g., softening the 't' in 'latte', or explaining word linking: "I'd like a bah-dl uhv wah-ter").
+3. GRAMMAR IN CONTEXT: Correct errors immediately but gently. E.g., if they say "Yesterday I go to Central Park", correct it to "I went" and explain why, then practice two more examples.
+4. ACCENT REDUCTION: Focus on common Spanish-speaker difficulties (e.g., ship/sheep, live/leave, beach/bitch, v/b, thirty/dirty). Suggest targeted practice if you notice these.
+5. TWO-WAY TRANSLATOR: Translate what a waiter, cashier, or driver might say in NYC (e.g. "For here or to go?"), explain the cultural/idiomatic meaning in Spanish, and teach it.
+6. METRIC UPDATES (CRITICAL): At the end of every evaluation or feedback turn, output hidden structured tags in your text transcription to update the client's progress trackers. Follow these exact patterns:
+   - For confidence scores: [SCORES: grammar=G, pronunciation=P, confidence=C, naturalness=N] where G, P, C, N are integers between 1 and 5 (e.g., [SCORES: grammar=4, pronunciation=3, confidence=5, naturalness=4]). Do not output other text inside the brackets.
+   - For new vocabulary words learned during the turn: [LEARNED_WORDS: word1, word2] (e.g., [LEARNED_WORDS: latte, OMNY]).
+   - For accent reduction patterns: [ACCENT: live vs leave] or [ACCENT: v vs b].
+   - When the user successfully practices or completes a mission: [MISSION_COMPLETE: day1_coffee].
 
-Popular Landmarks & Subway Hubs coordinates for your reference:
+NYC MAP TOOLS:
+1. 'map_show_location(placeName, latitude, longitude, description)': Focus map on specific venue, landmarks, or subway stations.
+2. 'map_draw_route(origin, destination, travelMode, description)': Traces walking, driving, bicycling, or transit directions.
+
+Landmarks for reference:
 - Times Square: 40.758895, -73.985131
 - Central Park: 40.785091, -73.968285
 - Empire State Building: 40.748440, -73.985664
@@ -274,14 +287,135 @@ Popular Landmarks & Subway Hubs coordinates for your reference:
 - 59 St - Columbus Circle Station: 40.768250, -73.981928
 `;
 
+export interface CurriculumDay {
+  dayNum: number;
+  title: string;
+  titleEs: string;
+  objectives: string[];
+  objectivesEs: string[];
+  vocabulary: { word: string; definition: string; definitionEs: string }[];
+  missions: { id: string; en: string; es: string }[];
+}
+
+export const IMMERSION_CURRICULUM: CurriculumDay[] = [
+  {
+    dayNum: 1,
+    title: "Greetings, Coffee & Directions",
+    titleEs: "Saludos, Café y Direcciones",
+    objectives: [
+      "Learn polite, natural greetings and ordering expressions (e.g. 'I'd like' instead of 'I want').",
+      "Understand the difference between 'for here' and 'to go'.",
+      "Ask for directions to landmarks and subway platforms."
+    ],
+    objectivesEs: [
+      "Aprender saludos naturales y expresiones corteses para ordenar (ej. 'I'd like' en lugar de 'I want').",
+      "Entender la diferencia entre 'for here' y 'to go'.",
+      "Preguntar por direcciones hacia lugares emblemáticos y andenes del metro."
+    ],
+    vocabulary: [
+      { word: "I'd like a...", definition: "Polite way to order food or drink, short for 'I would like'.", definitionEs: "Forma cortés de ordenar comida o bebida, abreviación de 'I would like'." },
+      { word: "For here / To go", definition: "Expressions cashiers use to ask if you will eat in the shop or take it away.", definitionEs: "Expresiones que los cajeros usan para preguntar si vas a consumir en el local o para llevar." },
+      { word: "Excuse me, where's...", definition: "Standard polite greeting used to get someone's attention for directions.", definitionEs: "Saludo cortés estándar usado para llamar la atención de alguien al pedir direcciones." },
+      { word: "Platform / Tracks", definition: "The area where you wait for trains / the steel rails the train runs on.", definitionEs: "El área donde esperas el tren / los rieles de acero sobre los que corre el tren." }
+    ],
+    missions: [
+      { id: "day1_coffee", en: "Order coffee using 'I'd like a...'", es: "Ordenar café usando 'I'd like a...'" },
+      { id: "day1_togo", en: "Answer the cashier's question 'For here or to go?'", es: "Responder a la pregunta del cajero 'For here or to go?'" },
+      { id: "day1_restroom", en: "Ask 'Excuse me, where's the restroom?'", es: "Preguntar 'Excuse me, where's the restroom?'" },
+      { id: "day1_directions", en: "Ask a local for directions to a subway line", es: "Preguntar a un local direcciones para una línea de metro" }
+    ]
+  },
+  {
+    dayNum: 2,
+    title: "Restaurants, Shopping & Money",
+    titleEs: "Restaurantes, Compras y Dinero",
+    objectives: [
+      "Learn restaurant ordering and requesting the check.",
+      "Understand how to ask for prices and deal with retail transactions.",
+      "Get familiar with tipping vocabulary and local payment methods (like OMNY tap)."
+    ],
+    objectivesEs: [
+      "Aprender a ordenar en restaurantes y pedir la cuenta.",
+      "Entender cómo preguntar por precios y realizar transacciones de compra.",
+      "Familiarizarse con el vocabulario de propinas y métodos de pago locales (como OMNY tap)."
+    ],
+    vocabulary: [
+      { word: "Could we get...", definition: "Polite opening to request items from a waiter (e.g. 'Could we get the check?').", definitionEs: "Apertura cortés para pedir cosas a un mesero (ej. 'Could we get the check?')." },
+      { word: "Keep the change", definition: "Telling a taxi driver or server they can keep the change as a tip.", definitionEs: "Decirle a un taxista o mesero que puede quedarse con el cambio como propina." },
+      { word: "How much is...", definition: "Standard question to inquire about the price of an item.", definitionEs: "Pregunta estándar para averiguar el precio de un artículo." },
+      { word: "OMNY tap", definition: "Tapping your credit card or phone at turnstiles to pay transit fares.", definitionEs: "Tocar con tu tarjeta de crédito o teléfono en los torniquetes para pagar tarifas de tránsito." }
+    ],
+    missions: [
+      { id: "day2_pizza", en: "Order a classic NYC street slice of pizza", es: "Ordenar una rebanada de pizza clásica de NY" },
+      { id: "day2_omny", en: "Pay for transit or shopping using contactless tap", es: "Pagar el tránsito o compras usando tap sin contacto" },
+      { id: "day2_check", en: "Ask a waiter 'Could we get the check, please?'", es: "Preguntar a un mesero 'Could we get the check, please?'" },
+      { id: "day2_cash_card", en: "Ask a cashier 'Do you accept cash or card?'", es: "Preguntar a un cajero 'Do you accept cash or card?'" }
+    ]
+  },
+  {
+    dayNum: 3,
+    title: "Museums, Opinions & Past Tense",
+    titleEs: "Museos, Opiniones y Pasado",
+    objectives: [
+      "Learn to purchase tickets and ask about guides or audio guides at attractions.",
+      "Express opinions using rich vocabulary (e.g. 'breathtaking', 'masterpiece').",
+      "Practice describing past events naturally using the past tense."
+    ],
+    objectivesEs: [
+      "Aprender a comprar boletos y preguntar por guías o audioguías en atracciones.",
+      "Expresar opiniones usando vocabulario rico (ej. 'breathtaking', 'masterpiece').",
+      "Practicar la descripción de eventos pasados de forma natural usando el tiempo pasado."
+    ],
+    vocabulary: [
+      { word: "Yesterday I went...", definition: "Standard opening for past descriptions (correcting common 'Yesterday I go').", definitionEs: "Apertura estándar para descripciones en pasado (corrigiendo el común 'Yesterday I go')." },
+      { word: "Breathtaking", definition: "Extremely beautiful or amazing (e.g. 'The view from the top is breathtaking').", definitionEs: "Extremadamente hermoso o sorprendente (ej. 'La vista desde arriba es impresionante')." },
+      { word: "Admission / Ticket", definition: "Fee charged to enter a museum, gallery, or site.", definitionEs: "Tarifa cobrada para ingresar a un museo, galería o sitio." },
+      { word: "Audio guide", definition: "A recorded tour device providing explanations of art or landmarks.", definitionEs: "Un dispositivo de tour grabado que proporciona explicaciones de arte o lugares de interés." }
+    ],
+    missions: [
+      { id: "day3_ticket", en: "Purchase a museum ticket in English", es: "Comprar un boleto de museo en inglés" },
+      { id: "day3_past_tense", en: "Explain your yesterday trip in past tense to VOYAGER", es: "Explicar tu viaje de ayer en tiempo pasado a VOYAGER" },
+      { id: "day3_photo", en: "Ask a stranger 'Excuse me, could you take my picture?'", es: "Preguntar a un extraño 'Excuse me, could you take my picture?'" },
+      { id: "day3_audioguide", en: "Ask a museum counter 'Do you have audio guides in Spanish?'", es: "Preguntar en el mostrador del museo 'Do you have audio guides in Spanish?'" }
+    ]
+  },
+  {
+    dayNum: 4,
+    title: "Broadway, Hotels & Small Talk",
+    titleEs: "Broadway, Hoteles y Charla Informal",
+    objectives: [
+      "Master hotel receptionist check-in and check-out scenarios.",
+      "Learn to ask about theater timings, seating options, and discounts (like TKTS).",
+      "Engage in brief, friendly small talk with cashiers or locals."
+    ],
+    objectivesEs: [
+      "Dominar los escenarios de check-in y check-out con el recepcionista del hotel.",
+      "Aprender a preguntar por horarios de teatro, opciones de asientos y descuentos (como TKTS).",
+      "Entablar una breve y amistosa charla informal con cajeros o lugareños."
+    ],
+    vocabulary: [
+      { word: "Check in / Check out", definition: "The process of arriving at / departing from a hotel.", definitionEs: "El proceso de llegar a / salir de un hotel." },
+      { word: "TKTS booth", definition: "The famous red steps in Times Square selling discounted Broadway tickets.", definitionEs: "La famosa taquilla de escalones rojos en Times Square que vende boletos de Broadway con descuento." },
+      { word: "How's your day going?", definition: "Friendly, casual greeting used with cashiers to initiate small talk.", definitionEs: "Saludo amistoso e informal usado con cajeros para iniciar una charla rápida." },
+      { word: "Have a good one!", definition: "A very common American farewell, meaning 'Have a good day'.", definitionEs: "Una despedida estadounidense muy común, que significa 'Que pases un buen día'." }
+    ],
+    missions: [
+      { id: "day4_broadway", en: "Ask about Broadway tickets at the TKTS booth", es: "Preguntar sobre boletos de Broadway en la taquilla TKTS" },
+      { id: "day4_hotel", en: "Practice checking out of a hotel with VOYAGER", es: "Practicar la salida de un hotel con VOYAGER" },
+      { id: "day4_smalltalk", en: "Have a one-minute friendly small-talk with VOYAGER", es: "Tener una charla amistosa de un minuto con VOYAGER" },
+      { id: "day4_goodone", en: "Say goodbye to a cashier using 'Have a good one!'", es: "Despedirse de un cajero usando 'Have a good one!'" }
+    ]
+  }
+];
+
 export const SUGGESTIONS = [
-  { id: '1', text: "Show me Central Park & teach Spanish nature terms!" },
-  { id: '2', text: "How do I take the subway from Grand Central to Penn Station?" },
-  { id: '3', text: "Teach me NYC subway vocabulary in Spanish and English!" },
-  { id: '4', text: "What is the difference between Local and Express trains in NYC?" },
-  { id: '5', text: "Show the Fulton Street Transit Center on the map." },
-  { id: '6', text: "How much does the subway cost and what is OMNY?" },
-  { id: '7', text: "Show me the High Line Park on the map." },
-  { id: '8', text: "¿Qué museos famosos me recomiendas en NYC?" }
+  { id: '1', text: "Let's practice ordering coffee for Day 1!" },
+  { id: '2', text: "Prepare me for Ordering Pizza in Greenwich Village." },
+  { id: '3', text: "Ask me a vocabulary quiz for Day 1 terms." },
+  { id: '4', text: "How do I say '¿Lo quiere para comer aquí o para llevar?' in English?" },
+  { id: '5', text: "Correct my grammar: 'Yesterday I go to Central Park and I see the bridge.'" },
+  { id: '6', text: "Review my pronunciation for 'I would like a bottle of water.'" },
+  { id: '7', text: "Teach me accent reduction tips for the 'v' and 'b' sounds." },
+  { id: '8', text: "Generate my End-of-Day progress review!" }
 ];
 

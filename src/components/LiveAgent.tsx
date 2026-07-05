@@ -2,10 +2,146 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SUGGESTIONS } from '../constants';
 import { base64ToBytes, createAudioBufferFromPCM, float32ToPcm16, bytesToBase64, resampleAudioBuffer } from '../services/audioUtils';
 import NycMap, { MapMarker, RouteInfo } from './NycMap';
-import { SubwayGuide } from './SubwayGuide';
-import { TasksManager } from './TasksManager';
 import { NycSubwayMap } from './NycSubwayMap';
+import { Curriculum } from './Curriculum';
+import { Missions } from './Missions';
+import { ProgressDashboard } from './ProgressDashboard';
+import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
+import slide1 from '../assets/images/voyager_slide_1.jpg';
+import slide2 from '../assets/images/voyager_slide_2.jpg';
+import slide3 from '../assets/images/voyager_slide_3.jpg';
 import { Compass, MapPin, Languages, Sparkles } from 'lucide-react';
+
+interface CanvasSlideshowProps {
+  slides: { src: string; alt: string }[];
+  slideIndex: number;
+  transitionDuration: number;
+}
+
+const CanvasSlideshow: React.FC<CanvasSlideshowProps> = ({ slides, slideIndex, transitionDuration }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [currentSrc, setCurrentSrc] = useState(slides[slideIndex].src);
+  const animationRef = useRef<number | null>(null);
+  const imagesRef = useRef<{ [key: string]: HTMLImageElement }>({});
+
+  useEffect(() => {
+    slides.forEach((slide) => {
+      if (!imagesRef.current[slide.src]) {
+        const img = new Image();
+        img.src = slide.src;
+        img.onload = () => {
+          imagesRef.current[slide.src] = img;
+          if (slide.src === slides[slideIndex].src && canvasRef.current) {
+            drawStatic(img);
+          }
+        };
+      }
+    });
+  }, [slides]);
+
+  const drawStatic = (img: HTMLImageElement) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const newSrc = slides[slideIndex].src;
+    const startSrc = currentSrc;
+    
+    if (startSrc === newSrc) {
+      const img = imagesRef.current[newSrc];
+      if (img) drawStatic(img);
+      return;
+    }
+
+    const startTime = performance.now();
+    const halfDuration = transitionDuration / 2;
+
+    const animate = (time: number) => {
+      const elapsed = time - startTime;
+      const progress = Math.min(elapsed / transitionDuration, 1);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (elapsed < halfDuration) {
+        const img = imagesRef.current[startSrc];
+        if (img) {
+          const phaseProgress = elapsed / halfDuration;
+          const scale = 1.0 - phaseProgress * 0.97;
+          drawPixelated(img, scale);
+        }
+      } else {
+        const img = imagesRef.current[newSrc];
+        if (img) {
+          const phaseProgress = (elapsed - halfDuration) / halfDuration;
+          const scale = 0.03 + phaseProgress * 0.97;
+          drawPixelated(img, scale);
+        }
+      }
+
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate);
+      } else {
+        setCurrentSrc(newSrc);
+        const finalImg = imagesRef.current[newSrc];
+        if (finalImg) drawStatic(finalImg);
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [slideIndex]);
+
+  const drawPixelated = (img: HTMLImageElement, scale: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+
+    const sw = Math.max(4, Math.round(w * scale));
+    const sh = Math.max(4, Math.round(h * scale));
+
+    ctx.imageSmoothingEnabled = false;
+    (ctx as any).mozImageSmoothingEnabled = false;
+    (ctx as any).webkitImageSmoothingEnabled = false;
+    (ctx as any).msImageSmoothingEnabled = false;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = sw;
+    tempCanvas.height = sh;
+    const tempCtx = tempCanvas.getContext('2d');
+    if (!tempCtx) return;
+
+    tempCtx.drawImage(img, 0, 0, sw, sh);
+    ctx.drawImage(tempCanvas, 0, 0, sw, sh, 0, 0, w, h);
+  };
+
+  return (
+    <canvas 
+      ref={canvasRef} 
+      width={286} 
+      height={506} 
+      className="w-full h-full object-cover" 
+    />
+  );
+};
 
 interface LiveAgentProps {
   isWidgetMode: boolean;
@@ -125,8 +261,8 @@ const translations = {
     submitBtn: "Guardar Diario de Viaje",
     submittingBtn: "Guardando Diario...",
     nameEmailRequired: "El nombre y el correo electrónico son campos obligatorios.",
-    systemOnline: "Sistema Voyager en línea. Tu tutor de idiomas y guía de NYC está listo.",
-    welcomeMsg: "¡Hola! Soy VOYAGER, tu tutor de idiomas bilingüe y guía local de NYC. ¡Practiquemos inglés o español mientras exploramos Nueva York! Haz clic en Conectar para iniciar.",
+    systemOnline: "Sistema Voyager en línea. Tu tutor de inglés y guía de NYC está listo.",
+    welcomeMsg: "¡Hola! Soy VOYAGER, tu guía de NYC y tutor de inglés. ¡Practiquemos inglés mientras exploramos Nueva York! Haz clic en Conectar para empezar.",
     endConversation: "Terminar Conversación",
     reviewChat: "Califica tu Sesión con Voyager",
     submitReview: "Enviar Calificación",
@@ -156,7 +292,122 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const [mapZoom, setMapZoom] = useState<number>(13);
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
-  const [leftPanelTab, setLeftPanelTab] = useState<'map' | 'subway' | 'tasks' | 'subway_map'>('map');
+  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'lessons' | 'missions'>('chat');
+  const [classroomSubTab, setClassroomSubTab] = useState<'map' | 'subway_map'>('map');
+  const [activeDay, setActiveDay] = useState<number>(1);
+  const [completedMissions, setCompletedMissions] = useState<string[]>([]);
+  const [scores, setScores] = useState({ grammar: 0, pronunciation: 0, confidence: 0, naturalness: 0 });
+  const [learnedWords, setLearnedWords] = useState<string[]>([]);
+  const [accentPatterns, setAccentPatterns] = useState<string[]>([]);
+
+  // Slideshow State
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [activeFullscreenSlide, setActiveFullscreenSlide] = useState<number | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const slides = [
+    { src: slide1, alt: "Explora NYC, Aprende Inglés" },
+    { src: slide2, alt: "Aprende antes de hablar" },
+    { src: slide3, alt: "Practica conversaciones cotidianas" }
+  ];
+
+
+
+  // Keyboard navigation for fullscreen modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (activeFullscreenSlide === null) return;
+      if (e.key === 'Escape') {
+        setActiveFullscreenSlide(null);
+      } else if (e.key === 'ArrowLeft') {
+        setActiveFullscreenSlide((prev) => prev !== null ? (prev - 1 + slides.length) % slides.length : null);
+      } else if (e.key === 'ArrowRight') {
+        setActiveFullscreenSlide((prev) => prev !== null ? (prev + 1) % slides.length : null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeFullscreenSlide, slides.length]);
+
+  const handleToggleMission = (missionId: string) => {
+    setCompletedMissions(prev => 
+      prev.includes(missionId) 
+        ? prev.filter(id => id !== missionId) 
+        : [...prev, missionId]
+    );
+  };
+
+  const parseImmersionTags = (text: string) => {
+    let cleaned = text;
+    let newScores = null;
+    let newLearnedWords: string[] = [];
+    let newAccentPattern = null;
+    let newCompletedMission = null;
+
+    // 1. Scores
+    const scoresMatch = cleaned.match(/\[SCORES:\s*grammar=(\d+),\s*pronunciation=(\d+),\s*confidence=(\d+),\s*naturalness=(\d+)\]/i);
+    if (scoresMatch) {
+      newScores = {
+        grammar: parseInt(scoresMatch[1], 10),
+        pronunciation: parseInt(scoresMatch[2], 10),
+        confidence: parseInt(scoresMatch[3], 10),
+        naturalness: parseInt(scoresMatch[4], 10)
+      };
+      cleaned = cleaned.replace(scoresMatch[0], "");
+    }
+
+    // 2. Learned Words
+    const learnedMatch = cleaned.match(/\[LEARNED_WORDS:\s*([^\]]+)\]/i);
+    if (learnedMatch) {
+      newLearnedWords = learnedMatch[1].split(',').map(w => w.trim()).filter(Boolean);
+      cleaned = cleaned.replace(learnedMatch[0], "");
+    }
+
+    // 3. Accent
+    const accentMatch = cleaned.match(/\[ACCENT:\s*([^\]]+)\]/i);
+    if (accentMatch) {
+      newAccentPattern = accentMatch[1].trim();
+      cleaned = cleaned.replace(accentMatch[0], "");
+    }
+
+    // 4. Mission
+    const missionMatch = cleaned.match(/\[MISSION_COMPLETE:\s*([^\]]+)\]/i);
+    if (missionMatch) {
+      newCompletedMission = missionMatch[1].trim();
+      cleaned = cleaned.replace(missionMatch[0], "");
+    }
+
+    return { cleaned, newScores, newLearnedWords, newAccentPattern, newCompletedMission };
+  };
+
+  const updateLearningState = (parsed: ReturnType<typeof parseImmersionTags>) => {
+    if (parsed.newScores) {
+      setScores(parsed.newScores);
+    }
+    if (parsed.newLearnedWords.length > 0) {
+      setLearnedWords(prev => {
+        const next = [...prev];
+        parsed.newLearnedWords.forEach(w => {
+          if (!next.includes(w)) next.push(w);
+        });
+        return next;
+      });
+    }
+    if (parsed.newAccentPattern) {
+      const pattern = parsed.newAccentPattern;
+      setAccentPatterns(prev => {
+        if (!prev.includes(pattern)) return [...prev, pattern];
+        return prev;
+      });
+    }
+    if (parsed.newCompletedMission) {
+      const mId = parsed.newCompletedMission;
+      setCompletedMissions(prev => {
+        if (!prev.includes(mId)) return [...prev, mId];
+        return prev;
+      });
+    }
+  };
 
   // Chat & Leads State
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -193,7 +444,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
 
   // Session Elapsed Time
   const [secondsElapsed, setSecondsElapsed] = useState(0);
-  const [selectedLang, setSelectedLang] = useState<'EN' | 'ES'>('EN');
+  const [selectedLang, setSelectedLang] = useState<'EN' | 'ES'>('ES');
 
   const hasInteracted = isConnected || statusText === "Connecting..." || chatMessages.length > 1;
 
@@ -741,17 +992,25 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
           }
 
           if (msg.text) {
-             if (/(subway\s*map|metro\s*map|network\s*grid|subway\s*grid|subway\s*system|mapa\s*de\s*metro|mapa\s*del\s*metro|red\s*de\s*metro|transit\s*map|mapa\s*de\s*tr[aá]nsito)/i.test(msg.text)) {
-                setLeftPanelTab('subway_map');
-             }
              setChatMessages(prev => {
                 const last = prev[prev.length - 1];
                 const formPattern = /\[SHOW[-_ ]FORM\]|\(SHOW[-_ ]FORM\)/gi;
                 if (last && last.sender === 'splash' && !last.id.startsWith('welcome_') && (Date.now() - last.timeMs < 10000)) {
                    const updated = [...prev];
                    const combinedText = last.text + msg.text;
-                   const hasFormTag = formPattern.test(combinedText) || last.showForm || msg.showForm;
-                   const cleanedText = combinedText.replace(formPattern, "");
+                   
+                   // Parse immersion tags
+                   const parsed = parseImmersionTags(combinedText);
+                   updateLearningState(parsed);
+
+                   // Handle subway map routing
+                   if (/(subway\s*map|metro\s*map|network\s*grid|subway\s*grid|subway\s*system|mapa\s*de\s*metro|mapa\s*del\s*metro|red\s*de\s*metro|transit\s*map|mapa\s*de\s*tr[aá]nsito)/i.test(parsed.cleaned)) {
+                      setRightPanelTab('lessons');
+                      setClassroomSubTab('subway_map');
+                   }
+
+                   const hasFormTag = formPattern.test(parsed.cleaned) || last.showForm || msg.showForm;
+                   const cleanedText = parsed.cleaned.replace(formPattern, "");
                    updated[updated.length - 1] = {
                       ...last,
                       text: cleanedText,
@@ -760,8 +1019,17 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                    };
                    return updated;
                 } else {
-                   const hasFormTag = formPattern.test(msg.text) || msg.showForm;
-                   const cleanedText = msg.text.replace(formPattern, "");
+                   const parsed = parseImmersionTags(msg.text);
+                   updateLearningState(parsed);
+
+                   // Handle subway map routing
+                   if (/(subway\s*map|metro\s*map|network\s*grid|subway\s*grid|subway\s*system|mapa\s*de\s*metro|mapa\s*del\s*metro|red\s*de\s*metro|transit\s*map|mapa\s*de\s*tr[aá]nsito)/i.test(parsed.cleaned)) {
+                      setRightPanelTab('lessons');
+                      setClassroomSubTab('subway_map');
+                   }
+
+                   const hasFormTag = formPattern.test(parsed.cleaned) || msg.showForm;
+                   const cleanedText = parsed.cleaned.replace(formPattern, "");
                    return [...prev, {
                       id: `msg_${Date.now()}_${Math.random()}`,
                       sender: 'splash',
@@ -818,6 +1086,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   };
 
   const disconnect = () => {
+    if (statusText === "Disconnected" && !wsRef.current) return;
     setIsConnected(false);
     setStatusText("Disconnected");
     setVolume(0);
@@ -861,6 +1130,12 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
     nextStartTimeRef.current = 0;
   };
 
+  useEffect(() => {
+    if (showReviewScreen) {
+      disconnect();
+    }
+  }, [showReviewScreen]);
+
   const handleLanguageChange = (lang: 'EN' | 'ES') => {
     if (selectedLang === lang) return;
     
@@ -896,7 +1171,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
 
       // Automatically transition tab on subway map keywords
       if (/(subway\s*map|metro\s*map|network\s*grid|subway\s*grid|subway\s*system|mapa\s*de\s*metro|mapa\s*del\s*metro|red\s*de\s*metro|transit\s*map|mapa\s*de\s*tr[aá]nsito)/i.test(text)) {
-        setLeftPanelTab('subway_map');
+        setRightPanelTab('lessons');
+        setClassroomSubTab('subway_map');
       }
 
       if (!isConnected) {
@@ -926,9 +1202,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
       }
     ]);
 
-    // Automatically transition tab on subway map keywords
+    // Automatically transition subtab on subway map keywords
     if (/(subway\s*map|metro\s*map|network\s*grid|subway\s*grid|subway\s*system|mapa\s*de\s*metro|mapa\s*del\s*metro|red\s*de\s*metro|transit\s*map|mapa\s*de\s*tr[aá]nsito)/i.test(textToSend)) {
-      setLeftPanelTab('subway_map');
+      setClassroomSubTab('subway_map');
     }
 
     if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -938,57 +1214,152 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
     }
   };
 
-  return (
-    <div className={`
-        relative flex flex-col items-center justify-center overflow-y-auto md:overflow-hidden p-4 md:p-8
-        ${isWidgetMode ? 'w-full h-full bg-zinc-950' : 'w-full min-h-screen bg-zinc-950'}
-        text-white font-sans transition-all duration-300
-    `}>
+     return (
+       <div className={`
+           relative flex flex-col items-center justify-center overflow-y-auto md:overflow-hidden p-4 md:p-8
+           ${isWidgetMode ? 'w-full h-full bg-black' : 'w-full min-h-screen bg-black'}
+           text-zinc-900 font-sans transition-all duration-300
+       `}>
         <style dangerouslySetInnerHTML={{__html: `
-            @keyframes yellowNeonPulse {
+            @keyframes blackNeonPulse {
                 0% {
                     text-shadow:
-                        0 0 4px #eab308,
-                        0 0 8px #eab308,
-                        0 0 15px rgba(234, 179, 8, 0.9),
-                        0 0 30px rgba(234, 179, 8, 0.7);
+                        0 0 4px #000000,
+                        0 0 8px #000000,
+                        0 0 15px rgba(0, 0, 0, 0.9),
+                        0 0 30px rgba(0, 0, 0, 0.7);
                 }
                 50% {
                     text-shadow:
-                        0 0 6px #eab308,
-                        0 0 12px #eab308,
-                        0 0 25px rgba(234, 179, 8, 0.95),
-                        0 0 50px rgba(234, 179, 8, 0.95),
-                        0 0 80px rgba(234, 179, 8, 0.75);
+                        0 0 6px #000000,
+                        0 0 12px #000000,
+                        0 0 25px rgba(0, 0, 0, 0.95),
+                        0 0 50px rgba(0, 0, 0, 0.95),
+                        0 0 80px rgba(0, 0, 0, 0.75);
                 }
                 100% {
                     text-shadow:
-                        0 0 4px #eab308,
-                        0 0 8px #eab308,
-                        0 0 15px rgba(234, 179, 8, 0.9),
-                        0 0 30px rgba(234, 179, 8, 0.7);
+                        0 0 4px #000000,
+                        0 0 8px #000000,
+                        0 0 15px rgba(0, 0, 0, 0.9),
+                        0 0 30px rgba(0, 0, 0, 0.7);
                 }
             }
-            .animate-yellow-neon-glow {
-                animation: yellowNeonPulse 2.5s ease-in-out infinite;
+            .animate-black-neon-glow {
+                animation: blackNeonPulse 2.5s ease-in-out infinite;
+            }
+            .theme-light {
+                background-color: #f5efe6 !important;
+            }
+            .theme-light .bg-black\\/45 {
+                background-color: transparent !important;
+                color: #18181b !important;
+            }
+            .theme-light .border-white\\/10 {
+                border: none !important;
+            }
+            .theme-light .text-white {
+                color: #18181b !important;
+            }
+            .theme-light .text-neutral-100 {
+                color: #18181b !important;
+            }
+            .theme-light .text-neutral-200 {
+                color: #27272a !important;
+            }
+            .theme-light .text-neutral-300 {
+                color: #3f3f46 !important;
+            }
+            .theme-light .text-neutral-400 {
+                color: #71717a !important;
+            }
+            .theme-light .bg-zinc-100 {
+                background-color: #faf9f6 !important;
+            }
+            .theme-light .bg-white\\/5 {
+                background-color: #faf9f6 !important;
+                border: none !important;
+            }
+            .theme-light .bg-\\[\\#1f1f23\\]\\/60 {
+                background-color: #faf9f6 !important;
+                border: none !important;
+            }
+            .theme-light .border-white\\/5 {
+                border: none !important;
+            }
+            .theme-light .text-yellow-400 {
+                color: #ca8a04 !important;
+            }
+            .theme-light .bg-yellow-500\\/10 {
+                background-color: rgba(202, 138, 4, 0.1) !important;
+            }
+            .theme-light .border-yellow-500\\/30 {
+                border: none !important;
+            }
+            .theme-light .text-emerald-400 {
+                color: #059669 !important;
+            }
+            .theme-light .bg-white {
+                background-color: #18181b !important;
+                color: #ffffff !important;
+            }
+            .theme-light .text-neutral-500 {
+                color: #71717a !important;
+            }
+            .theme-light button.bg-black {
+                color: #ffffff !important;
+            }
+            .theme-light [class*="border"],
+            .tab-content-area [class*="border"] {
+                border: none !important;
+            }
+            .tab-content-area .text-xs,
+            .tab-content-area .text-\\[12px\\],
+            .tab-content-area .text-sm,
+            .tab-content-area .text-\\[14px\\] {
+                font-size: 18.5px !important;
+                line-height: 1.6 !important;
+            }
+            .tab-content-area .text-\\[10px\\],
+            .tab-content-area .text-\\[9px\\],
+            .tab-content-area .text-neutral-400 {
+                font-size: 14.5px !important;
+            }
+            .tab-content-area .text-lg,
+            .tab-content-area .text-xl,
+            .tab-content-area h3 {
+                font-size: 22px !important;
+            }
+            .tab-content-area p {
+                font-size: 18.5px !important;
+                line-height: 1.6 !important;
+            }
+            .tab-content-area .chat-message-text {
+                font-family: "American Typewriter", "Courier New", Courier, Georgia, serif !important;
+                font-size: 12pt !important;
+            }
+            .tab-content-area input,
+            .tab-content-area textarea,
+            .tab-content-area select,
+            .tab-content-area button {
+                font-size: 14.5px !important;
+            }
+            .tab-content-area label {
+                font-size: 14px !important;
             }
         `}} />
         {/* Background Image & Overlay */}
         {!isWidgetMode && (
-             <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
-                 <img src="https://images.unsplash.com/photo-1516905041604-7935af78f5fa?q=80&w=2070&auto=format&fit=crop" 
-                      alt="Prism Background" 
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover" />
-                 <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/95 via-zinc-900/90 to-zinc-950/98 backdrop-blur-md"></div>
+             <div className="absolute inset-0 z-0 pointer-events-none bg-black">
+                 <div className="absolute inset-0 bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] opacity-50"></div>
              </div>
-         )}
+        )}
 
         {/* Outer Grid Layout */}
         <div className={`relative z-10 flex flex-col md:flex-row items-stretch justify-center w-full ${isWidgetMode ? 'max-w-full h-full space-y-4 md:space-y-0 md:space-x-4' : 'max-w-6xl space-y-8 md:space-y-0 md:space-x-8 animate-fade-in'}`}>
             
             {/* Left Column */}
-            <div className="w-full md:w-5/12 max-w-md mx-auto md:mx-0 flex flex-col items-center justify-between space-y-6 bg-[#16161a]/85 border border-white/10 backdrop-blur-2xl rounded-3xl p-6 shadow-2xl relative">
+            <div className="w-full md:w-5/12 max-w-md mx-auto md:mx-0 flex flex-col items-center justify-between space-y-6 bg-[#0a192f] backdrop-blur-2xl rounded-3xl p-6 shadow-2xl relative border border-blue-900/60">
                 
                 {isWidgetMode && onClose && (
                     <button onClick={onClose} className="absolute top-2 right-2 text-white/50 hover:text-white cursor-pointer">
@@ -999,262 +1370,84 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                 )}
 
                 <div className="text-center mt-4 flex flex-col items-center w-full">
-                    <h1 className="font-tech uppercase text-4xl md:text-5xl font-black tracking-wider text-[#0d0d0d] animate-yellow-neon-glow">
-                        I AM VOYAGER
+                    <h1 className="font-tech uppercase text-4xl md:text-5xl font-black tracking-wider text-white animate-black-neon-glow">
+                        YO SOY VOYAGER
                     </h1>
                     <p className="text-[10px] md:text-xs text-yellow-400 font-mono tracking-widest uppercase mt-1">
-                        {selectedLang === 'EN' ? 'NYC Guide & Language Tutor' : 'Guía de NYC y Tutor de Idiomas'}
+                        Guía de NYC y Tutor de Inglés
                     </p>
                 </div>
 
-                {!isConnected ? (
-                    <div className="w-full flex-1 flex flex-col items-center justify-center space-y-6 py-4 animate-fade-in">
-                        <style dangerouslySetInnerHTML={{__html: `
-                            @keyframes orbFluid {
-                                0%, 100% { border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
-                                33% { border-radius: 70% 30% 52% 48% / 60% 40% 60% 40%; }
-                                66% { border-radius: 50% 50% 30% 70% / 40% 60% 30% 70%; }
-                            }
-                            .animate-orb-fluid {
-                                animation: orbFluid 10s ease-in-out infinite;
-                            }
-                            @keyframes zeroGFloat {
-                                0% { transform: translateY(0px) rotate(0deg) scale(1); }
-                                25% { transform: translateY(-6px) rotate(0.8deg) scale(1.008); }
-                                50% { transform: translateY(-12px) rotate(-0.5deg) scale(1.015); }
-                                75% { transform: translateY(-6px) rotate(-1deg) scale(1.008); }
-                                100% { transform: translateY(0px) rotate(0deg) scale(1); }
-                            }
-                            .animate-float-zero-g {
-                                animation: zeroGFloat 7s ease-in-out infinite;
-                            }
-                        `}} />
+                <div className="w-full flex-1 flex flex-col items-center justify-center space-y-6 py-4 animate-fade-in">
+                    <style dangerouslySetInnerHTML={{__html: `
+                        @keyframes orbFluid {
+                            0%, 100% { border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
+                            33% { border-radius: 70% 30% 52% 48% / 60% 40% 60% 40%; }
+                            66% { border-radius: 50% 50% 30% 70% / 40% 60% 30% 70%; }
+                        }
+                        .animate-orb-fluid {
+                            animation: orbFluid 10s ease-in-out infinite;
+                        }
+                        @keyframes zeroGFloat {
+                            0% { transform: translateY(0px) rotate(0deg) scale(1); }
+                            25% { transform: translateY(-6px) rotate(0.8deg) scale(1.008); }
+                            50% { transform: translateY(-12px) rotate(-0.5deg) scale(1.015); }
+                            75% { transform: translateY(-6px) rotate(-1deg) scale(1.008); }
+                            100% { transform: translateY(0px) rotate(0deg) scale(1); }
+                        }
+                        @keyframes yellowGlowPulse {
+                            0%, 100% { box-shadow: 0 0 10px rgba(234, 179, 8, 0.4), 0 0 5px rgba(234, 179, 8, 0.2); }
+                            50% { box-shadow: 0 0 24px rgba(234, 179, 8, 0.85), 0 0 12px rgba(234, 179, 8, 0.5); }
+                        }
+                        .animate-yellow-glow-pulse {
+                            animation: yellowGlowPulse 2.5s ease-in-out infinite;
+                        }
+                    `}} />
 
-                        <div className="relative flex items-center justify-center w-64 h-[380px]">
-                            <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-tr from-yellow-500/10 via-amber-500/15 to-orange-500/10 blur-3xl animate-pulse duration-[3000ms]"></div>
-                            
-                            <div className="relative w-full h-full flex flex-col items-center justify-center -translate-y-[70px]">
-                                <canvas 
-                                    ref={particleCanvasRef} 
-                                    width={240} 
-                                    height={240} 
-                                    className="z-20 transition-transform duration-75"
-                                    style={{ transform: `scale(1.0)` }}
-                                />
-                            </div>
- 
-                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 z-20">
+                    <div className="relative flex items-center justify-center w-64 h-[380px]">
+                        <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-tr from-yellow-500/10 via-amber-500/15 to-orange-500/10 blur-3xl animate-pulse duration-[3000ms]"></div>
+                        
+                        <div className="relative w-full h-full flex flex-col items-center justify-center -translate-y-[70px]">
+                            <canvas 
+                                ref={particleCanvasRef} 
+                                width={360} 
+                                height={360} 
+                                className="z-20 transition-transform duration-75 animate-float-zero-g"
+                            />
+                        </div>
+
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 z-20">
+                            {isConnected ? (
+                                <button
+                                    onClick={handleEndConversation}
+                                    className="px-3.5 py-1 text-[10px] font-sans font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer bg-zinc-900 text-white border border-zinc-700 shadow-md hover:bg-zinc-800 active:scale-95 whitespace-nowrap"
+                                >
+                                    {translations[selectedLang].disconnectBtn}
+                                </button>
+                            ) : (
                                 <button
                                     onClick={() => {
                                         if (statusText === "Connecting...") return;
                                         const isEn = selectedLang === 'EN';
                                         const prompt = isEn 
-                                            ? "Hello! Let's talk in English. Please introduce yourself in one short sentence, and ask how you can help. If you hear people speaking Spanish, ask them if they prefer to switch to Spanish."
-                                            : "¡Hola! Hablemos en español. Por favor, preséntate en una frase corta y pregúntame cómo puedes ayudar. Si escuchas a alguien hablando inglés, pregúntale si prefiere hablar en inglés para cambiar de idioma.";
+                                            ? "Hello! Please introduce yourself in one short sentence, and ask how you can help."
+                                            : "¡Hola! Por favor, preséntate en una frase corta y pregúntame cómo te puedo ayudar.";
                                         connectToGemini(prompt, true);
                                     }}
                                     disabled={statusText === "Connecting..."}
-                                    className={`px-3.5 py-1 text-[10px] font-mono font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap ${
+                                    className={`px-7 py-2.5 text-[12.5px] font-mono font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap ${
                                         statusText === "Connecting..."
                                         ? 'bg-emerald-600 text-white animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.6)]'
-                                        : 'bg-yellow-500 text-black shadow-[0_0_8px_rgba(234,179,8,0.5)] hover:bg-yellow-400 hover:shadow-[0_0_12px_rgba(234,179,8,0.7)] active:scale-95'
+                                        : 'bg-white text-black animate-yellow-glow-pulse hover:bg-zinc-100 hover:scale-[1.02] active:scale-95'
                                     }`}
                                 >
                                     {statusText === "Connecting..." ? translations[selectedLang].connecting : translations[selectedLang].connect}
                                 </button>
-
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleLanguageChange('EN');
-                                    }}
-                                    className={`px-3 py-1 text-[10px] font-mono font-bold tracking-wider rounded-full transition-all cursor-pointer ${
-                                        selectedLang === 'EN' 
-                                        ? 'bg-yellow-500 text-black shadow-[0_0_8px_rgba(234,179,8,0.5)]' 
-                                        : 'bg-yellow-500/50 text-black hover:bg-yellow-500/90'
-                                    }`}
-                                >
-                                    EN
-                                </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleLanguageChange('ES');
-                                    }}
-                                    className={`px-3 py-1 text-[10px] font-mono font-bold tracking-wider rounded-full transition-all cursor-pointer ${
-                                        selectedLang === 'ES' 
-                                        ? 'bg-yellow-500 text-black shadow-[0_0_8px_rgba(234,179,8,0.5)]' 
-                                        : 'bg-yellow-500/50 text-black hover:bg-yellow-500/90'
-                                    }`}
-                                >
-                                    ES
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="w-full flex-1 flex flex-col items-center justify-between space-y-3 py-1 animate-fade-in h-full">
-                        {/* Tab Switcher */}
-                        <div className="grid grid-cols-4 bg-black/40 p-1 rounded-xl border border-white/10 w-full gap-1">
-                            <button
-                                onClick={() => setLeftPanelTab('map')}
-                                className={`py-1.5 text-[9px] md:text-[10px] font-mono font-bold tracking-wider uppercase rounded-lg transition-all cursor-pointer ${
-                                    leftPanelTab === 'map'
-                                    ? 'bg-yellow-500 text-black font-extrabold shadow-md'
-                                    : 'text-neutral-400 hover:text-white'
-                                }`}
-                            >
-                                🗺️ {selectedLang === 'EN' ? 'Map' : 'Mapa'}
-                            </button>
-                            <button
-                                onClick={() => setLeftPanelTab('subway_map')}
-                                className={`py-1.5 text-[9px] md:text-[10px] font-mono font-bold tracking-wider uppercase rounded-lg transition-all cursor-pointer ${
-                                    leftPanelTab === 'subway_map'
-                                    ? 'bg-yellow-500 text-black font-extrabold shadow-md'
-                                    : 'text-neutral-400 hover:text-white'
-                                }`}
-                            >
-                                🚇 {selectedLang === 'EN' ? 'Network' : 'Red'}
-                            </button>
-                            <button
-                                onClick={() => setLeftPanelTab('subway')}
-                                className={`py-1.5 text-[9px] md:text-[10px] font-mono font-bold tracking-wider uppercase rounded-lg transition-all cursor-pointer ${
-                                    leftPanelTab === 'subway'
-                                    ? 'bg-yellow-500 text-black font-extrabold shadow-md'
-                                    : 'text-neutral-400 hover:text-white'
-                                }`}
-                            >
-                                📖 {selectedLang === 'EN' ? 'Guide' : 'Guía'}
-                            </button>
-                            <button
-                                onClick={() => setLeftPanelTab('tasks')}
-                                className={`py-1.5 text-[9px] md:text-[10px] font-mono font-bold tracking-wider uppercase rounded-lg transition-all cursor-pointer ${
-                                    leftPanelTab === 'tasks'
-                                    ? 'bg-yellow-500 text-black font-extrabold shadow-md'
-                                    : 'text-neutral-400 hover:text-white'
-                                }`}
-                            >
-                                📋 {selectedLang === 'EN' ? 'Tasks' : 'Tareas'}
-                            </button>
-                        </div>
-
-                        {/* Interactive Content */}
-                        <div className="w-full h-[320px] md:h-[390px] rounded-2xl overflow-hidden relative">
-                            {leftPanelTab === 'map' ? (
-                                <NycMap 
-                                    center={mapCenter} 
-                                    zoom={mapZoom} 
-                                    markers={markers} 
-                                    routeInfo={routeInfo} 
-                                    onSelectPlace={(place) => {
-                                        setInputText(`Tell me about ${place}`);
-                                    }}
-                                />
-                            ) : leftPanelTab === 'subway_map' ? (
-                                <NycSubwayMap 
-                                    selectedLang={selectedLang}
-                                    onAskVoyager={(text) => {
-                                        setInputText(text);
-                                        if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                                            wsRef.current.send(JSON.stringify({ text }));
-                                            setChatMessages(prev => [
-                                                ...prev,
-                                                {
-                                                    id: `msg_map_${Date.now()}`,
-                                                    sender: 'user',
-                                                    text,
-                                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                                    timeMs: Date.now()
-                                                }
-                                            ]);
-                                        } else {
-                                            setChatMessages(prev => [
-                                                ...prev,
-                                                {
-                                                    id: `msg_map_${Date.now()}`,
-                                                    sender: 'user',
-                                                    text,
-                                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                                    timeMs: Date.now()
-                                                }
-                                            ]);
-                                            connectToGemini(text, false);
-                                        }
-                                    }}
-                                    onSelectStationOnMap={(stationName, lat, lng) => {
-                                        setMapCenter({ lat, lng });
-                                        setMapZoom(15);
-                                        setMarkers([{
-                                            id: `station_${Date.now()}`,
-                                            lat,
-                                            lng,
-                                            title: stationName,
-                                            description: selectedLang === 'EN' ? `Subway Station: ${stationName}` : `Estación de metro: ${stationName}`
-                                        }]);
-                                        setLeftPanelTab('map');
-                                    }}
-                                />
-                            ) : leftPanelTab === 'subway' ? (
-                                <SubwayGuide 
-                                    selectedLang={selectedLang}
-                                    onSelectStation={(station) => {
-                                        setMapCenter({ lat: station.latitude, lng: station.longitude });
-                                        setMapZoom(15);
-                                        setMarkers([{
-                                            id: station.id,
-                                            lat: station.latitude,
-                                            lng: station.longitude,
-                                            title: selectedLang === 'EN' ? station.name : station.nameEs,
-                                            description: selectedLang === 'EN' ? station.descriptionEn : station.descriptionEs
-                                        }]);
-                                        setLeftPanelTab('map');
-                                    }}
-                                    onAskVoyager={(text) => {
-                                        setInputText(text);
-                                    }}
-                                />
-                            ) : (
-                                <TasksManager 
-                                    selectedLang={selectedLang}
-                                    onAskVoyager={(text) => {
-                                        setInputText(text);
-                                    }}
-                                />
                             )}
-                        </div>
-                        
-                        <div className="flex flex-col items-center gap-2 w-full">
-                            <div className="flex items-center gap-2 text-[10px] text-yellow-400 font-mono tracking-widest uppercase">
-                                <span className="relative flex h-2 w-2">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
-                                </span>
-                                <span>VOYAGER LIVE 🎙️</span>
-                                <div className="flex items-end gap-0.5 h-3">
-                                    {[1, 2, 3, 4, 5].map((bar) => {
-                                        const isActive = (volume / 100) * 5 >= bar;
-                                        return (
-                                            <div 
-                                                key={bar} 
-                                                className={`w-0.5 rounded-full transition-all duration-75 ${
-                                                    isActive ? 'bg-yellow-400' : 'bg-white/10'
-                                                }`}
-                                                style={{ height: isActive ? `${bar * 20}%` : '20%' }}
-                                            />
-                                        );
-                                    })}
-                                </div>
-                            </div>
 
-                            <button
-                                onClick={handleEndConversation}
-                                className="px-5 py-1.5 text-[10px] font-mono font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer bg-black border border-yellow-500/40 text-yellow-400 hover:bg-yellow-500 hover:text-black hover:shadow-[0_0_12px_rgba(234,179,8,0.5)] active:scale-95 whitespace-nowrap"
-                            >
-                                {translations[selectedLang].disconnectBtn}
-                            </button>
                         </div>
                     </div>
-                )}
+                </div>
  
                 {error && (
                     <div className="w-full bg-red-950/45 border border-red-500/35 rounded-xl p-3 text-center space-y-2 animate-fade-in max-w-sm shadow-lg backdrop-blur-md mb-2">
@@ -1279,12 +1472,48 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                 )}
             </div>
 
-            {/* Right Column */}
-            <div className="w-full md:w-7/12 mx-auto md:mx-0 flex-1 flex flex-col justify-between bg-[#16161a] border border-white/10 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl min-h-[480px] md:min-h-[580px] font-tech relative">
+            <div className={`w-full md:w-7/12 mx-auto md:mx-0 flex-1 flex flex-col justify-between backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl min-h-[480px] md:min-h-[580px] font-tech relative transition-all duration-500 ${showReviewScreen ? 'bg-zinc-950 text-white shadow-[0_10px_35px_rgba(0,0,0,0.3)]' : 'bg-white text-zinc-900 shadow-[0_10px_35px_rgba(0,0,0,0.08)] theme-light'}`}>
+                
+                {isConnected && !showReviewScreen && !showLeadsDashboard && (
+                    <div className="px-4 pt-14 pb-2 z-20">
+                        <div className="grid grid-cols-3 p-1 rounded-xl w-full gap-1 transition-all bg-zinc-100">
+                            <button
+                                onClick={() => setRightPanelTab('chat')}
+                                className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
+                                    rightPanelTab === 'chat'
+                                    ? 'bg-black text-white font-extrabold shadow-md'
+                                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
+                                }`}
+                            >
+                                {selectedLang === 'EN' ? 'Chat' : 'Chat'}
+                            </button>
+                            <button
+                                onClick={() => setRightPanelTab('lessons')}
+                                className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
+                                    rightPanelTab === 'lessons'
+                                    ? 'bg-black text-white font-extrabold shadow-md'
+                                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
+                                }`}
+                            >
+                                {selectedLang === 'EN' ? 'Lessons' : 'Lecciones'}
+                            </button>
+                            <button
+                                onClick={() => setRightPanelTab('missions')}
+                                className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
+                                    rightPanelTab === 'missions'
+                                    ? 'bg-black text-white font-extrabold shadow-md'
+                                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
+                                }`}
+                            >
+                                {selectedLang === 'EN' ? 'Missions' : 'Misiones'}
+                            </button>
+                        </div>
+                    </div>
+                )}
                 
                 <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-30">
                     <div>
-                        {(import.meta as any).env.DEV && (
+                        {(import.meta as any).env.DEV && hasInteracted && (
                             <button
                               onClick={() => {
                                 setShowLeadsDashboard(!showLeadsDashboard);
@@ -1292,7 +1521,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                   fetchLeads();
                                 }
                               }}
-                              className={`px-3 py-1 text-[10px] tracking-wider uppercase border rounded-full transition-all flex items-center gap-1 cursor-pointer pointer-events-auto bg-black/60 border-white/15 text-neutral-400 hover:text-white hover:border-yellow-500/50 shadow-md min-h-[26px]`}
+                              className="px-3 py-1 text-[10px] tracking-wider uppercase border rounded-full transition-all flex items-center gap-1 cursor-pointer pointer-events-auto shadow-md min-h-[26px] bg-zinc-100 border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-yellow-600"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -1303,188 +1532,195 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                     </div>
                     <div>
                         {isConnected && !showReviewScreen && !showLeadsDashboard && (
-                            <span className="text-[10px] font-bold tracking-wider text-yellow-400 bg-black/60 border border-white/15 px-2 py-0.5 rounded-full shadow-sm animate-pulse pointer-events-auto">
+                            <span className="text-[10px] font-bold tracking-wider border px-2 py-0.5 rounded-full shadow-sm animate-pulse pointer-events-auto transition-all text-yellow-600 bg-zinc-100 border-zinc-200">
                                 {translations[selectedLang].session}: {Math.floor(secondsElapsed / 60)}:{(secondsElapsed % 60).toString().padStart(2, '0')}
                             </span>
                         )}
                     </div>
                 </div>
 
-                {showLeadsDashboard && (import.meta as any).env.DEV ? (
-                    <div className="flex-1 overflow-y-auto p-4 pt-12 space-y-4 max-h-[350px] md:max-h-[440px] bg-black/20">
-                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                {showLeadsDashboard ? (
+                    <div className="flex-1 flex flex-col p-4 pt-12 space-y-4 h-full bg-black/25 overflow-hidden">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2 flex-shrink-0">
                             <h4 className="text-xs font-mono tracking-wider uppercase text-emerald-400">{translations[selectedLang].databaseCapturedLeads} ({serverLeads.length})</h4>
                             <button onClick={() => setShowLeadsDashboard(false)} className="text-xs text-neutral-400 hover:text-white underline cursor-pointer">{translations[selectedLang].backToChat}</button>
                         </div>
 
-                        {serverLeads.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-48 space-y-2 text-center">
-                                <span className="text-3xl text-neutral-500">📁</span>
-                                <p className="text-sm text-neutral-400">{translations[selectedLang].noLeads}</p>
-                                <p className="text-xs text-neutral-500 max-w-xs leading-relaxed">{translations[selectedLang].fillFormTest}</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {serverLeads.map((lead) => (
-                                    <div key={lead.id} className="bg-[#1f1f23] border border-white/10 shadow-sm rounded-xl p-3 space-y-2 text-xs">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="font-semibold text-white text-sm">{lead.name}</p>
-                                                <p className="text-neutral-400 font-mono">{lead.email}</p>
-                                            </div>
-                                            <span className="text-[10px] font-mono text-neutral-300 bg-white/5 px-2 py-0.5 rounded-full">
-                                                {new Date(lead.createdAt).toLocaleDateString()}
-                                            </span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 border-t border-white/5 pt-2 text-[11px] text-neutral-300">
-                                            {lead.company && <p>🏢 <strong className="text-neutral-500">{selectedLang === 'EN' ? 'Company' : 'Empresa'}:</strong> {lead.company}</p>}
-                                            {lead.phone && <p>📞 <strong className="text-neutral-500">{selectedLang === 'EN' ? 'Phone' : 'Teléfono'}:</strong> {lead.phone}</p>}
-                                        </div>
-                                        {lead.notes && (
-                                            <div className="bg-black/35 p-2 rounded border border-white/5 text-neutral-300 text-[11px] whitespace-pre-wrap">
-                                                <strong className="text-neutral-400">{selectedLang === 'EN' ? 'Requirements' : 'Requisitos'}:</strong> {lead.notes}
-                                            </div>
-                                        )}
-                                        {lead.chatTranscript && lead.chatTranscript.length > 0 && (
-                                            <details className="mt-2 text-[10px] text-neutral-400">
-                                                <summary className="cursor-pointer hover:text-white select-none">{translations[selectedLang].viewSavedTranscript} ({lead.chatTranscript.length} lines)</summary>
-                                                <div className="mt-1 space-y-1 bg-black/35 p-2 rounded max-h-24 overflow-y-auto text-[9px] border border-white/5">
-                                                    {lead.chatTranscript.map((t, idx) => (
-                                                        <div key={idx} className={t.sender === 'user' ? 'text-emerald-400' : 'text-neutral-300'}>
-                                                            <strong className="uppercase text-[8px]">{t.sender}:</strong> {t.text}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </details>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                ) : showReviewScreen ? (
-                    <div className="flex-1 flex flex-col justify-center items-center p-6 pt-12 space-y-5 animate-fade-in bg-black/20">
-                        {reviewSubmitted ? (
-                            <div className="text-center space-y-4 max-w-sm">
-                                <div className="w-16 h-16 bg-emerald-950/40 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-800">
-                                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                                <h3 className="text-xl text-white font-bold uppercase tracking-wider">{translations[selectedLang].thankYouReview}</h3>
-                                <button
-                                    onClick={() => {
-                                      setShowReviewScreen(false);
-                                      setReviewSubmitted(false);
-                                      setReviewRating(0);
-                                      setReviewText("");
-                                      setChatMessages([
-                                        {
-                                          id: 'welcome_1',
-                                          sender: 'splash',
-                                          text: 'Hi! I\'m SPLASH, your Voice AI marketing consultant. Click Connect to start a voice-and-text conversation.',
-                                          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                          timeMs: Date.now()
-                                        }
-                                      ]);
-                                    }}
-                                    className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-bold uppercase tracking-widest rounded-xl transition-all cursor-pointer min-h-[38px]"
-                                >
-                                    {translations[selectedLang].backToConsole}
-                                </button>
-                            </div>
-                        ) : (
-                            <form onSubmit={handleReviewSubmit} className="w-full max-w-md bg-[#16161a] border border-white/10 rounded-3xl p-6 shadow-sm space-y-4">
-                                <div className="text-center">
-                                    <span className="text-xs tracking-widest uppercase text-yellow-500">FEEDBACK</span>
-                                    <h3 className="text-lg text-white font-bold uppercase tracking-wider mt-1">{translations[selectedLang].reviewChat}</h3>
-                                </div>
+                        {/* Interactive Google Map in LUGARES GUARDADOS */}
+                        <div className="h-[200px] md:h-[250px] w-full rounded-2xl overflow-hidden border border-white/10 flex-shrink-0 shadow-md">
+                            <NycMap 
+                                center={mapCenter}
+                                zoom={mapZoom}
+                                markers={markers}
+                                routeInfo={routeInfo}
+                            />
+                        </div>
 
-                                <div className="flex items-center justify-center gap-2 py-2">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                        <button
-                                            key={star}
-                                            type="button"
-                                            onClick={() => setReviewRating(star)}
-                                            className="text-3xl transition-transform hover:scale-110 cursor-pointer focus:outline-none"
-                                            style={{
-                                                color: star <= reviewRating ? '#facc15' : '#374151',
-                                                textShadow: star <= reviewRating ? '0 0 8px rgba(250,204,21,0.5)' : 'none'
-                                            }}
-                                        >
-                                            ★
-                                        </button>
+                        {/* Scrollable List of Saved Spots */}
+                        <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[160px] md:max-h-[220px]">
+                            {serverLeads.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full space-y-2 text-center py-6">
+                                    <span className="text-3xl text-neutral-500">📁</span>
+                                    <p className="text-sm text-neutral-400">{translations[selectedLang].noLeads}</p>
+                                    <p className="text-xs text-neutral-500 max-w-xs leading-relaxed">{translations[selectedLang].fillFormTest}</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {serverLeads.map((lead) => (
+                                        <div key={lead.id} className="bg-[#1f1f23] border border-white/10 shadow-sm rounded-xl p-3 space-y-2 text-xs">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className="font-semibold text-white text-sm">{lead.name}</p>
+                                                    <p className="text-neutral-400 font-mono">{lead.email}</p>
+                                                </div>
+                                                <span className="text-[10px] font-mono text-neutral-300 bg-white/5 px-2 py-0.5 rounded-full">
+                                                    {new Date(lead.createdAt).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 border-t border-white/5 pt-2 text-[11px] text-neutral-300">
+                                                {lead.company && <p>🏢 <strong className="text-neutral-500">{selectedLang === 'EN' ? 'Company' : 'Empresa'}:</strong> {lead.company}</p>}
+                                                {lead.phone && <p>📞 <strong className="text-neutral-500">{selectedLang === 'EN' ? 'Phone' : 'Teléfono'}:</strong> {lead.phone}</p>}
+                                            </div>
+                                            {lead.notes && (
+                                                <div className="bg-black/35 p-2 rounded border border-white/5 text-neutral-300 text-[11px] whitespace-pre-wrap">
+                                                    <strong className="text-neutral-400">{selectedLang === 'EN' ? 'Requirements' : 'Requisitos'}:</strong> {lead.notes}
+                                                </div>
+                                            )}
+                                            {lead.chatTranscript && lead.chatTranscript.length > 0 && (
+                                                <details className="mt-2 text-[10px] text-neutral-400">
+                                                    <summary className="cursor-pointer hover:text-white select-none">{translations[selectedLang].viewSavedTranscript} ({lead.chatTranscript.length} lines)</summary>
+                                                    <div className="mt-1 space-y-1 bg-black/35 p-2 rounded max-h-24 overflow-y-auto text-[9px] border border-white/5">
+                                                        {lead.chatTranscript.map((t, idx) => (
+                                                            <div key={idx} className={t.sender === 'user' ? 'text-emerald-400' : 'text-neutral-300'}>
+                                                                <strong className="uppercase text-[8px]">{t.sender}:</strong> {t.text}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </details>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
+                            )}
+                        </div>
+                    </div>
+                ) : showReviewScreen ? (
+                    <div className="flex-1 flex flex-col justify-between p-6 animate-fade-in bg-zinc-950 tab-content-area">
+                        <div className="text-center mb-4">
+                            <span className="text-xs tracking-widest uppercase text-yellow-500 font-mono">PROGRESO</span>
+                            <h3 className="text-lg text-white font-bold uppercase tracking-wider mt-1">Estadísticas de tu Interacción</h3>
+                        </div>
+                        
+                        <div className="flex-1 flex justify-center items-center overflow-hidden">
+                            <div className="w-full max-w-[95%] md:max-w-[75%] transform scale-95 md:scale-75 origin-center my-auto">
+                                <ProgressDashboard 
+                                    selectedLang={selectedLang}
+                                    scores={scores}
+                                    learnedWords={learnedWords}
+                                    accentPatterns={accentPatterns}
+                                    onAskVoyager={(text) => {
+                                        setShowReviewScreen(false);
+                                        setChatMessages([
+                                          {
+                                            id: 'welcome_1',
+                                            sender: 'splash',
+                                            text: 'Hi! I\'m VOYAGER, your NYC guide and English tutor. Click Connect to start a voice-and-text conversation.',
+                                            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                            timeMs: Date.now()
+                                          }
+                                        ]);
+                                        connectToGemini(text, false);
+                                    }}
+                                />
+                            </div>
+                        </div>
 
-                                <div className="space-y-1">
-                                    <textarea
-                                        value={reviewText}
-                                        onChange={(e) => setReviewText(e.target.value)}
-                                        placeholder={translations[selectedLang].reviewPlaceholder}
-                                        className="w-full px-3 py-2 bg-black/35 border border-white/10 hover:border-yellow-500/50 rounded-xl text-xs text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-yellow-500 focus:bg-black/60 transition-all min-h-[90px] resize-none"
-                                    />
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={reviewRating === 0 || isSubmittingReview}
-                                    className="w-full py-2.5 bg-yellow-500 hover:bg-yellow-600 disabled:bg-neutral-800 disabled:text-neutral-500 text-black font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-[0_4px_12px_rgba(234,179,8,0.15)] hover:shadow-[0_4px_16px_rgba(234,179,8,0.35)] cursor-pointer min-h-[40px] text-center"
-                                >
-                                    {isSubmittingReview ? translations[selectedLang].submittingBtn : translations[selectedLang].submitReview}
-                                </button>
-                            </form>
-                        )}
                     </div>
                 ) : (
                     <>
-                        <div className="flex-1 overflow-y-auto p-4 pt-12 max-h-[350px] md:max-h-[440px]">
+                        {rightPanelTab === 'chat' ? (
+                            <div className={`flex-1 p-4 pt-2 tab-content-area ${
+                                hasInteracted 
+                                ? 'overflow-y-auto max-h-[350px] md:max-h-[440px]' 
+                                : 'h-full flex flex-col items-center justify-center'
+                            }`}>
                             {!hasInteracted ? (
-                                <div className="h-full flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-                                    <div className="w-52 h-52 md:w-60 md:h-60 rounded-full border border-yellow-500/25 shadow-[0_0_25px_rgba(234,179,8,0.25)] overflow-hidden flex items-center justify-center bg-[#16161a]">
-                                        <img 
-                                            src="/src/assets/images/voyager_robot_1783023107438.jpg" 
-                                            alt="VOYAGER Guide" 
-                                            referrerPolicy="no-referrer"
-                                            className="w-full h-full object-cover rounded-full animate-float-zero-g" 
-                                        />
-                                    </div>
-                                    {/* Quick Suggestions row below robot avatar when standing by */}
-                                    <div className="mt-4 flex flex-wrap justify-center gap-1.5 max-w-sm pointer-events-auto">
-                                        {SUGGESTIONS.filter((_, i) => selectedLang === 'EN' ? i % 2 === 0 : i % 2 !== 0).slice(0, 3).map(sug => (
-                                            <button
-                                                key={sug.id}
-                                                onClick={() => handleSuggestionClick(sug.text)}
-                                                className="px-2.5 py-1 bg-white/5 border border-white/10 hover:border-yellow-500/50 hover:bg-white/10 rounded-full text-[10px] text-neutral-300 transition-all cursor-pointer truncate max-w-[200px]"
-                                            >
-                                                {sug.text}
-                                            </button>
-                                        ))}
+                                <div className="w-full h-full flex flex-col items-center justify-center text-center animate-fade-in">
+                                    {/* Slideshow Phone Mockup Wrapper */}
+                                    <div 
+                                        className="relative flex flex-col items-center justify-center"
+                                        onMouseEnter={() => setIsHovered(true)}
+                                        onMouseLeave={() => setIsHovered(false)}
+                                    >
+                                        {/* Slideshow Image Container (No Shadows, Max Size) */}
+                                        <div 
+                                            onClick={() => setActiveFullscreenSlide(slideIndex)}
+                                            className="w-[235px] md:w-[286px] h-[418px] md:h-[506px] rounded-2xl md:rounded-3xl border border-zinc-200/80 bg-neutral-950 relative overflow-hidden cursor-pointer group hover:scale-[1.02] transition-all duration-300"
+                                        >
+                                            {/* Active Slide Canvas (Pixelated Transition) */}
+                                            <CanvasSlideshow 
+                                                slides={slides} 
+                                                slideIndex={slideIndex} 
+                                                transitionDuration={4000} 
+                                            />
+                                            
+                                            {/* Hover Zoom Overlay */}
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-1.5 z-10">
+                                                <svg className="w-6 h-6 text-white animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                                                </svg>
+                                                <span className="text-[10px] md:text-xs font-bold text-white uppercase tracking-wider">
+                                                    {selectedLang === 'EN' ? 'Expand' : 'Ampliar'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Left Navigation Arrow */}
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSlideIndex((prev) => (prev - 1 + slides.length) % slides.length);
+                                            }}
+                                            className="absolute left-[-35px] md:left-[-45px] top-1/2 -translate-y-1/2 w-7 h-7 md:w-8 md:h-8 rounded-full bg-yellow-500 hover:bg-yellow-400 hover:scale-105 active:scale-95 text-black flex items-center justify-center border border-yellow-400/50 shadow-sm transition-all cursor-pointer z-10"
+                                            title={selectedLang === 'EN' ? 'Previous' : 'Anterior'}
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                                            </svg>
+                                        </button>
+
+                                        {/* Right Navigation Arrow */}
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSlideIndex((prev) => (prev + 1) % slides.length);
+                                            }}
+                                            className="absolute right-[-35px] md:right-[-45px] top-1/2 -translate-y-1/2 w-7 h-7 md:w-8 md:h-8 rounded-full bg-yellow-500 hover:bg-yellow-400 hover:scale-105 active:scale-95 text-black flex items-center justify-center border border-yellow-400/50 shadow-sm transition-all cursor-pointer z-10"
+                                            title={selectedLang === 'EN' ? 'Next' : 'Siguiente'}
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="min-h-full flex flex-col justify-end space-y-4">
                                 {chatMessages.map((msg) => {
                             if (msg.sender === 'system') {
-                                return (
-                                    <div key={msg.id} className="flex justify-center py-1">
-                                        <span className="text-[9px] uppercase tracking-widest text-neutral-400 font-bold text-center">
-                                            {getTranslatedMessageText(msg, selectedLang)}
-                                        </span>
-                                    </div>
-                                );
+                                return null;
                             }
 
                             const isUser = msg.sender === 'user';
                             return (
                                 <div key={msg.id} className={`flex items-start ${isUser ? 'justify-end' : 'justify-start'} gap-2.5 animate-fade-in`}>
                                     {!isUser && (
-                                        <div className="w-10 h-10 flex-shrink-0 rounded-full border border-yellow-500/35 overflow-hidden flex items-center justify-center bg-[#16161a] shadow-[0_0_8px_rgba(234,179,8,0.25)]">
+                                        <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
                                             <img 
-                                                src="/src/assets/images/voyager_robot_1783023107438.jpg" 
+                                                src={voyagerRobot} 
                                                 alt="Voyager Guide" 
                                                 referrerPolicy="no-referrer"
-                                                className="w-full h-full object-cover rounded-full" 
+                                                className="w-full h-full object-contain rounded-lg" 
                                             />
                                         </div>
                                     )}
@@ -1493,10 +1729,10 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                             px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-md transition-all
                                             ${isUser 
                                                 ? 'bg-gradient-to-br from-yellow-500/85 to-yellow-600/90 border border-yellow-400/30 backdrop-blur-md text-black rounded-tr-none font-semibold' 
-                                                : 'bg-[#1f1f23] border border-white/10 text-neutral-100 rounded-tl-none'
+                                                : 'bg-zinc-100 border border-zinc-200/60 text-zinc-800 rounded-tl-none'
                                             }
                                         `}>
-                                            <p className="whitespace-pre-line tracking-wider leading-relaxed">{getTranslatedMessageText(msg, selectedLang)}</p>
+                                            <p className="chat-message-text whitespace-pre-line tracking-wider leading-relaxed">{getTranslatedMessageText(msg, selectedLang)}</p>
                                             
                                             {!isUser && msg.showForm && (
                                                 <div className="border-t border-white/10 pt-3 mt-3 space-y-2.5">
@@ -1803,7 +2039,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                 </div>
                                             )}
                                         </div>
-                                        <span className="text-[10px] text-neutral-500 px-1">{msg.timestamp}</span>
+                                        {/* Timestamp removed */}
                                     </div>
                                 </div>
                             );
@@ -1811,18 +2047,96 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 <div ref={chatEndRef} />
                             </div>
                         )}
-                    </div>
+                            </div>
+                        ) : (
+                            <div className="flex-1 overflow-y-auto p-4 max-h-[390px] md:max-h-[440px] tab-content-area">
+                                {rightPanelTab === 'lessons' && (
+                                    <Curriculum 
+                                        selectedLang={selectedLang}
+                                        activeDay={activeDay}
+                                        onSelectDay={setActiveDay}
+                                        onAskVoyager={(text) => {
+                                            setRightPanelTab('chat');
+                                            setInputText(text);
+                                            if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                                wsRef.current.send(JSON.stringify({ text }));
+                                                setChatMessages(prev => [
+                                                    ...prev,
+                                                    {
+                                                        id: `msg_lessons_${Date.now()}`,
+                                                        sender: 'user',
+                                                        text,
+                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                        timeMs: Date.now()
+                                                    }
+                                                ]);
+                                            } else {
+                                                setChatMessages(prev => [
+                                                    ...prev,
+                                                    {
+                                                        id: `msg_lessons_${Date.now()}`,
+                                                        sender: 'user',
+                                                        text,
+                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                        timeMs: Date.now()
+                                                    }
+                                                ]);
+                                                connectToGemini(text, false);
+                                            }
+                                        }}
+                                    />
+                                )}
+                                {rightPanelTab === 'missions' && (
+                                    <Missions 
+                                        selectedLang={selectedLang}
+                                        activeDay={activeDay}
+                                        completedMissions={completedMissions}
+                                        onToggleMission={handleToggleMission}
+                                        onAskVoyager={(text) => {
+                                            setRightPanelTab('chat');
+                                            setInputText(text);
+                                            if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                                wsRef.current.send(JSON.stringify({ text }));
+                                                setChatMessages(prev => [
+                                                    ...prev,
+                                                    {
+                                                        id: `msg_missions_${Date.now()}`,
+                                                        sender: 'user',
+                                                        text,
+                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                        timeMs: Date.now()
+                                                    }
+                                                ]);
+                                            } else {
+                                                setChatMessages(prev => [
+                                                    ...prev,
+                                                    {
+                                                        id: `msg_missions_${Date.now()}`,
+                                                        sender: 'user',
+                                                        text,
+                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                        timeMs: Date.now()
+                                                    }
+                                                ]);
+                                                connectToGemini(text, false);
+                                            }
+                                        }}
+                                    />
+                                )}
 
-                    {!showReviewScreen && !showLeadsDashboard && (
+                            </div>
+                        )}
+
+                    {!showReviewScreen && !showLeadsDashboard && rightPanelTab === 'chat' && hasInteracted && (
                         <div className="px-4 pb-4 bg-transparent flex items-start gap-2.5 w-full">
                             <div className="w-10 flex-shrink-0 bg-transparent" />
-                            <form onSubmit={handleSendMessage} className="flex-1 max-w-[78%] relative bg-[#1f1f23] rounded-xl border border-white/10 hover:border-yellow-500/50 transition-all">
+                            <form onSubmit={handleSendMessage} className="flex-1 max-w-[78%] relative rounded-xl transition-all bg-[#fcd34d]">
                                 <input
                                     type="text"
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                     placeholder={placeholderText}
-                                    className="w-full pl-4 pr-12 py-2.5 bg-[#1f1f23] hover:bg-[#1f1f23] focus:bg-[#1f1f23] text-sm text-white placeholder:text-yellow-400/70 focus:outline-none transition-all min-h-[44px] border-none rounded-xl"
+                                    className="w-full pl-4 pr-12 py-2.5 text-sm focus:outline-none transition-all min-h-[44px] border-none rounded-xl bg-[#fcd34d] text-zinc-900 placeholder:text-zinc-600/80"
                                     disabled={showLeadsDashboard}
                                 />
                                 <button
@@ -1841,6 +2155,77 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
             )}
         </div>
         </div>
+
+        {activeFullscreenSlide !== null && (
+            <div 
+                className="fixed inset-0 bg-black/90 backdrop-blur-md z-[9999] flex flex-col items-center justify-center p-4 md:p-6"
+                onClick={() => setActiveFullscreenSlide(null)}
+            >
+                {/* Close button */}
+                <button 
+                    className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-yellow-500 hover:text-black border border-white/10 flex items-center justify-center text-white cursor-pointer z-50 transition-all hover:scale-105"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveFullscreenSlide(null);
+                    }}
+                >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+
+                {/* Navigation inside modal */}
+                <button 
+                    className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/60 hover:bg-yellow-500 hover:text-black border border-white/10 flex items-center justify-center text-white cursor-pointer z-50 transition-all hover:scale-105"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveFullscreenSlide((prev) => prev !== null ? (prev - 1 + slides.length) % slides.length : null);
+                    }}
+                >
+                    <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+
+                <button 
+                    className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/60 hover:bg-yellow-500 hover:text-black border border-white/10 flex items-center justify-center text-white cursor-pointer z-50 transition-all hover:scale-105"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveFullscreenSlide((prev) => prev !== null ? (prev + 1) % slides.length : null);
+                    }}
+                >
+                    <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+
+                {/* Image container */}
+                <div 
+                    className="relative max-w-[90vw] max-h-[80vh] flex items-center justify-center"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <img 
+                        src={slides[activeFullscreenSlide].src} 
+                        alt={slides[activeFullscreenSlide].alt}
+                        className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl border border-white/10"
+                    />
+                </div>
+
+                {/* Fullscreen dots */}
+                <div className="flex gap-2 mt-6 z-50">
+                    {slides.map((_, idx) => (
+                        <button
+                            key={idx}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveFullscreenSlide(idx);
+                            }}
+                            className={`w-2.5 h-2.5 rounded-full transition-all cursor-pointer ${idx === activeFullscreenSlide ? 'bg-yellow-500 scale-125' : 'bg-neutral-500/50 hover:bg-neutral-400'}`}
+                        />
+                    ))}
+                </div>
+            </div>
+        )}
     </div>
   );
 };

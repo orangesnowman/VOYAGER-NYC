@@ -489,12 +489,12 @@ async function startServer() {
       fs.writeFileSync(LEADS_FILE, JSON.stringify(leads, null, 2), "utf-8");
       logToFile(`Successfully captured lead for ${name} (${email})`);
 
-      googleWorkspace.sheetsAppendLead({ name, email, company, phone }).catch(err => {
+      googleWorkspace.sheetsAppendLead({ name, email, company, phone }).catch((err: any) => {
         logToFile(`Google Sheets lead append failed: ${err.message || err}`);
       });
       const alertSubject = `New Lead Captured: ${name}`;
       const alertText = `A new contact lead has been captured by SPLASH:\n\nName: ${name}\nEmail: ${email}\nCompany: ${company || "N/A"}\nPhone: ${phone || "N/A"}\nNotes: ${notes || "N/A"}`;
-      googleWorkspace.gmailSendAlert(alertSubject, alertText).catch(err => {
+      googleWorkspace.gmailSendAlert(alertSubject, alertText).catch((err: any) => {
         logToFile(`Gmail lead alert failed: ${err.message || err}`);
       });
 
@@ -538,12 +538,12 @@ async function startServer() {
       fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviews, null, 2), "utf-8");
       logToFile(`Successfully captured review: Rating ${rating}/5`);
 
-      googleWorkspace.sheetsAppendTranscript(newReview.id, chatTranscript || [], rating, comment).catch(err => {
+      googleWorkspace.sheetsAppendTranscript(newReview.id, chatTranscript || [], rating, comment).catch((err: any) => {
         logToFile(`Google Sheets transcript append failed: ${err.message || err}`);
       });
       const alertSubject = `New SPLASH Conversation Feedback (Rating: ${rating}/5)`;
       const alertText = `A user has ended their conversation with SPLASH and submitted feedback:\n\nRating: ${rating}/5 Stars\nComment: ${comment || "N/A"}\n\nTranscript Preview:\n${(chatTranscript || []).map((m: any) => `[${m.sender?.toUpperCase() || ""}] ${m.text || ""}`).join("\n")}`;
-      googleWorkspace.gmailSendAlert(alertSubject, alertText).catch(err => {
+      googleWorkspace.gmailSendAlert(alertSubject, alertText).catch((err: any) => {
         logToFile(`Gmail feedback alert failed: ${err.message || err}`);
       });
 
@@ -592,13 +592,13 @@ async function startServer() {
 
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
-    googleWorkspace.driveCreateSystemManual().then((res) => {
+    googleWorkspace.driveCreateSystemManual().then((res: any) => {
       if (res.success) {
         logToFile(`System manual uploaded to Drive: ${res.docTitle} (File ID: ${res.fileId})`);
       } else {
         logToFile(`System manual upload skipped: ${res.message}`);
       }
-    }).catch(err => {
+    }).catch((err: any) => {
       logToFile(`Failed to create system manual in Drive: ${err.message || err}`);
     });
   });
