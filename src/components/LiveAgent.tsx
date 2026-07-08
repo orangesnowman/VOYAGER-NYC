@@ -675,7 +675,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
       {
         id: 'welcome_1',
         sender: 'splash',
-        text: 'Hi! I\'m SPLASH, your Voice AI marketing consultant. Click Connect to start a voice-and-text conversation.',
+        text: 'Hi! I\'m VOYAGER, your NYC guide and English tutor. Click Connect to start a voice-and-text conversation.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         timeMs: Date.now()
       }
@@ -1770,6 +1770,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 <div className="min-h-full flex flex-col justify-end space-y-4">
                                 {chatMessages.map((msg) => {
                             if (msg.sender === 'system') {
+                                return null;
+                            }
+                            if (isConnected && msg.id === 'welcome_1') {
                                 return null;
                             }
 
