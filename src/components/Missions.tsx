@@ -95,7 +95,7 @@ export const Missions: React.FC<MissionsProps> = ({
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#f2ede4] rounded-3xl p-4 font-sans text-neutral-900 overflow-y-auto max-h-[500px] md:max-h-[600px] shadow-inner border border-zinc-200/60">
+    <div className="w-full h-full flex flex-col bg-[#f2ede4] rounded-3xl pt-2 px-3 pb-3 font-sans text-neutral-900 overflow-y-auto max-h-[500px] md:max-h-[600px] shadow-inner border border-zinc-200/60">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
         {CARDS.map((card) => {
           const isActive = activeDay === card.dayNum;

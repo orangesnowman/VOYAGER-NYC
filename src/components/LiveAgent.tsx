@@ -2422,7 +2422,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             </div>
                             </div>
                         ) : (
-                            <div className="flex-1 overflow-y-auto p-4 max-h-[390px] md:max-h-[440px] tab-content-area">
+                            <div className="flex-1 overflow-y-auto pt-1 px-4 pb-4 max-h-[390px] md:max-h-[440px] tab-content-area">
                                 {rightPanelTab === 'lessons' && (
                                     <Curriculum 
                                         selectedLang={selectedLang}
