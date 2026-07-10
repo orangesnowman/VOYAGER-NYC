@@ -226,7 +226,7 @@ const translations = {
     active: "ACTIVO",
     disconnected: "Desconectado",
     session: "Sesión",
-    disconnectBtn: "Finalizar Conversación",
+    disconnectBtn: "FINALIZAR",
     connectionError: "Error de Conexión",
     howToFix: "👉 Cómo solucionar este error:",
     step1: "Abre el panel de Configuración (icono de engranaje ⚙️) en AI Studio.",
