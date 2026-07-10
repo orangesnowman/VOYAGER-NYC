@@ -1579,12 +1579,14 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             )}
 
                             {/* Session Status Display */}
-                            <div className="flex items-center gap-1.5 mt-0.5 animate-fade-in">
-                                <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-400'}`} />
-                                <span className="text-[10px] font-sans font-bold text-neutral-300 uppercase tracking-widest">
-                                    {isConnected ? (selectedLang === 'EN' ? 'Active Session' : 'Sesión Activa') : (selectedLang === 'EN' ? 'Disconnected' : 'Desconectado')}
-                                </span>
-                            </div>
+                            {isConnected && (
+                                <div className="flex items-center gap-1.5 mt-0.5 animate-fade-in">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[10px] font-sans font-bold text-neutral-300 uppercase tracking-widest">
+                                        {selectedLang === 'EN' ? 'Active Session' : 'Sesión Activa'}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
