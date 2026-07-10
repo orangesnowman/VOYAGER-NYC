@@ -156,6 +156,8 @@ interface TravelDestination {
   walkTime: string;
   walkDist: string;
   bikeTime: string;
+  vocab: string[];
+  phrases: { en: string; es: string }[];
 }
 
 const TRAVEL_PRESETS: TravelDestination[] = [
@@ -171,7 +173,13 @@ const TRAVEL_PRESETS: TravelDestination[] = [
     taxiFare: "$12.00",
     walkTime: "15 mins",
     walkDist: "0.7 mi",
-    bikeTime: "6 mins"
+    bikeTime: "6 mins",
+    vocab: ["Crosswalk (Paso de peatones)", "Traffic light (Semáforo)", "Gridlock (Atascamiento)", "Broadway show (Show de Broadway)", "Double-decker bus (Autobús de dos pisos)"],
+    phrases: [
+      { en: "Excuse me, is this the right way to Times Square?", es: "Disculpe, ¿es este el camino correcto a Times Square?" },
+      { en: "Where can I buy tickets for a Broadway show?", es: "¿Dónde puedo comprar boletos para un show de Broadway?" },
+      { en: "How many blocks away is the nearest subway station?", es: "¿A cuántas cuadras está la estación de metro más cercana?" }
+    ]
   },
   {
     name: "Puente de Brooklyn",
@@ -185,7 +193,13 @@ const TRAVEL_PRESETS: TravelDestination[] = [
     taxiFare: "$32.50",
     walkTime: "1h 15 mins",
     walkDist: "3.6 mi",
-    bikeTime: "24 mins"
+    bikeTime: "24 mins",
+    vocab: ["Pedestrian path (Sendero peatonal)", "Suspension bridge (Puente colgante)", "Skyline (Horizonte urbano)", "East River (Río del Este)", "Boardwalk (Camino de madera)"],
+    phrases: [
+      { en: "Where is the entrance to the pedestrian path?", es: "¿Dónde está la entrada al camino peatonal?" },
+      { en: "Can we walk across the Brooklyn Bridge?", es: "¿Podemos cruzar el puente de Brooklyn a pie?" },
+      { en: "Is there a nice viewpoint of the skyline nearby?", es: "¿Hay algún buen mirador del horizonte urbano cerca?" }
+    ]
   },
   {
     name: "Central Park (Strawberry Fields)",
@@ -199,7 +213,13 @@ const TRAVEL_PRESETS: TravelDestination[] = [
     taxiFare: "$18.50",
     walkTime: "25 mins",
     walkDist: "1.2 mi",
-    bikeTime: "10 mins"
+    bikeTime: "10 mins",
+    vocab: ["Pathway (Sendero)", "Meadow (Pradera/Claro)", "Reservoir (Embalse)", "Rowboat (Bote de remos)", "Conservatory (Invernadero)"],
+    phrases: [
+      { en: "Is it safe to walk through the park at night?", es: "¿Es seguro caminar por el parque de noche?" },
+      { en: "Where can I rent a rowboat in Central Park?", es: "¿Dónde puedo alquilar un bote de remos en Central Park?" },
+      { en: "Could you point me towards Strawberry Fields?", es: "¿Podría indicarme hacia dónde queda Strawberry Fields?" }
+    ]
   },
   {
     name: "Empire State Building",
@@ -213,7 +233,13 @@ const TRAVEL_PRESETS: TravelDestination[] = [
     taxiFare: "$9.50",
     walkTime: "10 mins",
     walkDist: "0.4 mi",
-    bikeTime: "4 mins"
+    bikeTime: "4 mins",
+    vocab: ["Observation deck (Plataforma de observación)", "Skyscraper (Rascacielos)", "Lobby (Vestíbulo)", "Elevator ride (Viaje en ascensor)", "Ticket counter (Ventanilla de boletos)"],
+    phrases: [
+      { en: "Excuse me, where is the entrance for the observation deck?", es: "Disculpe, ¿dónde está la entrada para la plataforma de observación?" },
+      { en: "How long is the wait for the elevator?", es: "¿Cuánto tiempo hay que esperar para el ascensor?" },
+      { en: "Can I buy tickets at the ticket counter?", es: "¿Puedo comprar boletos en la ventanilla de boletos?" }
+    ]
   },
   {
     name: "Estatua de la Libertad (Battery Park)",
@@ -227,7 +253,13 @@ const TRAVEL_PRESETS: TravelDestination[] = [
     taxiFare: "$35.00",
     walkTime: "1h 30 mins",
     walkDist: "4.2 mi",
-    bikeTime: "28 mins"
+    bikeTime: "28 mins",
+    vocab: ["Ferry dock (Muelle de ferry)", "Harbor (Puerto)", "Pedestal (Pedestal)", "Crown access (Acceso a la corona)", "Security screening (Control de seguridad)"],
+    phrases: [
+      { en: "Which dock does the ferry to Liberty Island leave from?", es: "¿De qué muelle sale el ferry a la Isla de la Libertad?" },
+      { en: "Do I need to book crown access tickets in advance?", es: "¿Necesito reservar boletos de acceso a la corona con anticipación?" },
+      { en: "Where can I board the boat to the Statue of Liberty?", es: "¿Dónde puedo abordar el barco a la Estatua de la Libertad?" }
+    ]
   }
 ];
 
@@ -469,7 +501,13 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
       taxiFare: `$${(Math.random() * 15 + 10).toFixed(2)}`,
       walkTime: `${Math.floor(Math.random() * 40) + 15} mins`,
       walkDist: `${(Math.random() * 2 + 0.5).toFixed(1)} mi`,
-      bikeTime: `${Math.floor(Math.random() * 12) + 5} mins`
+      bikeTime: `${Math.floor(Math.random() * 12) + 5} mins`,
+      vocab: ["Navigation (Navegación)", "Corner (Esquina)", "Subway entrance (Entrada del metro)", "Street sign (Letrero de la calle)", "Map routing (Ruta de mapa)"],
+      phrases: [
+        { en: `Excuse me, how do I get to ${destName}?`, es: `Disculpe, ¿cómo llego a ${destName}?` },
+        { en: `Is ${destName} within walking distance from here?`, es: `¿Está ${destName} a una de distancia caminable desde aquí?` },
+        { en: `Could you tell me which train goes to ${destName}?`, es: `¿Podrías decirme qué tren va a ${destName}?` }
+      ]
     };
     setSelectedTripDestination(mockDest);
     setMapCenter({ lat: mockDest.lat, lng: mockDest.lng });
@@ -2713,6 +2751,45 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                         >
                                                             {selectedLang === 'EN' ? 'View Google Maps' : 'Ver Google Maps'}
                                                         </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Navigation Vocabulary Section */}
+                                                <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 space-y-2 text-left">
+                                                    <span className="block text-[8px] font-mono font-bold text-neutral-500 uppercase tracking-widest">
+                                                        📚 {selectedLang === 'EN' ? 'NAVIGATION VOCABULARY:' : 'VOCABULARIO DE NAVEGACIÓN:'}
+                                                    </span>
+                                                    <div className="flex flex-wrap gap-1.5 pt-1">
+                                                        {selectedTripDestination.vocab.map((v, idx) => (
+                                                            <span 
+                                                                key={idx}
+                                                                className="bg-white border border-zinc-200 text-neutral-700 text-[10px] font-medium px-2 py-0.5 rounded shadow-sm"
+                                                            >
+                                                                {v}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Navigation Complete Phrases Section */}
+                                                <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 space-y-2 text-left">
+                                                    <span className="block text-[8px] font-mono font-bold text-neutral-500 uppercase tracking-widest">
+                                                        🗣️ {selectedLang === 'EN' ? 'USEFUL TRAVEL PHRASES (TAP TO HEAR):' : 'FRASES ÚTILES DE VIAJE (TOCA PARA ESCUCHAR):'}
+                                                    </span>
+                                                    <div className="space-y-2 pt-1">
+                                                        {selectedTripDestination.phrases.map((phrase, idx) => (
+                                                            <div 
+                                                                key={idx}
+                                                                onClick={() => speakTravelPhrase(phrase.en, 'en-US')}
+                                                                className="bg-white border border-zinc-200/50 p-2.5 rounded-lg flex items-center justify-between gap-2 group cursor-pointer hover:border-yellow-500/40 hover:shadow-sm transition-all"
+                                                            >
+                                                                <div className="text-left min-w-0">
+                                                                    <span className="text-[11px] text-yellow-800 font-bold block leading-normal">{phrase.en}</span>
+                                                                    <span className="text-[9px] text-zinc-500 block leading-tight mt-0.5">{phrase.es}</span>
+                                                                </div>
+                                                                <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">🗣️ SPEAK</span>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 </div>
 
