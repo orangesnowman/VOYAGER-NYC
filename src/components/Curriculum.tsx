@@ -281,17 +281,17 @@ export const Curriculum: React.FC<CurriculumProps> = ({
         }`}
       >
         <div>
-          <div className="flex justify-end mb-4">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+          <div className="flex justify-start mb-4">
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center ${
               card.icon === 'coffee' ? 'bg-yellow-50 text-amber-600' :
               card.icon === 'subway' ? 'bg-sky-50 text-sky-600' :
               card.icon === 'camera' ? 'bg-rose-50 text-rose-500' :
               'bg-purple-50 text-purple-600'
             }`}>
-              {card.icon === 'coffee' && <Coffee className="w-4 h-4" />}
-              {card.icon === 'subway' && <Train className="w-4 h-4" />}
-              {card.icon === 'camera' && <Camera className="w-4 h-4" />}
-              {card.icon === 'sparkles' && <Sparkles className="w-4 h-4" />}
+              {card.icon === 'coffee' && <Coffee className="w-7 h-7" />}
+              {card.icon === 'subway' && <Train className="w-7 h-7" />}
+              {card.icon === 'camera' && <Camera className="w-7 h-7" />}
+              {card.icon === 'sparkles' && <Sparkles className="w-7 h-7" />}
             </div>
           </div>
 
