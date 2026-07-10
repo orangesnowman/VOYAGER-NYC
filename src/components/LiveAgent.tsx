@@ -170,33 +170,33 @@ interface Lead {
 
 const translations = {
   EN: {
-    standby: "STANDBY",
-    connecting: "Connecting...",
-    connect: "Connect",
-    active: "ACTIVE",
-    disconnected: "Disconnected",
-    session: "Session",
-    disconnectBtn: "End Conversation",
-    connectionError: "Connection Error",
+    standby: "EN ESPERA",
+    connecting: "Conectando...",
+    connect: "CONECTAR",
+    active: "ACTIVO",
+    disconnected: "Desconectado",
+    session: "Sesión",
+    disconnectBtn: "FINALIZAR",
+    connectionError: "Error de Conexión",
     howToFix: "👉 How to fix this error:",
     step1: "Open the Settings panel (⚙️ gear icon) in AI Studio.",
     step2: "Input a valid GEMINI_API_KEY.",
     step3: "Save and retry connecting.",
-    interactiveConsole: "Interactive Console",
-    liveConversation: "Live Conversation",
-    leadsBtn: "Saved Spots",
-    collectLeadBtn: "Add Travel Notes",
-    databaseCapturedLeads: "NYC Travel Notes & History",
-    backToChat: "Back to Chat",
+    interactiveConsole: "Consola Interactiva",
+    liveConversation: "Conversación en Vivo",
+    leadsBtn: "Lugares Guardados",
+    collectLeadBtn: "Añadir Notas de Viaje",
+    databaseCapturedLeads: "Historial y Notas de Viaje en NYC",
+    backToChat: "Volver al Chat",
     noLeads: "No travel notes saved yet.",
     fillFormTest: "Fill out the notes to save your favorite NYC spots and vocabulary learnings.",
-    viewSavedTranscript: "View Saved Chat Transcript",
+    viewSavedTranscript: "Ver Transcripción Guardada",
     askPlaceholder: "Type your query or location here...",
     blueprintRegistered: "Travel Plan Saved!",
     proposalSuccessMsg: "Your NYC travel plan and chat history have been successfully saved to the server database.",
-    backToConsole: "Back to Voyager Panel",
-    secureAgentBlueprint: "Save Travel Plan",
-    requestProposal: "Save NYC Travel Plan",
+    backToConsole: "Volver al Panel de Voyager",
+    secureAgentBlueprint: "Guardar Plan de Viaje",
+    requestProposal: "Guardar Plan de Viaje en NYC",
     formInstructions: "Enter your details to save your customized NYC travel log, landmarks list, and practice transcript.",
     fullName: "Your Name *",
     fullNamePlaceholder: "e.g. Jane Doe",
@@ -208,21 +208,21 @@ const translations = {
     phonePlaceholder: "e.g. +1 555-0199",
     customReqs: "Travel Notes & Landmark Favorites",
     textareaPlaceholder: "What neighborhoods or vocabulary topics do you want to keep in your travel log?",
-    submitBtn: "Save Travel Log",
-    submittingBtn: "Saving Log...",
+    submitBtn: "Guardar Diario de Viaje",
+    submittingBtn: "Guardando Diario...",
     nameEmailRequired: "Name and Email are required fields.",
     systemOnline: "Voyager language and travel guide system online.",
     welcomeMsg: "Hello! I'm VOYAGER, your bilingual NYC travel guide and language tutor. Let's practice English or Spanish while exploring New York! Click Connect to begin.",
-    endConversation: "End Conversation",
-    reviewChat: "Rate Your Session with Voyager",
-    submitReview: "Submit Review",
+    endConversation: "FINALIZAR",
+    reviewChat: "Califica tu Sesión con Voyager",
+    submitReview: "Enviar Calificación",
     reviewPlaceholder: "Tell us how your conversation went...",
     thankYouReview: "Thank you for practicing with Voyager!"
   },
   ES: {
     standby: "EN ESPERA",
     connecting: "Conectando...",
-    connect: "Conectar",
+    connect: "CONECTAR",
     active: "ACTIVO",
     disconnected: "Desconectado",
     session: "Sesión",
@@ -263,7 +263,7 @@ const translations = {
     nameEmailRequired: "El nombre y el correo electrónico son campos obligatorios.",
     systemOnline: "Sistema Voyager en línea. Tu tutor de inglés y guía de NYC está listo.",
     welcomeMsg: "¡Hola! Soy VOYAGER, tu guía de NYC y tutor de inglés. ¡Practiquemos inglés mientras exploramos Nueva York! Haz clic en Conectar para empezar.",
-    endConversation: "Terminar Conversación",
+    endConversation: "FINALIZAR",
     reviewChat: "Califica tu Sesión con Voyager",
     submitReview: "Enviar Calificación",
     reviewPlaceholder: "Cuéntanos sobre tu experiencia de práctica...",
@@ -1608,7 +1608,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 <div className="flex items-center gap-1.5 mt-0.5 animate-fade-in">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                     <span className="text-[10px] font-sans font-bold text-neutral-300 uppercase tracking-widest">
-                                        {selectedLang === 'EN' ? 'Active Session' : 'Sesión Activa'}
+                                        Sesión Activa
                                     </span>
                                 </div>
                             )}
@@ -1652,7 +1652,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                     : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
                                 }`}
                             >
-                                {selectedLang === 'EN' ? 'Chat' : 'Chat'}
+                                Chat
                             </button>
                             <button
                                 onClick={() => setRightPanelTab('lessons')}
@@ -1662,7 +1662,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                     : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
                                 }`}
                             >
-                                {selectedLang === 'EN' ? 'Lessons' : 'Lecciones'}
+                                Lecciones
                             </button>
                             <button
                                 onClick={() => setRightPanelTab('missions')}
@@ -1672,7 +1672,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                     : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
                                 }`}
                             >
-                                {selectedLang === 'EN' ? 'Missions' : 'Misiones'}
+                                Misiones
                             </button>
                         </div>
                     </div>
@@ -1826,7 +1826,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                     className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
                                                 />
                                                 <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
-                                                    {selectedLang === 'EN' ? 'Bilingual' : 'BILINGÜE'}
+                                                    BILINGÜE
                                                 </span>
                                             </label>
 
@@ -1845,7 +1845,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                     className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
                                                 />
                                                 <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
-                                                    {selectedLang === 'EN' ? 'Translate' : 'TRADUCE'}
+                                                    TRADUCE
                                                 </span>
                                             </label>
 
@@ -1864,7 +1864,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                     className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
                                                 />
                                                 <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
-                                                    {selectedLang === 'EN' ? 'Listen Only' : 'ESCUCHA'}
+                                                    ESCUCHA
                                                 </span>
                                             </label>
                                         </div>
@@ -1901,7 +1901,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
                                                 </svg>
                                                 <span className="text-[10px] md:text-xs font-bold text-white uppercase tracking-wider">
-                                                    {selectedLang === 'EN' ? 'Expand' : 'Ampliar'}
+                                                    Ampliar
                                                 </span>
                                             </div>
                                         </div>
@@ -1913,7 +1913,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                 setSlideIndex((prev) => (prev - 1 + slides.length) % slides.length);
                                             }}
                                             className="absolute left-[-35px] md:left-[-45px] top-1/2 -translate-y-1/2 w-7 h-7 md:w-8 md:h-8 rounded-full bg-yellow-500 hover:bg-yellow-400 hover:scale-105 active:scale-95 text-black flex items-center justify-center border border-yellow-400/50 shadow-sm transition-all cursor-pointer z-10"
-                                            title={selectedLang === 'EN' ? 'Previous' : 'Anterior'}
+                                            title="Anterior"
                                         >
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -1927,7 +1927,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                 setSlideIndex((prev) => (prev + 1) % slides.length);
                                             }}
                                             className="absolute right-[-35px] md:right-[-45px] top-1/2 -translate-y-1/2 w-7 h-7 md:w-8 md:h-8 rounded-full bg-yellow-500 hover:bg-yellow-400 hover:scale-105 active:scale-95 text-black flex items-center justify-center border border-yellow-400/50 shadow-sm transition-all cursor-pointer z-10"
-                                            title={selectedLang === 'EN' ? 'Next' : 'Siguiente'}
+                                            title="Siguiente"
                                         >
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -2070,7 +2070,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
 
                                                             <div>
                                                                 <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
-                                                                    {selectedLang === 'EN' ? "Schedule Meeting" : "Agendar Reunión"}
+                                                                    Agendar Reunión
                                                                 </label>
                                                                 <div className="grid grid-cols-2 gap-2.5">
                                                                     <div className="relative">
@@ -2084,7 +2084,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                                             <span className="truncate text-yellow-400 font-mono font-semibold">
                                                                                 {inlineLeadForm.meetingTime 
                                                                                     ? new Date(inlineLeadForm.meetingTime).toLocaleDateString([], { dateStyle: 'medium' }) 
-                                                                                    : (selectedLang === 'EN' ? "Select Date" : "Seleccione Fecha")}
+                                                                                    : "Seleccione Fecha"}
                                                                             </span>
                                                                         </div>
 
@@ -2168,7 +2168,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                                                     }}
                                                                                     className="w-full mt-3 py-1 bg-black border border-yellow-500/40 text-yellow-400 text-[9px] font-mono font-bold tracking-widest rounded-full cursor-pointer hover:bg-yellow-500 hover:text-black transition-all uppercase text-center disabled:opacity-30 disabled:pointer-events-none"
                                                                                 >
-                                                                                    {selectedLang === 'EN' ? "CONFIRM" : "CONFIRMAR"}
+                                                                                    CONFIRMAR
                                                                                 </button>
                                                                             </div>
                                                                         )}
@@ -2225,7 +2225,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                                     }}
                                                                     className="flex-shrink-0 w-auto px-4 py-1.5 bg-yellow-500 hover:bg-yellow-600 border-none text-[10px] font-mono font-bold tracking-widest rounded-full transition-all duration-300 cursor-pointer shadow-md active:scale-95 min-h-[26px] uppercase text-center inline-flex items-center justify-center text-black"
                                                                 >
-                                                                    {selectedLang === 'EN' ? "NEXT" : "SIGUIENTE"}
+                                                                    SIGUIENTE
                                                                 </button>
                                                                 <div className="flex items-center gap-2 select-none cursor-pointer">
                                                                     <input
@@ -2236,7 +2236,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                                         className="w-4 h-4 rounded border-white/20 text-yellow-500 focus:ring-yellow-500 focus:ring-opacity-25 bg-black/30 cursor-pointer"
                                                                     />
                                                                     <label htmlFor="marketingConsent" className="text-[9px] font-bold tracking-wider text-neutral-300 cursor-pointer leading-tight">
-                                                                        {selectedLang === 'EN' ? "Send me the info" : "Enviarme la info"}
+                                                                        Enviarme la info
                                                                     </label>
                                                                 </div>
                                                             </div>
@@ -2245,7 +2245,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                         <>
                                                             <div className="space-y-2">
                                                                 <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
-                                                                    {selectedLang === 'EN' ? "Select Services of Interest" : "Seleccione los Servicios de Interés"}
+                                                                    Seleccione los Servicios de Interés
                                                                 </label>
                                                                 <div className="grid grid-cols-2 gap-2">
                                                                     {[
@@ -2289,7 +2289,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                                         onClick={() => setInlineFormStep('details')}
                                                                         className="w-full py-1 bg-transparent border border-white/20 text-neutral-300 text-[10px] font-mono font-bold tracking-widest rounded-full transition-all hover:bg-white/5 min-h-[26px] uppercase text-center inline-flex items-center justify-center cursor-pointer"
                                                                     >
-                                                                        {selectedLang === 'EN' ? "BACK" : "ATRÁS"}
+                                                                        ATRÁS
                                                                     </button>
                                                                 </div>
                                                                 <div>
@@ -2299,7 +2299,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                                         disabled={isSubmittingInlineLead}
                                                                         className="w-full px-3.5 py-1 bg-yellow-500 text-black border-none text-[10px] font-mono font-bold tracking-widest rounded-full transition-all duration-300 cursor-pointer shadow-md hover:bg-yellow-600 active:scale-95 disabled:opacity-50 min-h-[26px] uppercase text-center inline-flex items-center justify-center font-bold"
                                                                     >
-                                                                        {isSubmittingInlineLead ? (selectedLang === 'EN' ? "SENDING..." : "ENVIANDO...") : (selectedLang === 'EN' ? "SEND" : "ENVIAR")}
+                                                                        {isSubmittingInlineLead ? "ENVIANDO..." : "ENVIAR"}
                                                                     </button>
                                                                 </div>
                                                             </div>
