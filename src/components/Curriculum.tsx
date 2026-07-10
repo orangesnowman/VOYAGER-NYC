@@ -314,7 +314,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
               {card.vocab.map((v, i) => (
                 <span 
                   key={i}
-                  className="bg-[#ffffff] border border-zinc-200/80 text-zinc-700 text-[17px] font-extrabold px-2.5 py-0.5 rounded shadow-sm hover:border-zinc-300 transition-colors"
+                  className="bg-[#ffffff] border border-zinc-200/80 text-zinc-700 text-[17px] font-normal px-2.5 py-0.5 rounded shadow-sm hover:border-zinc-300 transition-colors"
                 >
                   {v}
                 </span>
@@ -533,7 +533,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
                   className="bg-[#FAF6EE] border border-zinc-200/80 hover:border-zinc-300 p-3 rounded-2xl transition-all cursor-pointer flex flex-col gap-0.5 group shadow-sm"
                 >
                   <div className="flex justify-between items-center">
-                    <span className="text-xl font-extrabold text-yellow-700 font-mono group-hover:text-yellow-600 transition-colors">{vocab.word}</span>
+                    <span className="text-xl font-normal text-yellow-700 font-mono group-hover:text-yellow-600 transition-colors">{vocab.word}</span>
                     <span className="text-[8px] font-mono font-bold uppercase tracking-wider text-zinc-400 group-hover:text-zinc-500 transition-colors">
                       {selectedLang === 'EN' ? 'Tap to study' : 'Toca para estudiar'}
                     </span>
