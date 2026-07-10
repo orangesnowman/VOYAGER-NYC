@@ -1458,7 +1458,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             {isConnected ? (
                                 <button
                                     onClick={handleEndConversation}
-                                    className="px-3.5 py-1 text-[10px] font-sans font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer bg-zinc-900 text-white border border-zinc-700 shadow-md hover:bg-zinc-800 active:scale-95 whitespace-nowrap"
+                                    className="px-7 py-2.5 text-[12.5px] font-mono font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap bg-white text-black animate-yellow-glow-pulse hover:bg-zinc-100 hover:scale-[1.02] active:scale-95"
                                 >
                                     {translations[selectedLang].disconnectBtn}
                                 </button>
