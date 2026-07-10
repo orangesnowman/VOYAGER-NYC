@@ -1964,7 +1964,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                         if (parts.length >= 2) {
                                                             return (
                                                                 <>
-                                                                    {parts[0]} / <span className="chat-message-english text-zinc-600 inline-block mt-0.5">{parts.slice(1).join(" / ")}</span>
+                                                                    {parts[0]} <span className="chat-message-english text-zinc-600 inline-block mt-0.5">{parts.slice(1).join(" / ")}</span>
                                                                 </>
                                                             );
                                                         }
