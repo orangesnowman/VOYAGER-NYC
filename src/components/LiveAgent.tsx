@@ -10,7 +10,7 @@ import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
 import slide1 from '../assets/images/voyager_slide_1.jpg';
 import slide2 from '../assets/images/voyager_slide_2.jpg';
 import slide3 from '../assets/images/voyager_slide_3.jpg';
-import { Compass, MapPin, Languages, Sparkles } from 'lucide-react';
+import { Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface CanvasSlideshowProps {
   slides: { src: string; alt: string }[];
@@ -142,6 +142,88 @@ const CanvasSlideshow: React.FC<CanvasSlideshowProps> = ({ slides, slideIndex, t
     />
   );
 };
+
+interface TravelDestination {
+  name: string;
+  nameEn: string;
+  lat: number;
+  lng: number;
+  subwayLines: string[];
+  subwayDirections: string;
+  subwayDirectionsEn: string;
+  taxiTime: string;
+  taxiFare: string;
+  walkTime: string;
+  walkDist: string;
+}
+
+const TRAVEL_PRESETS: TravelDestination[] = [
+  {
+    name: "Times Square",
+    nameEn: "Times Square",
+    lat: 40.758895,
+    lng: -73.985131,
+    subwayLines: ['1', '2', '3', 'N', 'Q', 'R', '7'],
+    subwayDirections: "Toma las líneas N, Q, R o 1, 2, 3 directo a la estación Times Square - 42 St.",
+    subwayDirectionsEn: "Take lines N, Q, R or 1, 2, 3 directly to Times Square - 42 St Station.",
+    taxiTime: "8 mins",
+    taxiFare: "$12.00",
+    walkTime: "15 mins",
+    walkDist: "0.7 mi"
+  },
+  {
+    name: "Puente de Brooklyn",
+    nameEn: "Brooklyn Bridge",
+    lat: 40.7061,
+    lng: -73.9969,
+    subwayLines: ['4', '5', '6', 'J', 'Z'],
+    subwayDirections: "Toma la línea 4, 5, 6 hacia Brooklyn Bridge - City Hall.",
+    subwayDirectionsEn: "Take the 4, 5, 6 train to Brooklyn Bridge - City Hall Station.",
+    taxiTime: "22 mins",
+    taxiFare: "$32.50",
+    walkTime: "1h 15 mins",
+    walkDist: "3.6 mi"
+  },
+  {
+    name: "Central Park (Strawberry Fields)",
+    nameEn: "Central Park (Strawberry Fields)",
+    lat: 40.7722,
+    lng: -73.9747,
+    subwayLines: ['A', 'B', 'C'],
+    subwayDirections: "Toma la línea C o B hacia 72 St Station, Central Park West.",
+    subwayDirectionsEn: "Take the B or C train to 72 St Station on Central Park West.",
+    taxiTime: "12 mins",
+    taxiFare: "$18.50",
+    walkTime: "25 mins",
+    walkDist: "1.2 mi"
+  },
+  {
+    name: "Empire State Building",
+    nameEn: "Empire State Building",
+    lat: 40.748440,
+    lng: -73.985664,
+    subwayLines: ['B', 'D', 'F', 'M', 'N', 'Q', 'R'],
+    subwayDirections: "Toma el tren N, R o B, D hacia 34 St - Herald Square.",
+    subwayDirectionsEn: "Take the N, R or B, D train to 34 St - Herald Square.",
+    taxiTime: "6 mins",
+    taxiFare: "$9.50",
+    walkTime: "10 mins",
+    walkDist: "0.4 mi"
+  },
+  {
+    name: "Estatua de la Libertad (Battery Park)",
+    nameEn: "Statue of Liberty (Battery Park)",
+    lat: 40.7036,
+    lng: -74.0169,
+    subwayLines: ['1', 'R', 'W', '4', '5'],
+    subwayDirections: "Toma la línea 1 hacia South Ferry o el 4, 5 hacia Bowling Green.",
+    subwayDirectionsEn: "Take the 1 train to South Ferry or 4, 5 train to Bowling Green.",
+    taxiTime: "24 mins",
+    taxiFare: "$35.00",
+    walkTime: "1h 30 mins",
+    walkDist: "4.2 mi"
+  }
+];
 
 interface LiveAgentProps {
   isWidgetMode: boolean;
@@ -306,6 +388,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'lessons' | 'trips'>('chat');
+  const [viajesSubTab, setViajesSubTab] = useState<'planner' | 'subway' | 'google_map'>('planner');
+  const [selectedTripDestination, setSelectedTripDestination] = useState<TravelDestination | null>(null);
+  const [customDestinationText, setCustomDestinationText] = useState("");
   const [classroomSubTab, setClassroomSubTab] = useState<'map' | 'subway_map'>('map');
   const [activeDay, setActiveDay] = useState<number>(1);
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
@@ -348,6 +433,52 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
         ? prev.filter(id => id !== missionId) 
         : [...prev, missionId]
     );
+  };
+
+  const handleSelectPresetDestination = (dest: TravelDestination) => {
+    setSelectedTripDestination(dest);
+    setMapCenter({ lat: dest.lat, lng: dest.lng });
+    setMarkers([{
+      id: 'dest_marker',
+      lat: dest.lat,
+      lng: dest.lng,
+      title: dest.name
+    }]);
+  };
+
+  const handleCustomDestinationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customDestinationText.trim()) return;
+    
+    const destName = customDestinationText.trim();
+    const mockDest: TravelDestination = {
+      name: destName,
+      nameEn: destName,
+      lat: 40.758895 + (Math.random() - 0.5) * 0.04,
+      lng: -73.985131 + (Math.random() - 0.5) * 0.04,
+      subwayLines: ['N', 'R', '1', '6'],
+      subwayDirections: `Toma las líneas N/R o 1/6 hacia la estación más cercana a ${destName}.`,
+      subwayDirectionsEn: `Take the N/R or 1/6 train to the station closest to ${destName}.`,
+      taxiTime: `${Math.floor(Math.random() * 15) + 8} mins`,
+      taxiFare: `$${(Math.random() * 15 + 10).toFixed(2)}`,
+      walkTime: `${Math.floor(Math.random() * 40) + 15} mins`,
+      walkDist: `${(Math.random() * 2 + 0.5).toFixed(1)} mi`
+    };
+    setSelectedTripDestination(mockDest);
+    setMapCenter({ lat: mockDest.lat, lng: mockDest.lng });
+    setMarkers([{
+      id: 'dest_marker',
+      lat: mockDest.lat,
+      lng: mockDest.lng,
+      title: mockDest.name
+    }]);
+    setCustomDestinationText("");
+  };
+
+  const speakTravelPhrase = (phrase: string, lang: 'en-US' | 'es-ES') => {
+    const speech = new SpeechSynthesisUtterance(phrase);
+    speech.lang = lang;
+    window.speechSynthesis.speak(speech);
   };
 
   const parseImmersionTags = (text: string) => {
@@ -2379,6 +2510,332 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                         completedMissions={completedMissions}
                                         onToggleMission={handleToggleMission}
                                     />
+                                )}
+                                {rightPanelTab === 'trips' && viajesSubTab === 'planner' && (
+                                    <div className="w-full h-full flex flex-col bg-[#f2ede4] rounded-3xl p-4 font-sans text-neutral-900 overflow-y-auto max-h-[500px] md:max-h-[600px] shadow-inner border border-zinc-200/60 text-left space-y-4">
+                                        {/* Speech Bubble Header */}
+                                        <div className="flex items-start gap-3 bg-[#FAF6EE] border border-zinc-200/80 p-3 rounded-2xl shadow-sm">
+                                            <div className="w-8 h-8 rounded-full bg-yellow-500/10 border border-yellow-500/25 flex items-center justify-center flex-shrink-0">
+                                                <Compass className="w-4 h-4 text-yellow-600 animate-spin-slow" />
+                                            </div>
+                                            <div className="flex-1 space-y-1">
+                                                <span className="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest block">VOYAGER TRAVEL PLANNER</span>
+                                                <p className="text-xs text-neutral-800 leading-normal font-semibold">
+                                                    {selectedLang === 'EN' 
+                                                        ? 'Where do you want to go today? Enter a NYC spot or select a preset below to plan your trip (Subway, Taxi, or Walk).' 
+                                                        : '¿A dónde quieres ir hoy? Ingresa un punto de NYC o selecciona un atajo para planificar tu viaje (Metro, Taxi o a pie).'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Search Input Box */}
+                                        <form onSubmit={handleCustomDestinationSubmit} className="flex gap-2">
+                                            <input 
+                                                type="text"
+                                                value={customDestinationText}
+                                                onChange={(e) => setCustomDestinationText(e.target.value)}
+                                                placeholder={selectedLang === 'EN' ? 'Enter destination... (e.g. Central Park)' : 'Ingresa destino... (ej. Central Park)'}
+                                                className="flex-1 px-4 py-2 text-xs border border-zinc-300 rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                                            />
+                                            <button 
+                                                type="submit"
+                                                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black border-none text-xs font-mono font-bold uppercase rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
+                                            >
+                                                {selectedLang === 'EN' ? 'PLAN' : 'IR'}
+                                            </button>
+                                        </form>
+
+                                        {/* Presets Grid */}
+                                        <div className="space-y-1.5">
+                                            <span className="block text-[8px] font-mono font-bold text-neutral-400 uppercase tracking-wider">
+                                                📍 {selectedLang === 'EN' ? 'QUICK PRESETS:' : 'PUNTOS CLAVE:'}
+                                            </span>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {TRAVEL_PRESETS.map((preset) => (
+                                                    <button
+                                                        key={preset.name}
+                                                        onClick={() => handleSelectPresetDestination(preset)}
+                                                        className={`px-3 py-1 text-[10px] font-medium rounded-full border transition-all cursor-pointer ${
+                                                            selectedTripDestination?.name === preset.name
+                                                                ? 'bg-yellow-500 text-black border-yellow-600 shadow-sm font-bold'
+                                                                : 'bg-[#FAF6EE] border-zinc-200/80 hover:border-zinc-300 text-neutral-700'
+                                                        }`}
+                                                    >
+                                                        {selectedLang === 'EN' ? preset.nameEn : preset.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Active Plan Details Card */}
+                                        {selectedTripDestination ? (
+                                            <div className="bg-[#FAF6EE] border border-zinc-200/80 rounded-2xl p-4 space-y-4 shadow-sm animate-fade-in">
+                                                <div className="flex justify-between items-center border-b border-zinc-300/30 pb-2">
+                                                    <div>
+                                                        <span className="text-[8px] font-mono font-bold text-neutral-400 uppercase tracking-wider block">ROUTE & DIRECTIONS</span>
+                                                        <h3 className="text-sm font-extrabold text-neutral-950 font-sans mt-0.5">
+                                                            {selectedLang === 'EN' ? selectedTripDestination.nameEn : selectedTripDestination.name}
+                                                        </h3>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setSelectedTripDestination(null);
+                                                            setMarkers([]);
+                                                        }}
+                                                        className="text-[9px] font-mono font-bold text-neutral-400 hover:text-red-500 cursor-pointer underline uppercase"
+                                                    >
+                                                        {selectedLang === 'EN' ? 'Clear' : 'Limpiar'}
+                                                    </button>
+                                                </div>
+
+                                                {/* Transit Options Grid */}
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    
+                                                    {/* Subway (Metro) Option */}
+                                                    <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 space-y-2 text-left">
+                                                        <div className="flex justify-between items-center">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="text-base">🚇</span>
+                                                                <span className="text-xs font-extrabold text-neutral-900">{selectedLang === 'EN' ? 'Subway Route' : 'Ruta de Metro'}</span>
+                                                            </div>
+                                                            <button 
+                                                                onClick={() => setViajesSubTab('subway')}
+                                                                className="px-2.5 py-1 bg-white hover:bg-zinc-50 border border-zinc-300/50 text-[9px] font-mono font-bold uppercase rounded-lg transition-all cursor-pointer"
+                                                            >
+                                                                {selectedLang === 'EN' ? 'View Subway Map' : 'Ver Mapa de Metro'}
+                                                            </button>
+                                                        </div>
+                                                        <p className="text-[11px] text-neutral-700 leading-normal">
+                                                            {selectedLang === 'EN' ? selectedTripDestination.subwayDirectionsEn : selectedTripDestination.subwayDirections}
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-1 pt-1">
+                                                            {selectedTripDestination.subwayLines.map(line => (
+                                                                <span 
+                                                                    key={line}
+                                                                    className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white ${
+                                                                        line === '1' || line === '2' || line === '3' ? 'bg-red-600' :
+                                                                        line === '4' || line === '5' || line === '6' ? 'bg-emerald-600' :
+                                                                        line === '7' ? 'bg-purple-600' :
+                                                                        line === 'A' || line === 'C' || line === 'E' ? 'bg-blue-600' :
+                                                                        line === 'B' || line === 'D' || line === 'F' || line === 'M' ? 'bg-orange-500' :
+                                                                        line === 'N' || line === 'Q' || line === 'R' || line === 'W' ? 'bg-yellow-400 text-black' :
+                                                                        'bg-neutral-500'
+                                                                    }`}
+                                                                >
+                                                                    {line}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Taxi Option */}
+                                                    <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 space-y-2 text-left">
+                                                        <div className="flex justify-between items-center">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="text-base">🚕</span>
+                                                                <span className="text-xs font-extrabold text-neutral-900">{selectedLang === 'EN' ? 'Yellow Cab (Taxi)' : 'Taxi de NYC'}</span>
+                                                            </div>
+                                                            <span className="text-[10px] font-mono font-bold text-neutral-600 bg-white/70 px-2 py-0.5 rounded-full border border-zinc-300/20">
+                                                                {selectedTripDestination.taxiTime} • est. {selectedTripDestination.taxiFare}
+                                                            </span>
+                                                        </div>
+                                                        <div className="bg-white border border-zinc-200/50 p-2.5 rounded-lg flex items-center justify-between gap-2 group cursor-pointer"
+                                                             onClick={() => speakTravelPhrase(`Can you take me to ${selectedTripDestination.nameEn}, please?`, 'en-US')}
+                                                        >
+                                                            <div className="text-left min-w-0">
+                                                                <span className="block text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">USEFUL PHRASE (TAP TO HEAR)</span>
+                                                                <span className="text-[11px] text-yellow-800 font-bold block truncate mt-0.5">"Can you take me to {selectedTripDestination.nameEn}, please?"</span>
+                                                            </div>
+                                                            <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">🗣️ SPEAK</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Walking Option */}
+                                                    <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 space-y-2 text-left">
+                                                        <div className="flex justify-between items-center">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="text-base">🚶</span>
+                                                                <span className="text-xs font-extrabold text-neutral-900">{selectedLang === 'EN' ? 'Walking (On Foot)' : 'A Pie (Caminando)'}</span>
+                                                            </div>
+                                                            <span className="text-[10px] font-mono font-bold text-neutral-600 bg-white/70 px-2 py-0.5 rounded-full border border-zinc-300/20">
+                                                                {selectedTripDestination.walkTime} • {selectedTripDestination.walkDist}
+                                                            </span>
+                                                        </div>
+                                                        <div className="bg-white border border-zinc-200/50 p-2.5 rounded-lg flex items-center justify-between gap-2 group cursor-pointer"
+                                                             onClick={() => speakTravelPhrase(`How do I walk to ${selectedTripDestination.nameEn}?`, 'en-US')}
+                                                        >
+                                                            <div className="text-left min-w-0">
+                                                                <span className="block text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">USEFUL PHRASE (TAP TO HEAR)</span>
+                                                                <span className="text-[11px] text-yellow-800 font-bold block truncate mt-0.5">"How do I walk to {selectedTripDestination.nameEn}?"</span>
+                                                            </div>
+                                                            <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">🗣️ SPEAK</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Google Maps / Live Map Option */}
+                                                    <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 flex justify-between items-center">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-base">🗺️</span>
+                                                            <span className="text-xs font-extrabold text-neutral-900">{selectedLang === 'EN' ? 'Interactive Google Maps' : 'Google Maps Interactivo'}</span>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => setViajesSubTab('google_map')}
+                                                            className="px-2.5 py-1 bg-white hover:bg-zinc-50 border border-zinc-300/50 text-[9px] font-mono font-bold uppercase rounded-lg transition-all cursor-pointer shadow-sm"
+                                                        >
+                                                            {selectedLang === 'EN' ? 'View Google Maps' : 'Ver Google Maps'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Ask Voyager Actions */}
+                                                <button
+                                                    onClick={() => {
+                                                        const q = selectedLang === 'EN'
+                                                            ? `Voyager, how do I get to ${selectedTripDestination.nameEn}? Please suggest the best way and teach me related vocabulary.`
+                                                            : `Voyager, ¿cómo llego a ${selectedTripDestination.name}? Por favor sugiéreme la mejor forma de ir y enséñame vocabulario relacionado.`;
+                                                        setRightPanelTab('chat');
+                                                        setInputText(q);
+                                                        if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                                            wsRef.current.send(JSON.stringify({ text: q }));
+                                                            setChatMessages(prev => [
+                                                                ...prev,
+                                                                {
+                                                                    id: `msg_trip_query_${Date.now()}`,
+                                                                    sender: 'user',
+                                                                    text: q,
+                                                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                                    timeMs: Date.now()
+                                                                }
+                                                            ]);
+                                                        } else {
+                                                            setChatMessages(prev => [
+                                                                ...prev,
+                                                                {
+                                                                    id: `msg_trip_query_${Date.now()}`,
+                                                                    sender: 'user',
+                                                                    text: q,
+                                                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                                    timeMs: Date.now()
+                                                                }
+                                                            ]);
+                                                            connectToGemini(q, false);
+                                                        }
+                                                    }}
+                                                    className="w-full py-2.5 bg-yellow-500 hover:bg-yellow-400 text-black border-none text-xs font-mono font-bold uppercase rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-98 cursor-pointer"
+                                                >
+                                                    <span>{selectedLang === 'EN' ? 'Consult Voyager in Chat' : 'Consultar a Voyager en el Chat'}</span>
+                                                    <ArrowRight className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        ) : null}
+
+                                        {/* Saved Spots (Legacy List) */}
+                                        <div className="space-y-3 pt-2 border-t border-zinc-300/40">
+                                            <span className="block text-[8px] font-mono font-bold text-neutral-400 uppercase tracking-wider">
+                                                📁 {selectedLang === 'EN' ? 'SAVED LUGARES:' : 'LUGARES GUARDADOS:'}
+                                            </span>
+                                            <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[160px] md:max-h-[220px]">
+                                                {serverLeads.length === 0 ? (
+                                                    <div className="flex flex-col items-center justify-center h-full space-y-2 text-center py-6">
+                                                        <span className="text-3xl text-neutral-400">📁</span>
+                                                        <p className="text-sm text-neutral-600 font-bold">{translations[selectedLang].noLeads}</p>
+                                                        <p className="text-xs text-neutral-500 max-w-xs leading-relaxed">{translations[selectedLang].fillFormTest}</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-3">
+                                                        {serverLeads.map((lead) => (
+                                                            <div key={lead.id} className="bg-[#FAF6EE] border border-zinc-200/80 shadow-sm rounded-2xl p-4 space-y-2 text-xs">
+                                                                <div className="flex justify-between items-start">
+                                                                    <div>
+                                                                        <p className="font-extrabold text-neutral-900 text-sm leading-tight">{lead.name}</p>
+                                                                        <p className="text-neutral-500 font-mono mt-0.5">{lead.email}</p>
+                                                                    </div>
+                                                                    <span className="text-[10px] font-mono font-bold text-neutral-400 bg-zinc-200/40 px-2 py-0.5 rounded-full">
+                                                                        {new Date(lead.createdAt).toLocaleDateString()}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="grid grid-cols-2 gap-2 border-t border-zinc-300/20 pt-2 text-[11px] text-neutral-600">
+                                                                    {lead.company && <p>🏢 <strong className="text-neutral-500">{selectedLang === 'EN' ? 'Company' : 'Empresa'}:</strong> {lead.company}</p>}
+                                                                    {lead.phone && <p>📞 <strong className="text-neutral-500">{selectedLang === 'EN' ? 'Phone' : 'Teléfono'}:</strong> {lead.phone}</p>}
+                                                                </div>
+                                                                {lead.notes && (
+                                                                    <div className="bg-[#f0eada] p-2.5 rounded-xl border border-zinc-300/30 text-neutral-700 text-[11px] whitespace-pre-wrap leading-relaxed">
+                                                                        <strong className="text-neutral-500">{selectedLang === 'EN' ? 'Requirements' : 'Requisitos'}:</strong> {lead.notes}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {rightPanelTab === 'trips' && viajesSubTab === 'subway' && (
+                                    <div className="w-full h-full flex flex-col space-y-3">
+                                        <button 
+                                            onClick={() => setViajesSubTab('planner')}
+                                            className="flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 cursor-pointer self-start transition-colors"
+                                        >
+                                            <ArrowLeft className="w-4 h-4" />
+                                            {selectedLang === 'EN' ? 'Back to Planner' : 'Volver a Planificación'}
+                                        </button>
+                                        <div className="flex-1 min-h-[350px]">
+                                            <NycSubwayMap 
+                                                selectedLang={selectedLang}
+                                                onAskVoyager={(text) => {
+                                                    setRightPanelTab('chat');
+                                                    setInputText(text);
+                                                    if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                                        wsRef.current.send(JSON.stringify({ text }));
+                                                        setChatMessages(prev => [
+                                                            ...prev,
+                                                            {
+                                                                id: `msg_subway_${Date.now()}`,
+                                                                sender: 'user',
+                                                                text,
+                                                                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                                timeMs: Date.now()
+                                                            }
+                                                        ]);
+                                                    } else {
+                                                        setChatMessages(prev => [
+                                                            ...prev,
+                                                            {
+                                                                id: `msg_subway_${Date.now()}`,
+                                                                sender: 'user',
+                                                                text,
+                                                                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                                timeMs: Date.now()
+                                                            }
+                                                        ]);
+                                                        connectToGemini(text, false);
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {rightPanelTab === 'trips' && viajesSubTab === 'google_map' && (
+                                    <div className="w-full h-full flex flex-col space-y-3">
+                                        <button 
+                                            onClick={() => setViajesSubTab('planner')}
+                                            className="flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 cursor-pointer self-start transition-colors"
+                                        >
+                                            <ArrowLeft className="w-4 h-4" />
+                                            {selectedLang === 'EN' ? 'Back to Planner' : 'Volver a Planificación'}
+                                        </button>
+                                        <div className="h-[300px] md:h-[350px] w-full rounded-2xl overflow-hidden border border-zinc-300/60 shadow-md">
+                                            <NycMap 
+                                                center={mapCenter}
+                                                zoom={mapZoom}
+                                                markers={markers}
+                                                routeInfo={routeInfo}
+                                            />
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         )}
