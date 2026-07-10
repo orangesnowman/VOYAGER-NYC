@@ -1750,7 +1750,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                 )}
             </div>
 
-            <div className={`w-full md:w-7/12 mx-auto md:mx-0 flex-1 flex flex-col justify-between backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl min-h-[480px] md:min-h-[580px] font-tech relative transition-all duration-500 ${showReviewScreen ? 'bg-zinc-950 text-white shadow-[0_10px_35px_rgba(0,0,0,0.3)]' : 'bg-white text-zinc-900 shadow-[0_10px_35px_rgba(0,0,0,0.08)] theme-light'}`}>
+            <div className={`w-full md:w-7/12 mx-auto md:mx-0 flex-1 flex flex-col justify-start backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl min-h-[480px] md:min-h-[580px] font-tech relative transition-all duration-500 ${showReviewScreen ? 'bg-zinc-950 text-white shadow-[0_10px_35px_rgba(0,0,0,0.3)]' : 'bg-white text-zinc-900 shadow-[0_10px_35px_rgba(0,0,0,0.08)] theme-light'}`}>
                 
                 {isConnected && !showReviewScreen && !showLeadsDashboard && (
                     <div className="px-4 pt-14 pb-2 z-20">
