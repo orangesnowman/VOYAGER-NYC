@@ -155,6 +155,7 @@ interface TravelDestination {
   taxiFare: string;
   walkTime: string;
   walkDist: string;
+  bikeTime: string;
 }
 
 const TRAVEL_PRESETS: TravelDestination[] = [
@@ -169,7 +170,8 @@ const TRAVEL_PRESETS: TravelDestination[] = [
     taxiTime: "8 mins",
     taxiFare: "$12.00",
     walkTime: "15 mins",
-    walkDist: "0.7 mi"
+    walkDist: "0.7 mi",
+    bikeTime: "6 mins"
   },
   {
     name: "Puente de Brooklyn",
@@ -182,7 +184,8 @@ const TRAVEL_PRESETS: TravelDestination[] = [
     taxiTime: "22 mins",
     taxiFare: "$32.50",
     walkTime: "1h 15 mins",
-    walkDist: "3.6 mi"
+    walkDist: "3.6 mi",
+    bikeTime: "24 mins"
   },
   {
     name: "Central Park (Strawberry Fields)",
@@ -195,7 +198,8 @@ const TRAVEL_PRESETS: TravelDestination[] = [
     taxiTime: "12 mins",
     taxiFare: "$18.50",
     walkTime: "25 mins",
-    walkDist: "1.2 mi"
+    walkDist: "1.2 mi",
+    bikeTime: "10 mins"
   },
   {
     name: "Empire State Building",
@@ -208,7 +212,8 @@ const TRAVEL_PRESETS: TravelDestination[] = [
     taxiTime: "6 mins",
     taxiFare: "$9.50",
     walkTime: "10 mins",
-    walkDist: "0.4 mi"
+    walkDist: "0.4 mi",
+    bikeTime: "4 mins"
   },
   {
     name: "Estatua de la Libertad (Battery Park)",
@@ -221,7 +226,8 @@ const TRAVEL_PRESETS: TravelDestination[] = [
     taxiTime: "24 mins",
     taxiFare: "$35.00",
     walkTime: "1h 30 mins",
-    walkDist: "4.2 mi"
+    walkDist: "4.2 mi",
+    bikeTime: "28 mins"
   }
 ];
 
@@ -462,7 +468,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
       taxiTime: `${Math.floor(Math.random() * 15) + 8} mins`,
       taxiFare: `$${(Math.random() * 15 + 10).toFixed(2)}`,
       walkTime: `${Math.floor(Math.random() * 40) + 15} mins`,
-      walkDist: `${(Math.random() * 2 + 0.5).toFixed(1)} mi`
+      walkDist: `${(Math.random() * 2 + 0.5).toFixed(1)} mi`,
+      bikeTime: `${Math.floor(Math.random() * 12) + 5} mins`
     };
     setSelectedTripDestination(mockDest);
     setMapCenter({ lat: mockDest.lat, lng: mockDest.lng });
@@ -2667,6 +2674,28 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                             <div className="text-left min-w-0">
                                                                 <span className="block text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">USEFUL PHRASE (TAP TO HEAR)</span>
                                                                 <span className="text-[11px] text-yellow-800 font-bold block truncate mt-0.5">"How do I walk to {selectedTripDestination.nameEn}?"</span>
+                                                            </div>
+                                                            <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">🗣️ SPEAK</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Bicycle Option */}
+                                                    <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 space-y-2 text-left">
+                                                        <div className="flex justify-between items-center">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="text-base">🚲</span>
+                                                                <span className="text-xs font-extrabold text-neutral-900">{selectedLang === 'EN' ? 'Citi Bike (Bicycle)' : 'En Bicicleta (Citi Bike)'}</span>
+                                                            </div>
+                                                            <span className="text-[10px] font-mono font-bold text-neutral-600 bg-white/70 px-2 py-0.5 rounded-full border border-zinc-300/20">
+                                                                {selectedTripDestination.bikeTime} • {selectedTripDestination.walkDist}
+                                                            </span>
+                                                        </div>
+                                                        <div className="bg-white border border-zinc-200/50 p-2.5 rounded-lg flex items-center justify-between gap-2 group cursor-pointer"
+                                                             onClick={() => speakTravelPhrase(`Where is the nearest Citi Bike station?`, 'en-US')}
+                                                        >
+                                                            <div className="text-left min-w-0">
+                                                                <span className="block text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">USEFUL PHRASE (TAP TO HEAR)</span>
+                                                                <span className="text-[11px] text-yellow-800 font-bold block truncate mt-0.5">"Where is the nearest Citi Bike station?"</span>
                                                             </div>
                                                             <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">🗣️ SPEAK</span>
                                                         </div>
