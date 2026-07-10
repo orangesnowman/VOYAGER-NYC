@@ -1115,8 +1115,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
             console.log("Gemini session is active on the backend. Dispatching welcome greeting.");
             let greeting = initialPrompt || (
               selectedLang === 'ES'
-                ? "Por favor salúdame en español con tu bienvenida oficial: '¡Hola! Soy VOYAGER, tu guía personal para Nueva York, ¿en qué te puedo ayudar hoy?'."
-                : "Please greet me in English with your official welcome: 'Welcome to New York! I am VOYAGER, your personal tour guide. How can I help you today?'."
+                ? "Por favor preséntate en español como VOYAGER, dime que estás muy emocionado de ser mi guía en Nueva York, y pregúntame cuál es mi nombre para saber cómo dirigirte a mí (y adaptar los adjetivos en español a mi género correctamente)."
+                : "Please greet me in English as VOYAGER, say you are excited to guide me in NYC, and ask for my name so you can address me properly."
             );
             if (isBilingualModeRef.current) {
               greeting += "\n\n[SYSTEM MESSAGE: You are now in BILINGUAL TRANSLATION MODE. For EVERY SINGLE response, you must first speak and write your response in Spanish, and then immediately repeat the exact same response only in English. Separate the Spanish and English sentences with a slash '/'. Your entire response must consist of the Spanish version followed directly by the English translation, both in your voice output and in your text transcription.]";
