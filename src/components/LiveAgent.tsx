@@ -1549,7 +1549,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             />
                         </div>
 
-                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 z-20">
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20">
                             {isConnected ? (
                                 <button
                                     onClick={handleEndConversation}
@@ -1578,6 +1578,13 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 </button>
                             )}
 
+                            {/* Session Status Display */}
+                            <div className="flex items-center gap-1.5 mt-0.5 animate-fade-in">
+                                <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-400'}`} />
+                                <span className="text-[10px] font-sans font-bold text-neutral-300 uppercase tracking-widest">
+                                    {isConnected ? (selectedLang === 'EN' ? 'Active Session' : 'Sesión Activa') : (selectedLang === 'EN' ? 'Disconnected' : 'Desconectado')}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1774,13 +1781,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                         {rightPanelTab === 'chat' ? (
                             <div className="flex-grow flex flex-col overflow-hidden h-full">
                                 {hasInteracted && (
-                                    <div className="px-4 py-2 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50 flex-shrink-0 z-10">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-400'}`} />
-                                            <span className="text-[11px] font-sans font-semibold text-zinc-500 uppercase tracking-wider">
-                                                {isConnected ? (selectedLang === 'EN' ? 'Active Session' : 'Sesión Activa') : (selectedLang === 'EN' ? 'Disconnected' : 'Desconectado')}
-                                            </span>
-                                        </div>
+                                    <div className="px-4 py-2 border-b border-zinc-100 flex items-center justify-end bg-zinc-50/50 flex-shrink-0 z-10">
                                         
                                         <div className="flex items-center gap-3.5">
                                             {/* Bilingual Option Toggle */}
