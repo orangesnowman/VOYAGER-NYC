@@ -1567,8 +1567,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
             .theme-light button.bg-black {
                 color: #ffffff !important;
             }
-            .theme-light [class*="border"],
-            .tab-content-area [class*="border"] {
+            .theme-light [class*="border"] {
                 border: none !important;
             }
             .tab-content-area .text-xs,

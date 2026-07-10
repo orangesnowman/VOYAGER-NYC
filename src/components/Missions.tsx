@@ -103,7 +103,7 @@ export const Missions: React.FC<MissionsProps> = ({
           return (
             <div 
               key={card.dayNum}
-              className={`bg-white border rounded-3xl p-5 flex flex-col justify-between shadow-sm transition-all duration-300 ${
+              className={`bg-[#FAF6EE] border rounded-3xl p-5 flex flex-col justify-between shadow-sm transition-all duration-300 ${
                 isActive 
                   ? 'border-yellow-400 ring-2 ring-yellow-400/40 shadow-md' 
                   : 'border-zinc-200/80 hover:border-zinc-300 hover:shadow-md'
@@ -141,7 +141,7 @@ export const Missions: React.FC<MissionsProps> = ({
                 </p>
 
                 {/* Vocab Box */}
-                <div className="bg-[#FAF7F0] border border-amber-100/50 rounded-2xl p-3 mb-5">
+                <div className="bg-[#f0eada] border border-zinc-300/40 rounded-2xl p-3 mb-5">
                   <span className="block text-[9px] font-mono font-bold text-neutral-400 tracking-wider mb-2">
                     {selectedLang === 'EN' ? 'KEY VOCABULARY:' : 'VOCABULARIO CLAVE:'}
                   </span>
@@ -149,7 +149,7 @@ export const Missions: React.FC<MissionsProps> = ({
                     {card.vocab.map((v, i) => (
                       <span 
                         key={i}
-                        className="bg-white border border-zinc-200/80 text-zinc-700 text-[10px] font-medium px-2.5 py-0.5 rounded shadow-sm hover:border-zinc-300 transition-colors"
+                        className="bg-[#ffffff] border border-zinc-200/80 text-zinc-700 text-[10px] font-medium px-2.5 py-0.5 rounded shadow-sm hover:border-zinc-300 transition-colors"
                       >
                         {v}
                       </span>
