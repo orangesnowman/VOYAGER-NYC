@@ -1,289 +1,173 @@
-import React, { useState, useEffect } from 'react';
-import { IMMERSION_CURRICULUM } from '../constants';
-import { googleSignIn, logout, initAuth } from '../services/firebaseAuth';
-import { User } from 'firebase/auth';
+import React from 'react';
 import { 
-  CheckSquare, 
-  Square, 
-  Sparkles, 
-  Loader2, 
-  CloudLightning,
-  CheckCircle,
-  AlertCircle,
-  PlusCircle,
-  TrendingUp
+  Coffee, 
+  Train, 
+  Camera, 
+  Sparkles 
 } from 'lucide-react';
 
 interface MissionsProps {
   selectedLang: 'EN' | 'ES';
   activeDay: number;
-  completedMissions: string[];
-  onToggleMission: (missionId: string) => void;
+  onSelectDay: (day: number) => void;
   onAskVoyager: (text: string) => void;
 }
 
-interface GoogleTaskList {
-  id: string;
+interface CardData {
+  dayNum: number;
+  tag: string;
+  tagEn: string;
+  tagColor: string;
+  icon: 'coffee' | 'subway' | 'camera' | 'sparkles';
   title: string;
+  titleEn: string;
+  description: string;
+  descriptionEn: string;
+  vocab: string[];
 }
+
+const CARDS: CardData[] = [
+  {
+    dayNum: 1,
+    tag: "PRINCIPIANTE",
+    tagEn: "BEGINNER",
+    tagColor: "text-amber-700 bg-amber-50 border-amber-200",
+    icon: "coffee",
+    title: "Café en un Classic Diner",
+    titleEn: "Coffee in a Classic Diner",
+    description: "Aprende a ordenar café, huevos, panqueques y a entender la jerga de los meseros neoyorquinos.",
+    descriptionEn: "Learn to order coffee, eggs, pancakes and understand the slang of NYC servers.",
+    vocab: ["Sunny-side up", "To go", "Refill", "Pastrami on rye", "Drizzle"]
+  },
+  {
+    dayNum: 2,
+    tag: "INTERMEDIO",
+    tagEn: "INTERMEDIATE",
+    tagColor: "text-blue-700 bg-blue-50 border-blue-200",
+    icon: "subway",
+    title: "Aventuras en el Metro de NYC",
+    titleEn: "NYC Subway Adventures",
+    description: "Aprende cómo preguntar por líneas de metro (subway lines), comprar boletos y entender direcciones norte/sur.",
+    descriptionEn: "Learn how to ask for subway lines, buy tickets and understand north/south directions.",
+    vocab: ["MetroCard", "Uptown / Downtown", "Transfer", "Platform", "Express train"]
+  },
+  {
+    dayNum: 3,
+    tag: "PRINCIPIANTE",
+    tagEn: "BEGINNER",
+    tagColor: "text-amber-700 bg-amber-50 border-amber-200",
+    icon: "camera",
+    title: "Fotógrafo en Brooklyn Bridge",
+    titleEn: "Brooklyn Bridge Photographer",
+    description: "Frases útiles para pedirle cortésmente a un turista que te tome una foto y darle instrucciones de encuadre.",
+    descriptionEn: "Useful phrases to politely ask a tourist to take your picture and give framing instructions.",
+    vocab: ["Take a photo", "Horizontal / Landscape", "Frame", "Backlight", "Press the button"]
+  },
+  {
+    dayNum: 4,
+    tag: "AVANZADO",
+    tagEn: "ADVANCED",
+    tagColor: "text-purple-700 bg-purple-50 border-purple-200",
+    icon: "sparkles",
+    title: "Hustling en Broadway",
+    titleEn: "Hustling on Broadway",
+    description: "Negocia boletos de última hora (TKTS booth) y aprende a preguntar por los mejores asientos en el teatro.",
+    descriptionEn: "Negotiate last-minute tickets (TKTS booth) and learn to ask for the best seats in the theater.",
+    vocab: ["Matinee", "Orchestra seats", "Mezzanine", "Sold out", "Standing room only"]
+  }
+];
 
 export const Missions: React.FC<MissionsProps> = ({
   selectedLang,
   activeDay,
-  completedMissions,
-  onToggleMission,
+  onSelectDay,
   onAskVoyager
 }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [needsAuth, setNeedsAuth] = useState(true);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
-  const [error, setError] = useState<string | null>(null);
-
-  const currentDayData = IMMERSION_CURRICULUM.find(d => d.dayNum === activeDay) || IMMERSION_CURRICULUM[0];
-
-  // Initialize Auth state
-  useEffect(() => {
-    const unsubscribe = initAuth(
-      async (firebaseUser, token) => {
-        setUser(firebaseUser);
-        setAccessToken(token);
-        setNeedsAuth(false);
-        setError(null);
-      },
-      () => {
-        setUser(null);
-        setAccessToken(null);
-        setNeedsAuth(true);
-      }
-    );
-    return () => unsubscribe();
-  }, []);
-
-  const handleGoogleSignIn = async () => {
-    setIsLoggingIn(true);
-    setError(null);
-    try {
-      await googleSignIn();
-    } catch (err: any) {
-      console.error('Sign-in error:', err);
-      setError(selectedLang === 'EN' ? 'Sign in failed.' : 'Error al iniciar sesión.');
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
-  const handleSyncToGoogleTasks = async () => {
-    if (!accessToken) return;
-    setSyncStatus('syncing');
-    setError(null);
-
-    try {
-      // 1. Fetch user's task lists to check if "VOYAGER NYC Immersion" exists
-      const listsRes = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      if (!listsRes.ok) throw new Error('Failed to fetch lists');
-      const listsData = await listsRes.json();
+  const handleStartLesson = (card: CardData) => {
+    onSelectDay(card.dayNum);
+    
+    const prompt = selectedLang === 'EN'
+      ? `I want to practice Day ${card.dayNum} lesson: "${card.titleEn}". Let's start the immersion!`
+      : `Quiero practicar la lección del Día ${card.dayNum}: "${card.title}". ¡Comencemos la práctica!`;
       
-      let voyagerList = (listsData.items || []).find((l: GoogleTaskList) => l.title === 'VOYAGER NYC Immersion');
-      let listId = voyagerList?.id;
-
-      // 2. If it does not exist, create it
-      if (!voyagerList) {
-        const createRes = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`
-          },
-          body: JSON.stringify({ title: 'VOYAGER NYC Immersion' })
-        });
-        if (!createRes.ok) throw new Error('Failed to create task list');
-        const createdList = await createRes.json();
-        listId = createdList.id;
-      }
-
-      // 3. Fetch existing tasks in that list to avoid duplicates
-      const tasksRes = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${listId}/tasks`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      const tasksData = await tasksRes.json();
-      const existingTaskTitles = new Set((tasksData.items || []).map((t: any) => t.title));
-
-      // 4. Create tasks for all missions of the current day
-      const missionsToAdd = currentDayData.missions;
-      for (const m of missionsToAdd) {
-        const title = selectedLang === 'EN' ? `🎯 [Day ${activeDay}] ${m.en}` : `🎯 [Día ${activeDay}] ${m.es}`;
-        if (!existingTaskTitles.has(title)) {
-          const isCompleted = completedMissions.includes(m.id);
-          await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${listId}/tasks`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({
-              title,
-              notes: 'Language Immersion Mission powered by VOYAGER NYC.',
-              status: isCompleted ? 'completed' : 'needsAction'
-            })
-          });
-        }
-      }
-
-      setSyncStatus('synced');
-      setTimeout(() => setSyncStatus('idle'), 3000);
-    } catch (err: any) {
-      console.error('Sync error:', err);
-      setError(selectedLang === 'EN' ? 'Failed to sync with Google Tasks.' : 'Error al sincronizar con Google Tasks.');
-      setSyncStatus('error');
-    }
+    onAskVoyager(prompt);
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-black/45 border border-white/10 rounded-2xl p-4 font-sans text-white overflow-hidden max-h-[380px] md:max-h-[440px]">
-      
-      {/* Title Header */}
-      <div className="flex justify-between items-center border-b border-white/10 pb-2.5 mb-3">
-        <span className="text-[10px] font-mono font-bold tracking-widest text-yellow-400 uppercase flex items-center gap-1">
-          <TrendingUp className="w-3.5 h-3.5 text-yellow-500" />
-          {selectedLang === 'EN' ? 'Real-Life Missions' : 'Misiones Reales'}
-        </span>
-        <span className="text-[9px] font-mono bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-          {selectedLang === 'EN' ? `Day ${activeDay} Objectives` : `Objetivos Día ${activeDay}`}
-        </span>
-      </div>
-
-      {/* Main Container */}
-      <div className="flex-1 overflow-y-auto pr-1 space-y-4 max-h-[290px] md:max-h-[350px]">
-        
-        {/* Sync / Authentication Bar */}
-        <div className="bg-[#1f1f23]/60 border border-white/5 rounded-xl p-2.5 flex items-center justify-between gap-3">
-          {needsAuth ? (
-            <>
-              <span className="text-[10px] text-neutral-400 leading-tight">
-                {selectedLang === 'EN' 
-                  ? 'Connect Google Tasks to save and track missions.' 
-                  : 'Conecta Google Tasks para guardar y seguir tus misiones.'}
-              </span>
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={isLoggingIn}
-                className="px-2.5 py-1 bg-white hover:bg-neutral-200 text-black text-[9px] font-mono font-bold uppercase rounded-lg flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap"
-              >
-                {isLoggingIn ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <span>{selectedLang === 'EN' ? 'Connect' : 'Conectar'}</span>
-                )}
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[10px] font-bold text-neutral-200 truncate max-w-[150px]">
-                  {selectedLang === 'EN' ? `Syncing: ${user?.displayName}` : `Sincronizando: ${user?.displayName}`}
-                </span>
-                <span className="text-[8px] font-mono text-neutral-500 hover:text-red-400 cursor-pointer underline transition-colors" onClick={() => logout()}>
-                  {selectedLang === 'EN' ? 'Disconnect Google Account' : 'Desconectar cuenta'}
-                </span>
-              </div>
-              <button
-                onClick={handleSyncToGoogleTasks}
-                disabled={syncStatus === 'syncing'}
-                className={`px-3 py-1 text-[9px] font-mono font-bold uppercase rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
-                  syncStatus === 'synced' 
-                    ? 'bg-emerald-600 text-white'
-                    : syncStatus === 'error'
-                    ? 'bg-red-600 text-white'
-                    : 'bg-yellow-500 text-black hover:bg-yellow-400'
-                }`}
-              >
-                {syncStatus === 'syncing' ? (
-                  <>
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>{selectedLang === 'EN' ? 'Syncing...' : 'Sincronizando...'}</span>
-                  </>
-                ) : syncStatus === 'synced' ? (
-                  <>
-                    <CheckCircle className="w-3 h-3" />
-                    <span>{selectedLang === 'EN' ? 'Synced!' : '¡Sincronizado!'}</span>
-                  </>
-                ) : (
-                  <span>{selectedLang === 'EN' ? 'Sync to Google Tasks' : 'Guardar en Google Tasks'}</span>
-                )}
-              </button>
-            </>
-          )}
-        </div>
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] p-2.5 rounded-xl flex items-center gap-1.5 leading-tight">
-            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Missions Checklist */}
-        <div className="space-y-2">
-          <span className="block text-[9px] font-mono font-bold tracking-widest text-neutral-400 uppercase">
-            ⚡ {selectedLang === 'EN' ? "TODAY'S CHALLENGES" : "DESAFÍOS DE HOY"}
-          </span>
-          <div className="grid gap-2">
-            {currentDayData.missions.map((mission) => {
-              const isCompleted = completedMissions.includes(mission.id);
-              return (
-                <div 
-                  key={mission.id}
-                  onClick={() => onToggleMission(mission.id)}
-                  className={`border p-3 rounded-xl transition-all cursor-pointer flex items-start gap-3 ${
-                    isCompleted 
-                      ? 'bg-emerald-500/5 border-emerald-500/20 text-neutral-400' 
-                      : 'bg-white/5 border-white/10 hover:border-yellow-500/30'
-                  }`}
-                >
-                  <div className="mt-0.5 flex-shrink-0">
-                    {isCompleted ? (
-                      <CheckSquare className="w-4 h-4 text-emerald-400 transition-all scale-105" />
-                    ) : (
-                      <Square className="w-4 h-4 text-neutral-500 group-hover:text-yellow-500 transition-all" />
-                    )}
-                  </div>
-                  <div className="flex-1 flex flex-col gap-0.5">
-                    <span className={`text-xs font-bold leading-normal transition-all ${isCompleted ? 'line-through text-neutral-500' : 'text-neutral-200'}`}>
-                      {selectedLang === 'EN' ? mission.en : mission.es}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAskVoyager(selectedLang === 'EN' 
-                          ? `Let's practice the mission: "${mission.en}". Help me prepare!` 
-                          : `¡Practiquemos la misión: "${mission.es}". Ayúdame a prepararme!`);
-                      }}
-                      className="text-[9px] font-mono text-left font-bold text-yellow-400 hover:text-white underline mt-1"
-                    >
-                      {selectedLang === 'EN' ? 'Prepare for this with VOYAGER' : 'Preparar esto con VOYAGER'}
-                    </button>
+    <div className="w-full h-full flex flex-col bg-[#f5f5f3] rounded-3xl p-4 font-sans text-neutral-900 overflow-y-auto max-h-[500px] md:max-h-[600px] shadow-inner border border-zinc-200/80">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
+        {CARDS.map((card) => {
+          const isActive = activeDay === card.dayNum;
+          
+          return (
+            <div 
+              key={card.dayNum}
+              className={`bg-white border rounded-3xl p-5 flex flex-col justify-between shadow-sm transition-all duration-300 ${
+                isActive 
+                  ? 'border-yellow-400 ring-2 ring-yellow-400/40 shadow-md' 
+                  : 'border-zinc-200/80 hover:border-zinc-300 hover:shadow-md'
+              }`}
+            >
+              <div>
+                {/* Header Row */}
+                <div className="flex justify-between items-center mb-4">
+                  <span className={`text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 rounded border ${card.tagColor}`}>
+                    {selectedLang === 'EN' ? card.tagEn : card.tag}
+                  </span>
+                  
+                  {/* Circle Icon Badge */}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    card.icon === 'coffee' ? 'bg-yellow-50 text-amber-600' :
+                    card.icon === 'subway' ? 'bg-sky-50 text-sky-600' :
+                    card.icon === 'camera' ? 'bg-rose-50 text-rose-500' :
+                    'bg-purple-50 text-purple-600'
+                  }`}>
+                    {card.icon === 'coffee' && <Coffee className="w-4 h-4" />}
+                    {card.icon === 'subway' && <Train className="w-4 h-4" />}
+                    {card.icon === 'camera' && <Camera className="w-4 h-4" />}
+                    {card.icon === 'sparkles' && <Sparkles className="w-4 h-4" />}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* Informational Tip */}
-        <div className="bg-yellow-500/5 border border-yellow-500/10 p-3 rounded-xl text-[10px] text-yellow-400/80 leading-relaxed font-mono flex items-start gap-2">
-          <Sparkles className="w-4 h-4 flex-shrink-0 text-yellow-500 mt-0.5" />
-          <span>
-            {selectedLang === 'EN'
-              ? "Tip: As you converse with VOYAGER, speaking in English and practicing these prompts, VOYAGER will automatically detect successful completion and check off your missions!"
-              : "Tip: Mientras hablas con VOYAGER en inglés y practicas estas frases, ¡VOYAGER detectará automáticamente cuando completes la misión y la marcará por ti!"}
-          </span>
-        </div>
+                {/* Title */}
+                <h3 className="text-neutral-900 font-extrabold text-base md:text-lg tracking-tight mb-2 leading-tight">
+                  {selectedLang === 'EN' ? card.titleEn : card.title}
+                </h3>
 
+                {/* Description */}
+                <p className="text-neutral-500 text-xs md:text-sm leading-relaxed mb-4">
+                  {selectedLang === 'EN' ? card.descriptionEn : card.description}
+                </p>
+
+                {/* Vocab Box */}
+                <div className="bg-neutral-50 border border-neutral-100 rounded-2xl p-3 mb-5">
+                  <span className="block text-[9px] font-mono font-bold text-neutral-400 tracking-wider mb-2">
+                    {selectedLang === 'EN' ? 'KEY VOCABULARY:' : 'VOCABULARIO CLAVE:'}
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {card.vocab.map((v, i) => (
+                      <span 
+                        key={i}
+                        className="bg-white border border-zinc-200/80 text-zinc-700 text-[10px] font-medium px-2.5 py-0.5 rounded shadow-sm hover:border-zinc-300 transition-colors"
+                      >
+                        {v}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <button
+                onClick={() => handleStartLesson(card)}
+                className="w-full py-3 bg-[#030712] hover:bg-[#111827] text-white text-xs font-mono font-extrabold tracking-widest uppercase rounded-xl transition-all duration-300 shadow-md active:scale-98 cursor-pointer"
+              >
+                {selectedLang === 'EN' ? 'START LESSON' : 'COMENZAR LECCIÓN'}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

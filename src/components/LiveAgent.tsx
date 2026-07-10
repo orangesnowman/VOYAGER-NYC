@@ -2478,8 +2478,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                     <Missions 
                                         selectedLang={selectedLang}
                                         activeDay={activeDay}
-                                        completedMissions={completedMissions}
-                                        onToggleMission={handleToggleMission}
+                                        onSelectDay={setActiveDay}
                                         onAskVoyager={(text) => {
                                             setRightPanelTab('chat');
                                             setInputText(text);
