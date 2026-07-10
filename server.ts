@@ -235,6 +235,12 @@ async function startServer() {
           onmessage: (message: LiveServerMessage) => {
             logToFile(`Received message from Gemini Live API: ${JSON.stringify(message).substring(0, 300)}...`);
             
+            if ((message as any).setupComplete) {
+              logToFile("Gemini setupComplete received. Session is ready. Notifying client.");
+              clientWs.send(JSON.stringify({ status: "connected", model: modelName }));
+              return;
+            }
+            
             if (message.serverContent?.inputTranscription) {
               const transcription = message.serverContent.inputTranscription;
               if (transcription.text) {
@@ -501,7 +507,6 @@ async function startServer() {
           session = await connectSession(currentModel);
           logToFile(`Successfully connected via fallback model ${currentModel}`);
           isTransitioning = false;
-          clientWs.send(JSON.stringify({ status: "connected", model: currentModel }));
         } catch (fallbackErr: any) {
           logToFile(`Fallback to ${currentModel} failed: ${fallbackErr.stack || fallbackErr.message || fallbackErr}`);
           clientWs.send(JSON.stringify({ error: `Connection failed: ${fallbackErr.message || "models unsupported"}` }));
@@ -513,7 +518,6 @@ async function startServer() {
     try {
       session = await connectSession(currentModel);
       logToFile(`Successfully connected to Gemini Live API session object acquired (model: ${currentModel})`);
-      clientWs.send(JSON.stringify({ status: "connected" }));
     } catch (err: any) {
       logToFile(`Failed to connect to primary model ${currentModel}: ${err.stack || err.message || err}`);
       currentModel = "gemini-2.0-flash-exp";
@@ -521,7 +525,6 @@ async function startServer() {
       try {
         session = await connectSession(currentModel);
         logToFile(`Successfully connected via fallback model ${currentModel} on initial catch`);
-        clientWs.send(JSON.stringify({ status: "connected", model: currentModel }));
       } catch (fallbackErr: any) {
         logToFile(`Both primary and fallback connection failed. Fallback error: ${fallbackErr.stack || fallbackErr.message || fallbackErr}`);
         clientWs.send(JSON.stringify({ error: err.message || "Failed to initialize Gemini Live API connection" }));
