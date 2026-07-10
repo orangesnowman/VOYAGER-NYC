@@ -1480,6 +1480,10 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                 font-family: "American Typewriter", "Courier New", Courier, Georgia, serif !important;
                 font-size: 12pt !important;
             }
+            .tab-content-area .chat-message-english {
+                font-size: 11pt !important;
+                line-height: 1.25 !important;
+            }
             .tab-content-area input,
             .tab-content-area textarea,
             .tab-content-area select,
@@ -1958,7 +1962,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                         if (parts.length >= 2) {
                                                             return (
                                                                 <>
-                                                                    {parts[0]} / <strong className="font-bold text-zinc-900">{parts.slice(1).join(" / ")}</strong>
+                                                                    {parts[0]} / <strong className="chat-message-english font-bold text-zinc-900 inline-block mt-0.5">{parts.slice(1).join(" / ")}</strong>
                                                                 </>
                                                             );
                                                         }
