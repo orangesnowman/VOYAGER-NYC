@@ -1103,24 +1103,6 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
         
         sourceRef.current = source;
         processorRef.current = processor;
-
-        let greeting = initialPrompt || (
-          selectedLang === 'ES'
-            ? "Por favor salúdame en español con tu bienvenida oficial: '¡Hola! Soy VOYAGER, tu guía personal para Nueva York, ¿en qué te puedo ayudar hoy?'."
-            : "Please greet me in English with your official welcome: 'Welcome to New York! I am VOYAGER, your personal tour guide. How can I help you today?'."
-        );
-        if (isBilingualModeRef.current) {
-          greeting += "\n\n[SYSTEM MESSAGE: You are now in BILINGUAL TRANSLATION MODE. For EVERY SINGLE response, you must first speak and write your response in Spanish, and then immediately repeat the exact same response only in English. Separate the Spanish and English sentences with a slash '/'. Your entire response must consist of the Spanish version followed directly by the English translation, both in your voice output and in your text transcription.]";
-        } else if (isTranslateModeRef.current) {
-          greeting += "\n\n[SYSTEM MESSAGE: You are now in INSTANT TRANSLATION MODE. You must act strictly and purely as a speech translator. Do NOT hold a conversation, do NOT give tips, do NOT make small talk, and do NOT guide the user. Your ONLY job is to immediately translate whatever you hear: if the user speaks Spanish, translate it to English; if they speak English, translate it to Spanish. Output ONLY the translated words and nothing else, both in your voice and in your text transcription. Keep translations instantaneous, brief, and exact.]";
-        } else if (isListenOnlyRef.current) {
-          greeting += "\n\n[SYSTEM MESSAGE: You are now starting in Monitor/Listen-only mode. The user is practicing by talking to a real person. You must only listen and analyze their English interaction. Do NOT speak. You can only respond via text. In your text responses, offer helpful, subtle language corrections or tips about their conversation, and if you want to speak aloud, explicitly ask the user for permission to talk (e.g. '¿Puedo hablar?').]";
-        }
-        setTimeout(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ text: greeting }));
-          }
-        }, 500);
       };
 
       ws.onmessage = async (event) => {
@@ -1128,6 +1110,27 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
           // Reset inactivity timer when server sends any message/audio/text
           lastInteractionTimeRef.current = Date.now();
           const msg = JSON.parse(event.data);
+          
+          if (msg.status === "connected") {
+            console.log("Gemini session is active on the backend. Dispatching welcome greeting.");
+            let greeting = initialPrompt || (
+              selectedLang === 'ES'
+                ? "Por favor salúdame en español con tu bienvenida oficial: '¡Hola! Soy VOYAGER, tu guía personal para Nueva York, ¿en qué te puedo ayudar hoy?'."
+                : "Please greet me in English with your official welcome: 'Welcome to New York! I am VOYAGER, your personal tour guide. How can I help you today?'."
+            );
+            if (isBilingualModeRef.current) {
+              greeting += "\n\n[SYSTEM MESSAGE: You are now in BILINGUAL TRANSLATION MODE. For EVERY SINGLE response, you must first speak and write your response in Spanish, and then immediately repeat the exact same response only in English. Separate the Spanish and English sentences with a slash '/'. Your entire response must consist of the Spanish version followed directly by the English translation, both in your voice output and in your text transcription.]";
+            } else if (isTranslateModeRef.current) {
+              greeting += "\n\n[SYSTEM MESSAGE: You are now in INSTANT TRANSLATION MODE. You must act strictly and purely as a speech translator. Do NOT hold a conversation, do NOT give tips, do NOT make small talk, and do NOT guide the user. Your ONLY job is to immediately translate whatever you hear: if the user speaks Spanish, translate it to English; if they speak English, translate it to Spanish. Output ONLY the translated words and nothing else, both in your voice and in your text transcription. Keep translations instantaneous, brief, and exact.]";
+            } else if (isListenOnlyRef.current) {
+              greeting += "\n\n[SYSTEM MESSAGE: You are now starting in Monitor/Listen-only mode. The user is practicing by talking to a real person. You must only listen and analyze their English interaction. Do NOT speak. You can only respond via text. In your text responses, offer helpful, subtle language corrections or tips about their conversation, and if you want to speak aloud, explicitly ask the user for permission to talk (e.g. '¿Puedo hablar?').]";
+            }
+            
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+              wsRef.current.send(JSON.stringify({ text: greeting }));
+            }
+            return;
+          }
           
           if (msg.error) {
              console.error("Server reported error:", msg.error);
@@ -1246,6 +1249,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
 
           if (msg.audio && audioContextRef.current && !isListenOnlyRef.current && !isPausedRef.current) {
             const ctx = audioContextRef.current;
+            if (ctx.state === 'suspended') {
+              ctx.resume();
+            }
             const pcmData = new Int16Array(base64ToBytes(msg.audio).buffer);
             const audioBuffer = createAudioBufferFromPCM(ctx, pcmData, 24000);
             
