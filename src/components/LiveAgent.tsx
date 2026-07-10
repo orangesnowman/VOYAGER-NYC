@@ -1687,24 +1687,12 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
 
                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20">
                             {isConnected ? (
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={handleEndConversation}
-                                        className="px-5 py-2.5 text-[12.5px] font-mono font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap bg-white text-black hover:bg-zinc-100 hover:scale-[1.02] active:scale-95"
-                                    >
-                                        {translations[selectedLang].disconnectBtn}
-                                    </button>
-                                    <button
-                                        onClick={isPaused ? resumeSession : pauseSession}
-                                        className={`px-5 py-2.5 text-[12.5px] font-mono font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap active:scale-95 ${
-                                            isPaused 
-                                            ? 'bg-emerald-500 hover:bg-emerald-400 text-black hover:scale-[1.02] animate-pulse'
-                                            : 'bg-amber-500 hover:bg-amber-400 text-black hover:scale-[1.02]'
-                                        }`}
-                                    >
-                                        {isPaused ? "REANUDAR" : "PAUSAR"}
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={handleEndConversation}
+                                    className="px-7 py-2.5 text-[12.5px] font-mono font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap bg-white text-black hover:bg-zinc-100 hover:scale-[1.02] active:scale-95 shadow-md"
+                                >
+                                    {translations[selectedLang].disconnectBtn}
+                                </button>
                             ) : (
                                 <button
                                     onClick={() => {
@@ -1729,11 +1717,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             {/* Session Status Display */}
                             {isConnected && (
                                 <div className="flex items-center gap-1.5 mt-0.5 animate-fade-in">
-                                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isPaused ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.7)]' : 'bg-emerald-500'}`} />
+                                    <div className="w-1.5 h-1.5 rounded-full animate-pulse bg-emerald-500" />
                                     <span className="text-[10px] font-sans font-bold text-neutral-300 uppercase tracking-widest">
-                                        {isPaused 
-                                            ? `EN PAUSA (${Math.floor(secondsElapsed / 60)}:${(secondsElapsed % 60).toString().padStart(2, '0')})` 
-                                            : `Sesión Activa (${Math.floor(secondsElapsed / 60)}:${(secondsElapsed % 60).toString().padStart(2, '0')})`}
+                                        {`Sesión Activa (${Math.floor(secondsElapsed / 60)}:${(secondsElapsed % 60).toString().padStart(2, '0')})`}
                                     </span>
                                 </div>
                             )}
