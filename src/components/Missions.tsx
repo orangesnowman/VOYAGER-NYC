@@ -161,7 +161,7 @@ export const Missions: React.FC<MissionsProps> = ({
               {/* Action Button */}
               <button
                 onClick={() => handleStartLesson(card)}
-                className="w-full py-3 bg-[#030712] hover:bg-[#111827] text-white text-xs font-mono font-extrabold tracking-widest uppercase rounded-xl transition-all duration-300 shadow-md active:scale-98 cursor-pointer"
+                className="w-full py-3 bg-[#e3ded4] hover:bg-[#d8d3c7] text-[#1c1917] border border-zinc-300/60 text-xs font-mono font-extrabold tracking-widest uppercase rounded-xl transition-all duration-300 shadow-sm active:scale-98 cursor-pointer"
               >
                 {selectedLang === 'EN' ? 'START LESSON' : 'COMENZAR LECCIÓN'}
               </button>
