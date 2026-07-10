@@ -950,7 +950,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
         sourceRef.current = source;
         processorRef.current = processor;
 
-        let greeting = initialPrompt || "Hello";
+        let greeting = initialPrompt || (selectedLang === 'ES' ? "Hola" : "Hello");
         if (isListenOnlyRef.current) {
           greeting += "\n\n[SYSTEM MESSAGE: You are now starting in Monitor/Listen-only mode. The user is practicing by talking to a real person. You must only listen and analyze their English interaction. Do NOT speak. You can only respond via text. In your text responses, offer helpful, subtle language corrections or tips about their conversation, and if you want to speak aloud, explicitly ask the user for permission to talk (e.g. '¿Puedo hablar?').]";
         }
