@@ -302,7 +302,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
             {selectedLang === 'EN' ? card.titleEn : card.title}
           </h3>
 
-          <p className="text-neutral-500 text-[10px] md:text-[11.5px] leading-relaxed mb-4">
+          <p className="text-black text-[12.5px] md:text-[14.5px] leading-relaxed mb-4">
             {selectedLang === 'EN' ? card.descriptionEn : card.description}
           </p>
 
