@@ -4,7 +4,7 @@ import { base64ToBytes, createAudioBufferFromPCM, float32ToPcm16, bytesToBase64,
 import NycMap, { MapMarker, RouteInfo } from './NycMap';
 import { NycSubwayMap } from './NycSubwayMap';
 import { Curriculum } from './Curriculum';
-import { Missions } from './Missions';
+
 import { ProgressDashboard } from './ProgressDashboard';
 import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
 import slide1 from '../assets/images/voyager_slide_1.jpg';
@@ -305,7 +305,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const [mapZoom, setMapZoom] = useState<number>(13);
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
-  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'lessons'>('chat');
+  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'lessons' | 'trips'>('chat');
   const [classroomSubTab, setClassroomSubTab] = useState<'map' | 'subway_map'>('map');
   const [activeDay, setActiveDay] = useState<number>(1);
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
@@ -425,7 +425,6 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   // Chat & Leads State
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
-  const [showLeadsDashboard, setShowLeadsDashboard] = useState(false);
   const [serverLeads, setServerLeads] = useState<Lead[]>([]);
 
   // Inline Lead Form State
@@ -597,7 +596,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [chatMessages, showLeadsDashboard]);
+  }, [chatMessages]);
 
   // Input Placeholder typing animation
   const [placeholderText, setPlaceholderText] = useState("");
@@ -1020,7 +1019,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const connectToGemini = async (initialPrompt?: string, isVoiceConnection: boolean = false, langOverride?: 'EN' | 'ES') => {
     setError(null);
     setShowReviewScreen(false);
-    setShowLeadsDashboard(false);
+    setRightPanelTab('chat');
     setIsPaused(false);
     isPausedRef.current = false;
     lastInteractionTimeRef.current = Date.now();
@@ -1752,9 +1751,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
 
             <div className={`w-full md:w-7/12 mx-auto md:mx-0 flex-1 flex flex-col justify-start backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl min-h-[480px] md:min-h-[580px] font-tech relative transition-all duration-500 ${showReviewScreen ? 'bg-zinc-950 text-white shadow-[0_10px_35px_rgba(0,0,0,0.3)]' : 'bg-white text-zinc-900 shadow-[0_10px_35px_rgba(0,0,0,0.08)] theme-light'}`}>
                 
-                {isConnected && !showReviewScreen && !showLeadsDashboard && (
+                {isConnected && !showReviewScreen && (
                     <div className="px-4 pt-14 pb-2 z-20">
-                        <div className="grid grid-cols-2 p-1 rounded-xl w-full gap-1 transition-all bg-zinc-100">
+                        <div className="grid grid-cols-3 p-1 rounded-xl w-full gap-1 transition-all bg-zinc-100">
                             <button
                                 onClick={() => setRightPanelTab('chat')}
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
@@ -1775,78 +1774,24 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             >
                                 Lecciones
                             </button>
+                            <button
+                                onClick={() => {
+                                    setRightPanelTab('trips');
+                                    fetchLeads();
+                                }}
+                                className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
+                                    rightPanelTab === 'trips'
+                                    ? 'bg-black text-white font-extrabold shadow-md'
+                                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
+                                }`}
+                            >
+                                Viajes
+                            </button>
                         </div>
                     </div>
                 )}
-                
 
-
-                {showLeadsDashboard ? (
-                    <div className="flex-1 flex flex-col p-4 pt-12 space-y-4 h-full bg-black/25 overflow-hidden">
-                        <div className="flex items-center justify-between border-b border-white/10 pb-2 flex-shrink-0">
-                            <h4 className="text-xs font-mono tracking-wider uppercase text-emerald-400">{translations[selectedLang].databaseCapturedLeads} ({serverLeads.length})</h4>
-                            <button onClick={() => setShowLeadsDashboard(false)} className="text-xs text-neutral-400 hover:text-white underline cursor-pointer">{translations[selectedLang].backToChat}</button>
-                        </div>
-
-                        {/* Interactive Google Map in LUGARES GUARDADOS */}
-                        <div className="h-[200px] md:h-[250px] w-full rounded-2xl overflow-hidden border border-white/10 flex-shrink-0 shadow-md">
-                            <NycMap 
-                                center={mapCenter}
-                                zoom={mapZoom}
-                                markers={markers}
-                                routeInfo={routeInfo}
-                            />
-                        </div>
-
-                        {/* Scrollable List of Saved Spots */}
-                        <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[160px] md:max-h-[220px]">
-                            {serverLeads.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full space-y-2 text-center py-6">
-                                    <span className="text-3xl text-neutral-500">📁</span>
-                                    <p className="text-sm text-neutral-400">{translations[selectedLang].noLeads}</p>
-                                    <p className="text-xs text-neutral-500 max-w-xs leading-relaxed">{translations[selectedLang].fillFormTest}</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {serverLeads.map((lead) => (
-                                        <div key={lead.id} className="bg-[#1f1f23] border border-white/10 shadow-sm rounded-xl p-3 space-y-2 text-xs">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="font-semibold text-white text-sm">{lead.name}</p>
-                                                    <p className="text-neutral-400 font-mono">{lead.email}</p>
-                                                </div>
-                                                <span className="text-[10px] font-mono text-neutral-300 bg-white/5 px-2 py-0.5 rounded-full">
-                                                    {new Date(lead.createdAt).toLocaleDateString()}
-                                                </span>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-2 border-t border-white/5 pt-2 text-[11px] text-neutral-300">
-                                                {lead.company && <p>🏢 <strong className="text-neutral-500">{selectedLang === 'EN' ? 'Company' : 'Empresa'}:</strong> {lead.company}</p>}
-                                                {lead.phone && <p>📞 <strong className="text-neutral-500">{selectedLang === 'EN' ? 'Phone' : 'Teléfono'}:</strong> {lead.phone}</p>}
-                                            </div>
-                                            {lead.notes && (
-                                                <div className="bg-black/35 p-2 rounded border border-white/5 text-neutral-300 text-[11px] whitespace-pre-wrap">
-                                                    <strong className="text-neutral-400">{selectedLang === 'EN' ? 'Requirements' : 'Requisitos'}:</strong> {lead.notes}
-                                                </div>
-                                            )}
-                                            {lead.chatTranscript && lead.chatTranscript.length > 0 && (
-                                                <details className="mt-2 text-[10px] text-neutral-400">
-                                                    <summary className="cursor-pointer hover:text-white select-none">{translations[selectedLang].viewSavedTranscript} ({lead.chatTranscript.length} lines)</summary>
-                                                    <div className="mt-1 space-y-1 bg-black/35 p-2 rounded max-h-24 overflow-y-auto text-[9px] border border-white/5">
-                                                        {lead.chatTranscript.map((t, idx) => (
-                                                            <div key={idx} className={t.sender === 'user' ? 'text-emerald-400' : 'text-neutral-300'}>
-                                                                <strong className="uppercase text-[8px]">{t.sender}:</strong> {t.text}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </details>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                ) : showReviewScreen ? (
+                {showReviewScreen ? (
                     <div className="flex-1 flex flex-col justify-between p-6 animate-fade-in bg-zinc-950 tab-content-area">
                         <div className="text-center mb-4">
                             <span className="text-xs tracking-widest uppercase text-yellow-500 font-mono">PROGRESO</span>
@@ -1943,23 +1888,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                 </span>
                                             </label>
 
-                                            {/* Lugares Guardados Option Toggle */}
-                                            <label className="flex items-center gap-2 cursor-pointer select-none">
-                                                <input 
-                                                    type="checkbox"
-                                                    checked={showLeadsDashboard}
-                                                    onChange={(e) => {
-                                                        setShowLeadsDashboard(e.target.checked);
-                                                        if (e.target.checked) {
-                                                            fetchLeads();
-                                                        }
-                                                    }}
-                                                    className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
-                                                />
-                                                <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
-                                                    LUGARES
-                                                </span>
-                                            </label>
+
                                         </div>
                                     </div>
                                 )}
@@ -2454,7 +2383,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             </div>
                         )}
 
-                    {!showReviewScreen && !showLeadsDashboard && rightPanelTab === 'chat' && hasInteracted && (
+                    {!showReviewScreen && rightPanelTab === 'chat' && hasInteracted && (
                         <div className="px-4 pb-4 bg-transparent flex items-start gap-2.5 w-full">
                             <div className="w-10 flex-shrink-0 bg-transparent" />
                             <form onSubmit={handleSendMessage} className="flex-1 max-w-[78%] relative rounded-xl transition-all bg-[#fcd34d]">
@@ -2464,11 +2393,10 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                     onChange={(e) => setInputText(e.target.value)}
                                     placeholder={placeholderText}
                                     className="w-full pl-4 pr-12 py-2.5 focus:outline-none transition-all min-h-[44px] border-none rounded-xl bg-[#fcd34d] text-zinc-900 placeholder:text-zinc-700/60 font-semibold tracking-wider chat-input-text"
-                                    disabled={showLeadsDashboard}
                                 />
                                 <button
                                     type="submit"
-                                    disabled={!inputText.trim() || showLeadsDashboard}
+                                    disabled={!inputText.trim()}
                                     className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center bg-black/50 hover:bg-[#16161a] text-white rounded-lg transition-all cursor-pointer hover:shadow-[0_0_10px_rgba(255,255,255,0.2)]"
                                 >
                                     <svg className="w-4 h-4 transform rotate-90" fill="currentColor" viewBox="0 0 20 20">
