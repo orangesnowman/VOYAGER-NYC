@@ -1927,7 +1927,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 </div>
                             ) : (
                                 <div className="min-h-full flex flex-col justify-end space-y-4">
-                                {chatMessages.map((msg) => {
+                                {chatMessages.map((msg, index) => {
                             if (msg.sender === 'system') {
                                 return null;
                             }
@@ -1936,16 +1936,36 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             }
 
                             const isUser = msg.sender === 'user';
+                            
+                            let showAvatar = true;
+                            if (index > 0) {
+                                let prevVisibleMsg = null;
+                                for (let i = index - 1; i >= 0; i--) {
+                                    const m = chatMessages[i];
+                                    if (m.sender !== 'system' && !(isConnected && m.id === 'welcome_1')) {
+                                        prevVisibleMsg = m;
+                                        break;
+                                    }
+                                }
+                                if (prevVisibleMsg && prevVisibleMsg.sender !== 'user') {
+                                    showAvatar = false;
+                                }
+                            }
+
                             return (
                                 <div key={msg.id} className={`flex items-start ${isUser ? 'justify-end' : 'justify-start'} gap-2.5 animate-fade-in`}>
                                     {!isUser && (
                                         <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
-                                            <img 
-                                                src={voyagerRobot} 
-                                                alt="Voyager Guide" 
-                                                referrerPolicy="no-referrer"
-                                                className="w-full h-full object-contain rounded-lg" 
-                                            />
+                                            {showAvatar ? (
+                                                <img 
+                                                    src={voyagerRobot} 
+                                                    alt="Voyager Guide" 
+                                                    referrerPolicy="no-referrer"
+                                                    className="w-full h-full object-contain rounded-lg" 
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full" />
+                                            )}
                                         </div>
                                     )}
                                     <div className={`max-w-[78%] flex flex-col space-y-1 ${isUser ? 'items-end' : 'items-start'}`}>
