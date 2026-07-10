@@ -292,6 +292,10 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const [isBilingualMode, setIsBilingualMode] = useState(false);
   const isBilingualModeRef = useRef(isBilingualMode);
   
+  const [isPaused, setIsPaused] = useState(false);
+  const isPausedRef = useRef(isPaused);
+  const lastInteractionTimeRef = useRef(Date.now());
+  
   const [volume, setVolume] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [statusText, setStatusText] = useState("Disconnected");
@@ -969,10 +973,57 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
     return () => cancelAnimationFrame(animationFrameId);
   }, [isConnected]);
 
+  const pauseSession = () => {
+    setIsPaused(true);
+    isPausedRef.current = true;
+    setVolume(0);
+    setChatMessages(prev => [
+      ...prev,
+      {
+        id: `msg_sys_pause_${Date.now()}`,
+        sender: 'system',
+        text: 'ℹ️ Sesión en pausa. Escribe un mensaje en el campo de texto de abajo para reanudar la sesión.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timeMs: Date.now()
+      }
+    ]);
+  };
+
+  const resumeSession = () => {
+    setIsPaused(false);
+    isPausedRef.current = false;
+    lastInteractionTimeRef.current = Date.now();
+    setChatMessages(prev => [
+      ...prev,
+      {
+        id: `msg_sys_resume_${Date.now()}`,
+        sender: 'system',
+        text: 'ℹ️ Sesión reanudada.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timeMs: Date.now()
+      }
+    ]);
+  };
+
+  useEffect(() => {
+    if (!isConnected || isPaused) return;
+    const interval = setInterval(() => {
+      const inactiveMs = Date.now() - lastInteractionTimeRef.current;
+      if (inactiveMs > 60000) {
+        console.log("Auto-pausing session due to 60s inactivity");
+        pauseSession();
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isConnected, isPaused]);
+
   const connectToGemini = async (initialPrompt?: string, isVoiceConnection: boolean = false, langOverride?: 'EN' | 'ES') => {
     setError(null);
     setShowReviewScreen(false);
     setShowLeadsDashboard(false);
+    setIsPaused(false);
+    isPausedRef.current = false;
+    lastInteractionTimeRef.current = Date.now();
     setScores({ grammar: 0, pronunciation: 0, confidence: 0, naturalness: 0 });
     setLearnedWords([]);
     setAccentPatterns([]);
@@ -1034,6 +1085,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
         
         processor.onaudioprocess = (e) => {
           if (ws.readyState !== WebSocket.OPEN) return;
+          if (isPausedRef.current) return;
+          // Update activity timer when audio is streaming from mic
+          lastInteractionTimeRef.current = Date.now();
           const resampled = resampleAudioBuffer(e.inputBuffer, 16000);
           const pcm16 = float32ToPcm16(resampled);
           const pcmBytes = new Uint8Array(pcm16.buffer);
@@ -1071,6 +1125,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
 
       ws.onmessage = async (event) => {
         try {
+          // Reset inactivity timer when server sends any message/audio/text
+          lastInteractionTimeRef.current = Date.now();
           const msg = JSON.parse(event.data);
           
           if (msg.error) {
@@ -1188,7 +1244,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
              });
           }
 
-          if (msg.audio && audioContextRef.current && !isListenOnlyRef.current) {
+          if (msg.audio && audioContextRef.current && !isListenOnlyRef.current && !isPausedRef.current) {
             const ctx = audioContextRef.current;
             const pcmData = new Int16Array(base64ToBytes(msg.audio).buffer);
             const audioBuffer = createAudioBufferFromPCM(ctx, pcmData, 24000);
@@ -1236,6 +1292,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
     setIsConnected(false);
     setStatusText("Disconnected");
     setVolume(0);
+    setIsPaused(false);
+    isPausedRef.current = false;
     
     setChatMessages(prev => [
       ...prev,
@@ -1333,6 +1391,11 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputText.trim()) return;
+
+    lastInteractionTimeRef.current = Date.now();
+    if (isPausedRef.current) {
+      resumeSession();
+    }
 
     const textToSend = inputText.trim();
     setInputText("");
@@ -1576,12 +1639,24 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
 
                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20">
                             {isConnected ? (
-                                <button
-                                    onClick={handleEndConversation}
-                                    className="px-7 py-2.5 text-[12.5px] font-mono font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap bg-white text-black animate-yellow-glow-pulse hover:bg-zinc-100 hover:scale-[1.02] active:scale-95"
-                                >
-                                    {translations[selectedLang].disconnectBtn}
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={handleEndConversation}
+                                        className="px-5 py-2.5 text-[12.5px] font-mono font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap bg-white text-black hover:bg-zinc-100 hover:scale-[1.02] active:scale-95"
+                                    >
+                                        {translations[selectedLang].disconnectBtn}
+                                    </button>
+                                    <button
+                                        onClick={isPaused ? resumeSession : pauseSession}
+                                        className={`px-5 py-2.5 text-[12.5px] font-mono font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap active:scale-95 ${
+                                            isPaused 
+                                            ? 'bg-emerald-500 hover:bg-emerald-400 text-black hover:scale-[1.02] animate-pulse'
+                                            : 'bg-amber-500 hover:bg-amber-400 text-black hover:scale-[1.02]'
+                                        }`}
+                                    >
+                                        {isPaused ? "REANUDAR" : "PAUSAR"}
+                                    </button>
+                                </div>
                             ) : (
                                 <button
                                     onClick={() => {
@@ -1606,9 +1681,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             {/* Session Status Display */}
                             {isConnected && (
                                 <div className="flex items-center gap-1.5 mt-0.5 animate-fade-in">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isPaused ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.7)]' : 'bg-emerald-500'}`} />
                                     <span className="text-[10px] font-sans font-bold text-neutral-300 uppercase tracking-widest">
-                                        Sesión Activa
+                                        {isPaused ? "EN PAUSA" : "Sesión Activa"}
                                     </span>
                                 </div>
                             )}
