@@ -337,7 +337,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
           
           {/* Principiante Section */}
           <div className="space-y-3">
-            <span className="block text-[11px] font-mono font-bold tracking-widest text-amber-800 uppercase px-1 border-b border-amber-900/10 pb-1">
+            <span className="block text-[22px] font-mono font-bold tracking-widest text-amber-800 uppercase px-1 border-b border-amber-900/10 pb-1">
               🔰 {selectedLang === 'EN' ? 'BEGINNER' : 'PRINCIPIANTE'}
             </span>
             <div className="grid grid-cols-1 gap-4">
@@ -347,7 +347,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
 
           {/* Intermedio Section */}
           <div className="space-y-3">
-            <span className="block text-[11px] font-mono font-bold tracking-widest text-blue-800 uppercase px-1 border-b border-blue-900/10 pb-1">
+            <span className="block text-[22px] font-mono font-bold tracking-widest text-blue-800 uppercase px-1 border-b border-blue-900/10 pb-1">
               🚇 {selectedLang === 'EN' ? 'INTERMEDIATE' : 'INTERMEDIO'}
             </span>
             <div className="grid grid-cols-1 gap-4">
@@ -357,7 +357,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
 
           {/* Avanzado Section */}
           <div className="space-y-3">
-            <span className="block text-[11px] font-mono font-bold tracking-widest text-purple-800 uppercase px-1 border-b border-purple-900/10 pb-1">
+            <span className="block text-[22px] font-mono font-bold tracking-widest text-purple-800 uppercase px-1 border-b border-purple-900/10 pb-1">
               ✨ {selectedLang === 'EN' ? 'ADVANCED' : 'AVANZADO'}
             </span>
             <div className="grid grid-cols-1 gap-4">
