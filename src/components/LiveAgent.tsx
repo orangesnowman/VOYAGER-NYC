@@ -286,6 +286,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const [isListenOnly, setIsListenOnly] = useState(false);
   const isListenOnlyRef = useRef(isListenOnly);
   
+  const [isTranslateMode, setIsTranslateMode] = useState(false);
+  const isTranslateModeRef = useRef(isTranslateMode);
+  
   const [volume, setVolume] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [statusText, setStatusText] = useState("Disconnected");
@@ -480,6 +483,50 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
       ]);
     }
   }, [isListenOnly, selectedLang]);
+
+  useEffect(() => {
+    const wasTranslateMode = isTranslateModeRef.current;
+    isTranslateModeRef.current = isTranslateMode;
+    
+    if (wasTranslateMode !== isTranslateMode) {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        const msgText = isTranslateMode 
+          ? "[SYSTEM MESSAGE: You are now in INSTANT TRANSLATION MODE. You must act strictly and purely as a speech translator. Do NOT hold a conversation, do NOT give tips, do NOT make small talk, and do NOT guide the user. Your ONLY job is to immediately translate whatever you hear: if the user speaks Spanish, translate it to English; if they speak English, translate it to Spanish. Output ONLY the translated words and nothing else, both in your voice and in your text transcription. Keep translations instantaneous, brief, and exact.]"
+          : "[SYSTEM MESSAGE: You are now back in normal interactive voice guide mode. You must converse with the user in Spanish by default, and act as their NYC guide and English tutor.]";
+        
+        wsRef.current.send(JSON.stringify({ text: msgText }));
+      }
+      
+      setChatMessages(prev => [
+        ...prev,
+        {
+          id: `msg_sys_translate_${Date.now()}`,
+          sender: 'system',
+          text: isTranslateMode 
+            ? (selectedLang === 'EN' 
+              ? 'ℹ️ Instant Translation Mode active: VOYAGER will translate what you say immediately.'
+              : 'ℹ️ Modo Traducción Instantánea activo: VOYAGER traducirá lo que digas de inmediato.')
+            : (selectedLang === 'EN'
+              ? 'ℹ️ Normal mode active: VOYAGER is back as your NYC guide and tutor.'
+              : 'ℹ️ Modo normal activo: VOYAGER vuelve a ser tu guía y tutor en NYC.'),
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timeMs: Date.now()
+        }
+      ]);
+    }
+  }, [isTranslateMode, selectedLang]);
+
+  useEffect(() => {
+    if (isTranslateMode && isListenOnly) {
+      setIsListenOnly(false);
+    }
+  }, [isTranslateMode]);
+
+  useEffect(() => {
+    if (isListenOnly && isTranslateMode) {
+      setIsTranslateMode(false);
+    }
+  }, [isListenOnly]);
 
   const hasInteracted = isConnected || statusText === "Connecting..." || chatMessages.length > 1;
 
@@ -951,7 +998,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
         processorRef.current = processor;
 
         let greeting = initialPrompt || (selectedLang === 'ES' ? "Hola" : "Hello");
-        if (isListenOnlyRef.current) {
+        if (isTranslateModeRef.current) {
+          greeting += "\n\n[SYSTEM MESSAGE: You are now in INSTANT TRANSLATION MODE. You must act strictly and purely as a speech translator. Do NOT hold a conversation, do NOT give tips, do NOT make small talk, and do NOT guide the user. Your ONLY job is to immediately translate whatever you hear: if the user speaks Spanish, translate it to English; if they speak English, translate it to Spanish. Output ONLY the translated words and nothing else, both in your voice and in your text transcription. Keep translations instantaneous, brief, and exact.]";
+        } else if (isListenOnlyRef.current) {
           greeting += "\n\n[SYSTEM MESSAGE: You are now starting in Monitor/Listen-only mode. The user is practicing by talking to a real person. You must only listen and analyze their English interaction. Do NOT speak. You can only respond via text. In your text responses, offer helpful, subtle language corrections or tips about their conversation, and if you want to speak aloud, explicitly ask the user for permission to talk (e.g. '¿Puedo hablar?').]";
         }
         setTimeout(() => {
@@ -1687,18 +1736,33 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                             </span>
                                         </div>
                                         
-                                        {/* Listen Only Option Toggle */}
-                                        <label className="flex items-center gap-2 cursor-pointer select-none">
-                                            <input 
-                                                type="checkbox"
-                                                checked={isListenOnly}
-                                                onChange={(e) => setIsListenOnly(e.target.checked)}
-                                                className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
-                                            />
-                                            <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
-                                                {selectedLang === 'EN' ? 'Listen Only' : 'Solo Escuchar'}
-                                            </span>
-                                        </label>
+                                        <div className="flex items-center gap-3.5">
+                                            {/* Translate Option Toggle */}
+                                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                <input 
+                                                    type="checkbox"
+                                                    checked={isTranslateMode}
+                                                    onChange={(e) => setIsTranslateMode(e.target.checked)}
+                                                    className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                />
+                                                <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
+                                                    {selectedLang === 'EN' ? 'Translate' : 'TRADUCE'}
+                                                </span>
+                                            </label>
+
+                                            {/* Listen Only Option Toggle */}
+                                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                <input 
+                                                    type="checkbox"
+                                                    checked={isListenOnly}
+                                                    onChange={(e) => setIsListenOnly(e.target.checked)}
+                                                    className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                />
+                                                <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
+                                                    {selectedLang === 'EN' ? 'Listen Only' : 'Solo Escuchar'}
+                                                </span>
+                                            </label>
+                                        </div>
                                     </div>
                                 )}
                                 <div className={`flex-1 p-4 pt-2 tab-content-area overflow-y-auto ${
