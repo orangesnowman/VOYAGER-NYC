@@ -95,7 +95,7 @@ export const Missions: React.FC<MissionsProps> = ({
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#f5f5f3] rounded-3xl p-4 font-sans text-neutral-900 overflow-y-auto max-h-[500px] md:max-h-[600px] shadow-inner border border-zinc-200/80">
+    <div className="w-full h-full flex flex-col bg-[#f2ede4] rounded-3xl p-4 font-sans text-neutral-900 overflow-y-auto max-h-[500px] md:max-h-[600px] shadow-inner border border-zinc-200/60">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
         {CARDS.map((card) => {
           const isActive = activeDay === card.dayNum;
@@ -141,7 +141,7 @@ export const Missions: React.FC<MissionsProps> = ({
                 </p>
 
                 {/* Vocab Box */}
-                <div className="bg-neutral-50 border border-neutral-100 rounded-2xl p-3 mb-5">
+                <div className="bg-[#FAF7F0] border border-amber-100/50 rounded-2xl p-3 mb-5">
                   <span className="block text-[9px] font-mono font-bold text-neutral-400 tracking-wider mb-2">
                     {selectedLang === 'EN' ? 'KEY VOCABULARY:' : 'VOCABULARIO CLAVE:'}
                   </span>
