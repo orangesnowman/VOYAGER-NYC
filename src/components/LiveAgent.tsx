@@ -1963,7 +1963,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                     className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
                                                 />
                                                 <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
-                                                    LUGARES GUARDADOS
+                                                    LUGARES
                                                 </span>
                                             </label>
                                         </div>
