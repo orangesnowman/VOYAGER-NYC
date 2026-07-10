@@ -1149,6 +1149,49 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
             setSelectedLang(msg.languageSwitch);
           }
 
+          if (msg.progressUpdate) {
+            console.log("Received progress update from tool:", msg.progressUpdate);
+            const { scores, learnedWords, accentTips, completedMissionId } = msg.progressUpdate;
+            
+            if (scores) {
+              setScores({
+                grammar: scores.grammar || 0,
+                pronunciation: scores.pronunciation || 0,
+                confidence: scores.confidence || 0,
+                naturalness: scores.naturalness || 0
+              });
+            }
+            
+            if (learnedWords && learnedWords.length > 0) {
+              setLearnedWords(prev => {
+                const updated = [...prev];
+                learnedWords.forEach((w: string) => {
+                  if (!updated.includes(w)) updated.push(w);
+                });
+                return updated;
+              });
+            }
+            
+            if (accentTips) {
+              setAccentPatterns(prev => {
+                if (!prev.includes(accentTips)) {
+                  return [...prev, accentTips];
+                }
+                return prev;
+              });
+            }
+            
+            if (completedMissionId) {
+              setCompletedMissions(prev => {
+                if (!prev.includes(completedMissionId)) {
+                  return [...prev, completedMissionId];
+                }
+                return prev;
+              });
+            }
+            return;
+          }
+
           if (msg.mapAction) {
             console.log("Received mapAction:", msg.mapAction, msg.data);
             if (msg.mapAction === "show_location") {

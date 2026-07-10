@@ -226,6 +226,27 @@ async function startServer() {
                     },
                     required: ["query"]
                   }
+                },
+                {
+                  name: "update_user_progress",
+                  description: "Update the user's language learning progress metrics, confidence scores, newly learned vocabulary words, accent coaching patterns, or completed missions based on their last response. Call this silently on subsequent conversational turns to record metrics. DO NOT mention scores or grades in your spoken output.",
+                  parameters: {
+                    type: "OBJECT" as any,
+                    properties: {
+                      grammar: { type: "INTEGER" as any, description: "Grammar score from 1 to 5." },
+                      pronunciation: { type: "INTEGER" as any, description: "Pronunciation score from 1 to 5." },
+                      confidence: { type: "INTEGER" as any, description: "Confidence score from 1 to 5." },
+                      naturalness: { type: "INTEGER" as any, description: "Naturalness score from 1 to 5." },
+                      learnedWords: {
+                        type: "ARRAY" as any,
+                        items: { type: "STRING" as any },
+                        description: "List of new vocabulary words learned during this turn."
+                      },
+                      accentTips: { type: "STRING" as any, description: "Accent reduction or pronunciation coaching tip." },
+                      completedMissionId: { type: "STRING" as any, description: "ID of the completed mission, if any." }
+                    },
+                    required: ["grammar", "pronunciation", "confidence", "naturalness"]
+                  }
                 }
               ]
             }
@@ -397,6 +418,22 @@ async function startServer() {
                       logToFile(`Tool call search_web query: ${query}`);
                       const searchResults = await performWebSearch(query);
                       result = { success: true, query, results: searchResults };
+                    } else if (call.name === "update_user_progress") {
+                      const args = call.args as any;
+                      const { grammar, pronunciation, confidence, naturalness, learnedWords = [], accentTips = "", completedMissionId = "" } = args;
+                      
+                      logToFile(`Tool call update_user_progress: scores[G:${grammar}, P:${pronunciation}, C:${confidence}, N:${naturalness}]`);
+                      
+                      clientWs.send(JSON.stringify({
+                        progressUpdate: {
+                          scores: { grammar, pronunciation, confidence, naturalness },
+                          learnedWords,
+                          accentTips,
+                          completedMissionId
+                        }
+                      }));
+                      
+                      result = { success: true, message: "Progress metrics updated successfully." };
                     }
                     responses.push({
                       name: call.name,
