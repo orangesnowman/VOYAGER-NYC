@@ -1486,6 +1486,12 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                 font-weight: normal !important;
                 letter-spacing: -0.15px !important;
             }
+            .tab-content-area input.chat-input-text {
+                font-family: "American Typewriter", "Courier New", Courier, Georgia, serif !important;
+                font-size: 12pt !important;
+                font-weight: 600 !important;
+                letter-spacing: 0.05em !important;
+            }
             .tab-content-area input,
             .tab-content-area textarea,
             .tab-content-area select,
@@ -2396,7 +2402,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                     placeholder={placeholderText}
-                                    className="w-full pl-4 pr-12 py-2.5 text-sm focus:outline-none transition-all min-h-[44px] border-none rounded-xl bg-[#fcd34d] text-zinc-900 placeholder:text-zinc-600/80"
+                                    className="w-full pl-4 pr-12 py-2.5 focus:outline-none transition-all min-h-[44px] border-none rounded-xl bg-[#fcd34d] text-zinc-900 placeholder:text-zinc-700/60 font-semibold tracking-wider chat-input-text"
                                     disabled={showLeadsDashboard}
                                 />
                                 <button
