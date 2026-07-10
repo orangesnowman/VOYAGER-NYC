@@ -1938,7 +1938,22 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                 : 'bg-zinc-100 border border-zinc-200/60 text-zinc-800 rounded-tl-none'
                                             }
                                         `}>
-                                            <p className="chat-message-text whitespace-pre-line tracking-wider leading-relaxed">{getTranslatedMessageText(msg, selectedLang)}</p>
+                                            <p className="chat-message-text whitespace-pre-line tracking-wider leading-relaxed">
+                                                {(() => {
+                                                    const rawText = getTranslatedMessageText(msg, selectedLang);
+                                                    if (!isUser && rawText.includes(" / ")) {
+                                                        const parts = rawText.split(" / ");
+                                                        if (parts.length >= 2) {
+                                                            return (
+                                                                <>
+                                                                    {parts[0]} / <strong className="font-bold text-zinc-900">{parts.slice(1).join(" / ")}</strong>
+                                                                </>
+                                                            );
+                                                        }
+                                                    }
+                                                    return rawText;
+                                                })()}
+                                            </p>
                                             
                                             {!isUser && msg.showForm && (
                                                 <div className="border-t border-white/10 pt-3 mt-3 space-y-2.5">
