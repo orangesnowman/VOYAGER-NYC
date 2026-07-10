@@ -281,10 +281,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
         }`}
       >
         <div>
-          <div className="flex justify-between items-center mb-4">
-            <span className={`text-[8px] font-mono font-bold tracking-wider px-2 py-0.5 rounded border ${card.tagColor}`}>
-              {selectedLang === 'EN' ? card.tagEn : card.tag}
-            </span>
+          <div className="flex justify-end mb-4">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
               card.icon === 'coffee' ? 'bg-yellow-50 text-amber-600' :
               card.icon === 'subway' ? 'bg-sky-50 text-sky-600' :
