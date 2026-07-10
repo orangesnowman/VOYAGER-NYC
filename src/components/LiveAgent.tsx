@@ -1889,7 +1889,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                         {rightPanelTab === 'chat' ? (
                             <div className="flex-grow flex flex-col overflow-hidden h-full">
                                 {hasInteracted && (
-                                    <div className="px-4 py-2 border-b border-zinc-100 flex items-center justify-end bg-zinc-50/50 flex-shrink-0 z-10">
+                                    <div className="px-4 py-2 border-b border-zinc-100 flex items-center justify-start bg-zinc-50/50 flex-shrink-0 z-10">
                                         
                                         <div className="flex items-center gap-3.5">
                                             {/* Bilingual Option Toggle */}
