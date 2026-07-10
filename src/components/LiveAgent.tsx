@@ -1689,7 +1689,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 <div className="flex items-center gap-1.5 mt-0.5 animate-fade-in">
                                     <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isPaused ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.7)]' : 'bg-emerald-500'}`} />
                                     <span className="text-[10px] font-sans font-bold text-neutral-300 uppercase tracking-widest">
-                                        {isPaused ? "EN PAUSA" : "Sesión Activa"}
+                                        {isPaused 
+                                            ? `EN PAUSA (${Math.floor(secondsElapsed / 60)}:${(secondsElapsed % 60).toString().padStart(2, '0')})` 
+                                            : `Sesión Activa (${Math.floor(secondsElapsed / 60)}:${(secondsElapsed % 60).toString().padStart(2, '0')})`}
                                     </span>
                                 </div>
                             )}
@@ -1759,16 +1761,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                     </div>
                 )}
                 
-                <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-30">
-                    <div />
-                    <div>
-                        {isConnected && !showReviewScreen && !showLeadsDashboard && (
-                            <span className="text-[10px] font-bold tracking-wider border px-2 py-0.5 rounded-full shadow-sm animate-pulse pointer-events-auto transition-all text-yellow-600 bg-zinc-100 border-zinc-200">
-                                {translations[selectedLang].session}: {Math.floor(secondsElapsed / 60)}:{(secondsElapsed % 60).toString().padStart(2, '0')}
-                            </span>
-                        )}
-                    </div>
-                </div>
+
 
                 {showLeadsDashboard ? (
                     <div className="flex-1 flex flex-col p-4 pt-12 space-y-4 h-full bg-black/25 overflow-hidden">
