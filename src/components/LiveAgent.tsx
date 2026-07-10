@@ -962,29 +962,29 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
 
   const connectToGemini = async (initialPrompt?: string, isVoiceConnection: boolean = false, langOverride?: 'EN' | 'ES') => {
     setError(null);
+    setShowReviewScreen(false);
+    setShowLeadsDashboard(false);
+    setScores({ grammar: 0, pronunciation: 0, confidence: 0, naturalness: 0 });
+    setLearnedWords([]);
+    setAccentPatterns([]);
     ensureAudioContexts();
     
     if (initialPrompt && !isVoiceConnection) {
-      setChatMessages(prev => {
-        if (prev.some(m => m.text === initialPrompt && m.sender === 'user')) return prev;
-        return [
-          ...prev,
-          {
-            id: `msg_${Date.now()}`,
-            sender: 'user',
-            text: initialPrompt,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            timeMs: Date.now()
-          }
-        ];
-      });
+      setChatMessages([
+        {
+          id: `msg_${Date.now()}`,
+          sender: 'user',
+          text: initialPrompt,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timeMs: Date.now()
+        }
+      ]);
     } else {
-      setChatMessages(prev => [
-        ...prev,
+      setChatMessages([
         {
           id: `msg_sys_${Date.now()}`,
           sender: 'system',
-          text: '🎙️ Initiating voice connection... Please speak clearly.',
+          text: (langOverride || selectedLang) === 'EN' ? '🎙️ Connecting to Voyager... Please speak clearly.' : '🎙️ Conectando con Voyager... Por favor habla claro.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           timeMs: Date.now()
         }
