@@ -61,11 +61,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
     <div className="w-full h-full flex flex-col bg-black/45 border border-white/10 rounded-2xl p-4 font-sans text-white overflow-hidden max-h-[380px] md:max-h-[440px]">
       
       {/* Day Selector Header */}
-      <div className="flex justify-between items-center border-b border-white/10 pb-2.5 mb-3">
-        <span className="text-[10px] font-mono font-bold tracking-widest text-yellow-400 uppercase flex items-center gap-1">
-          <BookOpen className="w-3.5 h-3.5 text-yellow-500" />
-          {selectedLang === 'EN' ? 'Daily Lessons' : 'Lecciones Diarias'}
-        </span>
+      <div className="flex justify-end items-center border-b border-white/10 pb-2.5 mb-3">
         <div className="flex gap-1.5">
           {IMMERSION_CURRICULUM.map((day) => (
             <button
