@@ -540,8 +540,14 @@ async function startServer() {
             });
           } else if (payload.text) {
             logToFile(`Relaying client text input to Gemini: ${payload.text}`);
-            await session.sendRealtimeInput({
-              text: payload.text
+            session.sendClientContent({
+              turns: [
+                {
+                  role: "user",
+                  parts: [{ text: payload.text }]
+                }
+              ],
+              turnComplete: true
             });
           }
         }
