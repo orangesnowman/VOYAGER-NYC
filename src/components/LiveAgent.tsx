@@ -1719,7 +1719,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 <div className="flex items-center gap-1.5 mt-0.5 animate-fade-in">
                                     <div className="w-1.5 h-1.5 rounded-full animate-pulse bg-emerald-500" />
                                     <span className="text-[10px] font-sans font-bold text-neutral-300 uppercase tracking-widest">
-                                        {`Sesión Activa (${Math.floor(secondsElapsed / 60)}:${(secondsElapsed % 60).toString().padStart(2, '0')})`}
+                                        {`Sesión (${Math.floor(secondsElapsed / 60)}:${(secondsElapsed % 60).toString().padStart(2, '0')})`}
                                     </span>
                                 </div>
                             )}
