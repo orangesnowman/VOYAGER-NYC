@@ -53,7 +53,7 @@ const CARDS: CardData[] = [
     titleEn: "Coffee in a Classic Diner",
     description: "Aprende a ordenar café, huevos, panqueques y a entender la jerga de los meseros neoyorquinos.",
     descriptionEn: "Learn to order coffee, eggs, pancakes and understand the slang of NYC servers.",
-    vocab: ["Sunny-side up", "To go", "Refill", "Pastrami on rye", "Drizzle"]
+    vocab: ["Sunny-side up (Huevo frito boca arriba)", "To go (Para llevar)", "Refill (Relleno/Rellenar)", "Pastrami on rye (Pastrami en centeno)", "Drizzle (Rociar/Lloviznar)"]
   },
   {
     dayNum: 2,
@@ -65,7 +65,7 @@ const CARDS: CardData[] = [
     titleEn: "NYC Subway Adventures",
     description: "Aprende cómo preguntar por líneas de metro (subway lines), comprar boletos y entender direcciones norte/sur.",
     descriptionEn: "Learn how to ask for subway lines, buy tickets and understand north/south directions.",
-    vocab: ["MetroCard", "Uptown / Downtown", "Transfer", "Platform", "Express train"]
+    vocab: ["MetroCard (Tarjeta del metro)", "Uptown / Downtown (Norte / Sur)", "Transfer (Transbordo)", "Platform (Andén)", "Express train (Tren rápido/expreso)"]
   },
   {
     dayNum: 3,
@@ -77,7 +77,7 @@ const CARDS: CardData[] = [
     titleEn: "Brooklyn Bridge Photographer",
     description: "Frases útiles para pedirle cortésmente a un turista que te tome una foto y darle instrucciones de encuadre.",
     descriptionEn: "Useful phrases to politely ask a tourist to take your picture and give framing instructions.",
-    vocab: ["Take a photo", "Horizontal / Landscape", "Frame", "Backlight", "Press the button"]
+    vocab: ["Take a photo (Tomar una foto)", "Horizontal / Landscape (Horizontal/Apaisado)", "Frame (Encuadrar/Marco)", "Backlight (Contraluz)", "Press the button (Presionar el botón)"]
   },
   {
     dayNum: 4,
@@ -89,7 +89,7 @@ const CARDS: CardData[] = [
     titleEn: "Hustling on Broadway",
     description: "Negocia boletos de última hora (TKTS booth) y aprende a preguntar por los mejores asientos en el teatro.",
     descriptionEn: "Negotiate last-minute tickets (TKTS booth) and learn to ask for the best seats in the theater.",
-    vocab: ["Matinee", "Orchestra seats", "Mezzanine", "Sold out", "Standing room only"]
+    vocab: ["Matinee (Función vespertina)", "Orchestra seats (Butacas de platea)", "Mezzanine (Entresuelo/Mezanina)", "Sold out (Agotado)", "Standing room only (Solo espacio de pie)"]
   }
 ];
 
