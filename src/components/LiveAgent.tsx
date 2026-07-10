@@ -301,7 +301,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const [mapZoom, setMapZoom] = useState<number>(13);
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
-  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'missions'>('chat');
+  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'lessons' | 'missions'>('chat');
   const [classroomSubTab, setClassroomSubTab] = useState<'map' | 'subway_map'>('map');
   const [activeDay, setActiveDay] = useState<number>(1);
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
@@ -1627,7 +1627,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                 
                 {isConnected && !showReviewScreen && !showLeadsDashboard && (
                     <div className="px-4 pt-14 pb-2 z-20">
-                        <div className="grid grid-cols-2 p-1 rounded-xl w-full gap-1 transition-all bg-zinc-100">
+                        <div className="grid grid-cols-3 p-1 rounded-xl w-full gap-1 transition-all bg-zinc-100">
                             <button
                                 onClick={() => setRightPanelTab('chat')}
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
@@ -1637,6 +1637,16 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 }`}
                             >
                                 {selectedLang === 'EN' ? 'Chat' : 'Chat'}
+                            </button>
+                            <button
+                                onClick={() => setRightPanelTab('lessons')}
+                                className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
+                                    rightPanelTab === 'lessons'
+                                    ? 'bg-black text-white font-extrabold shadow-md'
+                                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
+                                }`}
+                            >
+                                {selectedLang === 'EN' ? 'Lessons' : 'Lecciones'}
                             </button>
                             <button
                                 onClick={() => setRightPanelTab('missions')}
@@ -2274,7 +2284,42 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             </div>
                         ) : (
                             <div className="flex-1 overflow-y-auto p-4 max-h-[390px] md:max-h-[440px] tab-content-area">
-
+                                {rightPanelTab === 'lessons' && (
+                                    <Curriculum 
+                                        selectedLang={selectedLang}
+                                        activeDay={activeDay}
+                                        onSelectDay={setActiveDay}
+                                        onAskVoyager={(text) => {
+                                            setRightPanelTab('chat');
+                                            setInputText(text);
+                                            if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                                wsRef.current.send(JSON.stringify({ text }));
+                                                setChatMessages(prev => [
+                                                    ...prev,
+                                                    {
+                                                        id: `msg_lessons_${Date.now()}`,
+                                                        sender: 'user',
+                                                        text,
+                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                        timeMs: Date.now()
+                                                    }
+                                                ]);
+                                            } else {
+                                                setChatMessages(prev => [
+                                                    ...prev,
+                                                    {
+                                                        id: `msg_lessons_${Date.now()}`,
+                                                        sender: 'user',
+                                                        text,
+                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                        timeMs: Date.now()
+                                                    }
+                                                ]);
+                                                connectToGemini(text, false);
+                                            }
+                                        }}
+                                    />
+                                )}
                                 {rightPanelTab === 'missions' && (
                                     <Missions 
                                         selectedLang={selectedLang}
