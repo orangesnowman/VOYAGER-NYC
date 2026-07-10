@@ -1760,24 +1760,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                 )}
                 
                 <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none z-30">
-                    <div>
-                        {(import.meta as any).env.DEV && hasInteracted && (
-                            <button
-                              onClick={() => {
-                                setShowLeadsDashboard(!showLeadsDashboard);
-                                if (!showLeadsDashboard) {
-                                  fetchLeads();
-                                }
-                              }}
-                              className="px-3 py-1 text-[10px] tracking-wider uppercase border rounded-full transition-all flex items-center gap-1 cursor-pointer pointer-events-auto shadow-md min-h-[26px] bg-zinc-100 border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:border-yellow-600"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                              </svg>
-                              <span>{translations[selectedLang].leadsBtn} {serverLeads.length > 0 && `(${serverLeads.length})`}</span>
-                            </button>
-                        )}
-                    </div>
+                    <div />
                     <div>
                         {isConnected && !showReviewScreen && !showLeadsDashboard && (
                             <span className="text-[10px] font-bold tracking-wider border px-2 py-0.5 rounded-full shadow-sm animate-pulse pointer-events-auto transition-all text-yellow-600 bg-zinc-100 border-zinc-200">
