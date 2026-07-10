@@ -520,7 +520,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
           {/* Vocabulary Section */}
           <div className="space-y-2 border-t border-zinc-300/40 pt-4 mt-2">
             <span className="block text-[9px] font-mono font-bold tracking-widest text-neutral-500 uppercase">
-              📚 {selectedLang === 'EN' ? 'VOCABULARY LOG' : 'REGISTRO DE VOCABULARIO'}
+              {selectedLang === 'EN' ? 'VOCABULARY LOG' : 'REGISTRO DE VOCABULARIO'}
             </span>
             <div className="grid gap-2">
               {currentDayData.vocabulary.map((vocab, i) => (

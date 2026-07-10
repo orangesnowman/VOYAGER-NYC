@@ -2757,7 +2757,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                 {/* Navigation Vocabulary Section */}
                                                 <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 space-y-2 text-left">
                                                     <span className="block text-[8px] font-mono font-bold text-neutral-500 uppercase tracking-widest">
-                                                        📚 {selectedLang === 'EN' ? 'NAVIGATION VOCABULARY:' : 'VOCABULARIO DE NAVEGACIÓN:'}
+                                                        {selectedLang === 'EN' ? 'NAVIGATION VOCABULARY:' : 'VOCABULARIO DE NAVEGACIÓN:'}
                                                     </span>
                                                     <div className="flex flex-wrap gap-1.5 pt-1">
                                                         {selectedTripDestination.vocab.map((v, idx) => (

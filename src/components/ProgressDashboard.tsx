@@ -76,7 +76,7 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
         {/* Vocabulary Memory Section */}
         <div className="space-y-2">
           <span className="block text-[9px] font-mono font-bold tracking-widest text-neutral-400 uppercase flex items-center justify-between">
-            <span>📚 {selectedLang === 'EN' ? 'VOCABULARY MEMORY' : 'MEMORIA DE VOCABULARIO'}</span>
+            <span>{selectedLang === 'EN' ? 'VOCABULARY MEMORY' : 'MEMORIA DE VOCABULARIO'}</span>
             <span className="text-[8px] text-yellow-500 font-bold">{learnedWords.length} {selectedLang === 'EN' ? 'words' : 'palabras'}</span>
           </span>
           
