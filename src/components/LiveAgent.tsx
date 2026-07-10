@@ -867,7 +867,16 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
 
   const handleEndConversation = () => {
     disconnect();
-    setShowReviewScreen(true);
+    setShowReviewScreen(false);
+    setChatMessages([
+      {
+        id: 'welcome_1',
+        sender: 'splash',
+        text: translations[selectedLang].welcomeMsg,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timeMs: Date.now()
+      }
+    ]);
   };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
