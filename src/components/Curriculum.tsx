@@ -282,7 +282,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
       >
         <div>
           <div className="flex justify-between items-center mb-4">
-            <span className={`text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 rounded border ${card.tagColor}`}>
+            <span className={`text-[8px] font-mono font-bold tracking-wider px-2 py-0.5 rounded border ${card.tagColor}`}>
               {selectedLang === 'EN' ? card.tagEn : card.tag}
             </span>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
@@ -298,23 +298,23 @@ export const Curriculum: React.FC<CurriculumProps> = ({
             </div>
           </div>
 
-          <h3 className="text-neutral-900 font-extrabold text-base md:text-lg tracking-tight mb-2 leading-tight">
+          <h3 className="text-neutral-900 font-extrabold text-[13px] md:text-[14.5px] tracking-tight mb-2 leading-tight">
             {selectedLang === 'EN' ? card.titleEn : card.title}
           </h3>
 
-          <p className="text-neutral-500 text-xs md:text-sm leading-relaxed mb-4">
+          <p className="text-neutral-500 text-[10px] md:text-[11.5px] leading-relaxed mb-4">
             {selectedLang === 'EN' ? card.descriptionEn : card.description}
           </p>
 
           <div className="bg-[#f0eada] border border-zinc-300/40 rounded-2xl p-3 mb-5">
-            <span className="block text-[9px] font-mono font-bold text-neutral-400 tracking-wider mb-2">
+            <span className="block text-[7.5px] font-mono font-bold text-neutral-400 tracking-wider mb-2">
               {selectedLang === 'EN' ? 'KEY VOCABULARY:' : 'VOCABULARIO CLAVE:'}
             </span>
             <div className="flex flex-wrap gap-1.5">
               {card.vocab.map((v, i) => (
                 <span 
                   key={i}
-                  className="bg-[#ffffff] border border-zinc-200/80 text-zinc-700 text-[10px] font-medium px-2.5 py-0.5 rounded shadow-sm hover:border-zinc-300 transition-colors"
+                  className="bg-[#ffffff] border border-zinc-200/80 text-zinc-700 text-[8.5px] font-medium px-2.5 py-0.5 rounded shadow-sm hover:border-zinc-300 transition-colors"
                 >
                   {v}
                 </span>
@@ -325,7 +325,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
 
         <button
           onClick={() => handleOpenDetail(card.dayNum)}
-          className="w-full py-3 bg-[#e3ded4] hover:bg-[#d8d3c7] text-[#1c1917] border border-zinc-300/60 text-xs font-mono font-extrabold tracking-widest uppercase rounded-xl transition-all duration-300 shadow-sm active:scale-98 cursor-pointer"
+          className="w-full py-3 bg-[#e3ded4] hover:bg-[#d8d3c7] text-[#1c1917] border border-zinc-300/60 text-[10px] font-mono font-extrabold tracking-widest uppercase rounded-xl transition-all duration-300 shadow-sm active:scale-98 cursor-pointer"
         >
           {selectedLang === 'EN' ? 'START LESSON' : 'COMENZAR LECCIÓN'}
         </button>
@@ -340,7 +340,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
           
           {/* Principiante Section */}
           <div className="space-y-3">
-            <span className="block text-[10px] font-mono font-bold tracking-widest text-amber-800 uppercase px-1 border-b border-amber-900/10 pb-1">
+            <span className="block text-[8.5px] font-mono font-bold tracking-widest text-amber-800 uppercase px-1 border-b border-amber-900/10 pb-1">
               🔰 {selectedLang === 'EN' ? 'BEGINNER LEVEL' : 'NIVEL PRINCIPIANTE'}
             </span>
             <div className="grid grid-cols-1 gap-4">
@@ -350,7 +350,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
 
           {/* Intermedio Section */}
           <div className="space-y-3">
-            <span className="block text-[10px] font-mono font-bold tracking-widest text-blue-800 uppercase px-1 border-b border-blue-900/10 pb-1">
+            <span className="block text-[8.5px] font-mono font-bold tracking-widest text-blue-800 uppercase px-1 border-b border-blue-900/10 pb-1">
               🚇 {selectedLang === 'EN' ? 'INTERMEDIATE LEVEL' : 'NIVEL INTERMEDIO'}
             </span>
             <div className="grid grid-cols-1 gap-4">
@@ -360,7 +360,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
 
           {/* Avanzado Section */}
           <div className="space-y-3">
-            <span className="block text-[10px] font-mono font-bold tracking-widest text-purple-800 uppercase px-1 border-b border-purple-900/10 pb-1">
+            <span className="block text-[8.5px] font-mono font-bold tracking-widest text-purple-800 uppercase px-1 border-b border-purple-900/10 pb-1">
               ✨ {selectedLang === 'EN' ? 'ADVANCED LEVEL' : 'NIVEL AVANZADO'}
             </span>
             <div className="grid grid-cols-1 gap-4">
@@ -392,14 +392,14 @@ export const Curriculum: React.FC<CurriculumProps> = ({
               <span className="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest block mb-0.5">
                 {selectedLang === 'EN' ? 'ACTIVE LESSON' : 'LECCIÓN ACTIVA'}
               </span>
-              <h2 className="text-neutral-950 font-extrabold text-lg md:text-xl leading-tight">
+              <h2 className="text-neutral-950 font-extrabold text-[15px] md:text-[17px] leading-tight">
                 {selectedLang === 'EN' ? currentDayData.title : currentDayData.titleEs}
               </h2>
             </div>
             
             <button
               onClick={handleStartPractice}
-              className="w-full py-2.5 px-3 bg-yellow-500 hover:bg-yellow-400 text-black text-xs font-mono font-bold uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 shadow-[0_0_12px_rgba(234,179,8,0.25)] active:scale-98 transition-all cursor-pointer border-none"
+              className="w-full py-2.5 px-3 bg-yellow-500 hover:bg-yellow-400 text-black text-[10px] font-mono font-bold uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 shadow-[0_0_12px_rgba(234,179,8,0.25)] active:scale-98 transition-all cursor-pointer border-none"
             >
               {selectedLang === 'EN' ? 'Practice with VOYAGER' : 'Practicar con VOYAGER'}
               <ArrowRight className="w-3.5 h-3.5" />
@@ -413,7 +413,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
             </span>
             <ul className="space-y-1.5">
               {(selectedLang === 'EN' ? currentDayData.objectives : currentDayData.objectivesEs).map((obj, i) => (
-                <li key={i} className="text-xs text-neutral-700 flex items-start gap-1.5 leading-relaxed">
+                <li key={i} className="text-[10px] text-neutral-700 flex items-start gap-1.5 leading-relaxed">
                   <span className="text-yellow-600 mt-1">•</span>
                   <span>{obj}</span>
                 </li>

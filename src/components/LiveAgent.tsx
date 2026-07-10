@@ -1904,7 +1904,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             </button>
                             <button
                                 onClick={() => setRightPanelTab('lessons')}
-                                className={`py-1.5 px-3 text-[13px] md:text-[14px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
+                                className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'lessons'
                                     ? 'bg-black text-white font-extrabold shadow-md'
                                     : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
