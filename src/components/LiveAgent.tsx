@@ -1050,7 +1050,11 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
         sourceRef.current = source;
         processorRef.current = processor;
 
-        let greeting = initialPrompt || (selectedLang === 'ES' ? "Hola" : "Hello");
+        let greeting = initialPrompt || (
+          selectedLang === 'ES'
+            ? "Por favor salúdame en español con tu bienvenida oficial: '¡Hola! Soy VOYAGER, tu guía personal para Nueva York, ¿en qué te puedo ayudar hoy?'."
+            : "Please greet me in English with your official welcome: 'Welcome to New York! I am VOYAGER, your personal tour guide. How can I help you today?'."
+        );
         if (isBilingualModeRef.current) {
           greeting += "\n\n[SYSTEM MESSAGE: You are now in BILINGUAL TRANSLATION MODE. For EVERY SINGLE response, you must first speak and write your response in Spanish, and then immediately repeat the exact same response only in English. Separate the Spanish and English sentences with a slash '/'. Your entire response must consist of the Spanish version followed directly by the English translation, both in your voice output and in your text transcription.]";
         } else if (isTranslateModeRef.current) {
