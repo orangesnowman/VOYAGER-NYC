@@ -40,6 +40,65 @@ function logToFile(message: string) {
   console.log(message);
 }
 
+async function performWebSearch(query: string): Promise<string> {
+  try {
+    const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    if (!response.ok) {
+      return `Failed to fetch search results (HTTP ${response.status})`;
+    }
+    const html = await response.text();
+    
+    const snippets: string[] = [];
+    const snippetRegex = /<a class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;
+    let match;
+    let count = 0;
+    while ((match = snippetRegex.exec(html)) !== null && count < 3) {
+      let text = match[1]
+        .replace(/<[^>]*>/g, '')
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (text) {
+        snippets.push(text);
+        count++;
+      }
+    }
+    
+    if (snippets.length === 0) {
+      const fallbackRegex = /<td class="result-snippet">([\s\S]*?)<\/td>/g;
+      while ((match = fallbackRegex.exec(html)) !== null && count < 3) {
+        let text = match[1]
+          .replace(/<[^>]*>/g, '')
+          .replace(/&quot;/g, '"')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (text) {
+          snippets.push(text);
+          count++;
+        }
+      }
+    }
+    
+    if (snippets.length > 0) {
+      return snippets.join("\n\n");
+    }
+    return "No clear results found on the web.";
+  } catch (err: any) {
+    return `Error searching the web: ${err.message || err}`;
+  }
+}
+
 async function startServer() {
   const app = express();
   const server = http.createServer(app);
@@ -146,6 +205,26 @@ async function startServer() {
                       description: { type: "STRING" as any, description: "Instructions or directions explained in a language-learning context." }
                     },
                     required: ["origin", "destination"]
+                  }
+                },
+                {
+                  name: "get_current_time",
+                  description: "Get the current local date and time of the system so you don't hallucinate or make up the time.",
+                  parameters: {
+                    type: "OBJECT" as any,
+                    properties: {},
+                    required: []
+                  }
+                },
+                {
+                  name: "search_web",
+                  description: "Search the web for real-time information, weather, news, current events, or places in New York City.",
+                  parameters: {
+                    type: "OBJECT" as any,
+                    properties: {
+                      query: { type: "STRING" as any, description: "The search query to lookup on Google Search." }
+                    },
+                    required: ["query"]
                   }
                 }
               ]
@@ -279,6 +358,39 @@ async function startServer() {
                       }));
                       
                       result = { success: true, message: `Successfully requested route from ${origin} to ${destination} via ${travelMode}.` };
+                    } else if (call.name === "get_current_time") {
+                      const now = new Date();
+                      const nyOptions: Intl.DateTimeFormatOptions = {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        timeZone: 'America/New_York',
+                        timeZoneName: 'short'
+                      };
+                      const nyTime = now.toLocaleDateString('en-US', nyOptions);
+                      const localOptions: Intl.DateTimeFormatOptions = {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        timeZoneName: 'short'
+                      };
+                      const localTime = now.toLocaleDateString('en-US', localOptions);
+                      logToFile(`Tool call get_current_time - NY Time: ${nyTime}, Local Time: ${localTime}`);
+                      result = { success: true, newYorkTime: nyTime, userLocalTime: localTime };
+                    } else if (call.name === "search_web") {
+                      const args = call.args as any;
+                      const query = args.query as string;
+                      logToFile(`Tool call search_web query: ${query}`);
+                      const searchResults = await performWebSearch(query);
+                      result = { success: true, query, results: searchResults };
                     }
                     responses.push({
                       name: call.name,
