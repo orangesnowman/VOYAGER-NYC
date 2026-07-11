@@ -2688,10 +2688,14 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                              onClick={() => speakTravelPhrase(`Can you take me to ${selectedTripDestination.nameEn}, please?`, 'en-US')}
                                                         >
                                                             <div className="text-left min-w-0">
-                                                                <span className="block text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">USEFUL PHRASE (TAP TO HEAR)</span>
+                                                                <span className="block text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
+                                                                    {selectedLang === 'EN' ? 'USEFUL PHRASE (TAP TO HEAR)' : 'FRASE ÚTIL (TOCA PARA ESCUCHAR)'}
+                                                                </span>
                                                                 <span className="text-[11px] text-yellow-800 font-bold block truncate mt-0.5">"Can you take me to {selectedTripDestination.nameEn}, please?"</span>
                                                             </div>
-                                                            <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">🗣️ SPEAK</span>
+                                                            <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">
+                                                                {selectedLang === 'EN' ? '🗣️ SPEAK' : '🗣️ ESCUCHAR'}
+                                                            </span>
                                                         </div>
                                                     </div>
 
@@ -2710,10 +2714,14 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                              onClick={() => speakTravelPhrase(`How do I walk to ${selectedTripDestination.nameEn}?`, 'en-US')}
                                                         >
                                                             <div className="text-left min-w-0">
-                                                                <span className="block text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">USEFUL PHRASE (TAP TO HEAR)</span>
+                                                                <span className="block text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
+                                                                    {selectedLang === 'EN' ? 'USEFUL PHRASE (TAP TO HEAR)' : 'FRASE ÚTIL (TOCA PARA ESCUCHAR)'}
+                                                                </span>
                                                                 <span className="text-[11px] text-yellow-800 font-bold block truncate mt-0.5">"How do I walk to {selectedTripDestination.nameEn}?"</span>
                                                             </div>
-                                                            <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">🗣️ SPEAK</span>
+                                                            <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">
+                                                                {selectedLang === 'EN' ? '🗣️ SPEAK' : '🗣️ ESCUCHAR'}
+                                                            </span>
                                                         </div>
                                                     </div>
 
@@ -2732,10 +2740,14 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                              onClick={() => speakTravelPhrase(`Where is the nearest Citi Bike station?`, 'en-US')}
                                                         >
                                                             <div className="text-left min-w-0">
-                                                                <span className="block text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">USEFUL PHRASE (TAP TO HEAR)</span>
+                                                                <span className="block text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
+                                                                    {selectedLang === 'EN' ? 'USEFUL PHRASE (TAP TO HEAR)' : 'FRASE ÚTIL (TOCA PARA ESCUCHAR)'}
+                                                                </span>
                                                                 <span className="text-[11px] text-yellow-800 font-bold block truncate mt-0.5">"Where is the nearest Citi Bike station?"</span>
                                                             </div>
-                                                            <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">🗣️ SPEAK</span>
+                                                            <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">
+                                                                {selectedLang === 'EN' ? '🗣️ SPEAK' : '🗣️ ESCUCHAR'}
+                                                            </span>
                                                         </div>
                                                     </div>
 
@@ -2787,7 +2799,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                                     <span className="text-[11px] text-yellow-800 font-bold block leading-normal">{phrase.en}</span>
                                                                     <span className="text-[9px] text-zinc-500 block leading-tight mt-0.5">{phrase.es}</span>
                                                                 </div>
-                                                                <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">🗣️ SPEAK</span>
+                                                                <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">
+                                                                    {selectedLang === 'EN' ? '🗣️ SPEAK' : '🗣️ ESCUCHAR'}
+                                                                </span>
                                                             </div>
                                                         ))}
                                                     </div>
