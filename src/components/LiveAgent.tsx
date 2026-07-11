@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SUGGESTIONS } from '../constants';
+import { SUGGESTIONS, IMMERSION_CURRICULUM } from '../constants';
 import { base64ToBytes, createAudioBufferFromPCM, float32ToPcm16, bytesToBase64, resampleAudioBuffer } from '../services/audioUtils';
 import NycMap, { MapMarker, RouteInfo } from './NycMap';
 import { NycSubwayMap } from './NycSubwayMap';
@@ -431,6 +431,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const [customDestinationText, setCustomDestinationText] = useState("");
   const [classroomSubTab, setClassroomSubTab] = useState<'map' | 'subway_map'>('map');
   const [activeDay, setActiveDay] = useState<number>(1);
+  const [activeLessonDay, setActiveLessonDay] = useState<number | null>(null);
+  const [isVocabHudOpen, setIsVocabHudOpen] = useState<boolean>(false);
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
   const [scores, setScores] = useState({ grammar: 0, pronunciation: 0, confidence: 0, naturalness: 0 });
   const [learnedWords, setLearnedWords] = useState<string[]>([]);
@@ -2068,6 +2070,129 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                         </div>
                                     </div>
                                 )}
+                                
+                                {activeLessonDay !== null && (() => {
+                                    const activeLesson = IMMERSION_CURRICULUM.find(l => l.dayNum === activeLessonDay);
+                                    if (!activeLesson) return null;
+                                    
+                                    const lessonMissions = activeLesson.missions;
+                                    const completedMissionsForThisLesson = lessonMissions.filter(m => completedMissions.includes(m.id));
+                                    const isAllMissionsCompleted = lessonMissions.length > 0 && completedMissionsForThisLesson.length === lessonMissions.length;
+                                    const percentComplete = Math.round((completedMissionsForThisLesson.length / lessonMissions.length) * 100);
+
+                                    return (
+                                        <div className="mx-4 mt-2 mb-1 p-3 bg-amber-50/85 border border-amber-200/60 rounded-2xl shadow-sm space-y-2 animate-fade-in font-sans text-left z-10 relative">
+                                            {/* Header */}
+                                            <div className="flex justify-between items-center">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <span className="w-2 h-2 rounded-full bg-yellow-500 animate-ping flex-shrink-0"></span>
+                                                    <span className="text-[10px] font-mono font-bold tracking-wider text-amber-800 uppercase flex-shrink-0">
+                                                        {selectedLang === 'EN' ? `DAY ${activeLessonDay} LESSON` : `LECCIÓN DÍA ${activeLessonDay}`}
+                                                    </span>
+                                                    <span className="text-[11px] font-bold text-neutral-800 truncate">
+                                                        {selectedLang === 'EN' ? activeLesson.title : activeLesson.titleEs}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 flex-shrink-0">
+                                                    <span className="text-[9px] font-mono font-extrabold bg-amber-100 border border-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                        {completedMissionsForThisLesson.length}/{lessonMissions.length}
+                                                    </span>
+                                                    <button 
+                                                        onClick={() => setActiveLessonDay(null)}
+                                                        className="text-[9px] font-mono font-bold text-red-600 hover:text-red-700 underline border-none bg-transparent cursor-pointer"
+                                                    >
+                                                        {selectedLang === 'EN' ? 'End' : 'Terminar'}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Progress Bar */}
+                                            <div className="w-full bg-amber-200/30 rounded-full h-1 overflow-hidden">
+                                                <div 
+                                                    className="bg-yellow-500 h-1 rounded-full transition-all duration-500" 
+                                                    style={{ width: `${percentComplete}%` }}
+                                                />
+                                            </div>
+
+                                            {/* Celebration Alert if completed */}
+                                            {isAllMissionsCompleted && (
+                                                <div className="py-1 px-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 text-[10px] rounded-lg font-semibold flex items-center justify-between animate-bounce">
+                                                    <span>🎉 {selectedLang === 'EN' ? 'All missions completed! Good job!' : '¡Todas las misiones completadas! ¡Buen trabajo!'}</span>
+                                                </div>
+                                            )}
+
+                                            {/* Collapsible Panel Toggle */}
+                                            <div className="flex gap-3 text-[10px] font-bold">
+                                                <button
+                                                    onClick={() => setIsVocabHudOpen(!isVocabHudOpen)}
+                                                    className="text-amber-800 hover:text-amber-950 flex items-center gap-1 border-none bg-transparent cursor-pointer font-semibold underline"
+                                                >
+                                                    {isVocabHudOpen 
+                                                        ? (selectedLang === 'EN' ? 'Hide Details' : 'Ocultar Detalles') 
+                                                        : (selectedLang === 'EN' ? 'Show Missions & Vocab' : 'Ver Misiones y Vocabulario')}
+                                                </button>
+                                            </div>
+
+                                            {/* Collapsible Content */}
+                                            {isVocabHudOpen && (
+                                                <div className="pt-2 border-t border-amber-200/40 grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[160px] overflow-y-auto pr-1">
+                                                    {/* Missions Checklist */}
+                                                    <div className="space-y-1.5">
+                                                        <span className="block text-[8px] font-mono font-bold tracking-wider text-amber-800 uppercase">
+                                                            {selectedLang === 'EN' ? 'Missions Checklist' : 'Lista de Misiones'}
+                                                        </span>
+                                                        <div className="space-y-1">
+                                                            {lessonMissions.map(m => {
+                                                                const isCompleted = completedMissions.includes(m.id);
+                                                                return (
+                                                                    <label 
+                                                                        key={m.id}
+                                                                        className={`flex items-start gap-2 text-[10px] cursor-pointer select-none py-0.5 ${isCompleted ? 'text-zinc-400 line-through' : 'text-zinc-700'}`}
+                                                                    >
+                                                                        <input 
+                                                                            type="checkbox"
+                                                                            checked={isCompleted}
+                                                                            onChange={() => handleToggleMission(m.id)}
+                                                                            className="mt-0.5 accent-yellow-600 rounded w-3 h-3 cursor-pointer"
+                                                                        />
+                                                                        <span>{selectedLang === 'EN' ? m.en : m.es}</span>
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Vocabulary Cheat Sheet */}
+                                                    <div className="space-y-1.5">
+                                                        <span className="block text-[8px] font-mono font-bold tracking-wider text-amber-800 uppercase">
+                                                            {selectedLang === 'EN' ? 'Vocabulary Cheat Sheet' : 'Acordeón de Vocabulario'}
+                                                        </span>
+                                                        <div className="space-y-1 max-h-[110px] overflow-y-auto">
+                                                            {activeLesson.vocabulary.map((v, i) => (
+                                                                <div 
+                                                                    key={i}
+                                                                    onClick={() => {
+                                                                        const promptText = selectedLang === 'EN' 
+                                                                            ? `Explain the vocabulary term "${v.word}" and give examples.` 
+                                                                            : `Explícame el término de vocabulario "${v.word}" y dame ejemplos de uso.`;
+                                                                        setInputText(promptText);
+                                                                    }}
+                                                                    className="p-1.5 bg-white border border-amber-200/30 hover:border-yellow-500 rounded-lg text-[9.5px] cursor-pointer hover:shadow-xs transition-all"
+                                                                    title="Tap to paste query / Toca para copiar al chat"
+                                                                >
+                                                                    <span className="font-bold text-yellow-800 block font-mono">{v.word}</span>
+                                                                    <span className="text-zinc-500 text-[8.5px] leading-tight block">
+                                                                        {selectedLang === 'EN' ? v.definition : v.definitionEs}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                                 <div className={`flex-1 p-4 pt-2 tab-content-area overflow-y-auto ${
                                     hasInteracted 
                                     ? 'max-h-[310px] md:max-h-[390px]' 
@@ -2554,6 +2679,44 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                         }}
                                         completedMissions={completedMissions}
                                         onToggleMission={handleToggleMission}
+                                        onStartLesson={(day) => {
+                                            setActiveLessonDay(day);
+                                            setRightPanelTab('chat');
+                                            
+                                            // Get lesson title
+                                            const lesson = IMMERSION_CURRICULUM.find(l => l.dayNum === day);
+                                            const lessonTitle = lesson ? (selectedLang === 'EN' ? lesson.title : lesson.titleEs) : '';
+                                            
+                                            // Build starter text message
+                                            const text = `[INICIA LECCIÓN: DÍA ${day}] Comencemos la lección del Día ${day}: "${lessonTitle}". Por favor, preséntate, explícame la lección y sus misiones en español, e inicia el juego de rol interactivo.`;
+                                            
+                                            setInputText("");
+                                            if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                                wsRef.current.send(JSON.stringify({ text }));
+                                                setChatMessages(prev => [
+                                                    ...prev,
+                                                    {
+                                                        id: `msg_lessons_start_${Date.now()}`,
+                                                        sender: 'user',
+                                                        text: selectedLang === 'EN' ? `Starting Day ${day} Interactive Lesson...` : `Iniciando Lección Interactiva del Día ${day}...`,
+                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                        timeMs: Date.now()
+                                                    }
+                                                ]);
+                                            } else {
+                                                setChatMessages(prev => [
+                                                    ...prev,
+                                                    {
+                                                        id: `msg_lessons_start_${Date.now()}`,
+                                                        sender: 'user',
+                                                        text: selectedLang === 'EN' ? `Starting Day ${day} Interactive Lesson...` : `Iniciando Lección Interactiva del Día ${day}...`,
+                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                        timeMs: Date.now()
+                                                    }
+                                                ]);
+                                                connectToGemini(text, false);
+                                            }
+                                        }}
                                     />
                                 )}
                                 {rightPanelTab === 'trips' && viajesSubTab === 'planner' && (

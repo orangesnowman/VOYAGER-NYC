@@ -286,6 +286,14 @@ Landmarks for reference:
 - Fulton Street Transit Center: 40.710368, -74.007582
 - Atlantic Av - Barclays Center Station: 40.683661, -73.978810
 - 59 St - Columbus Circle Station: 40.768250, -73.981928
+
+INTERACTIVE LESSON PROTOCOL:
+- When a user starts a specific lesson (triggered by a message like "[INICIA LECCIÓN: DÍA X]"), you MUST:
+  1. Introduce the lesson's theme and explain what the lesson is about and its challenges in an engaging, warm manner (2-4 sentences in Spanish).
+  2. Initiate an interactive role-play or guided dialogue immediately (e.g., role-playing as a waiter, cashier, local resident, or hotel clerk).
+  3. Guide the user step-by-step through their active missions, prompting them to practice speaking or ordering in English.
+  4. Verbally quiz the user on the vocabulary terms during the conversation rather than having them do a written quiz.
+  5. Check off completed missions silently by calling the 'update_user_progress' tool with the matching 'completedMissionId' (e.g. 'day1_coffee') as soon as the user successfully completes a mission task.
 `;
 
 export interface CurriculumDay {
