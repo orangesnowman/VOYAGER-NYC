@@ -4,6 +4,7 @@ import { base64ToBytes, createAudioBufferFromPCM, float32ToPcm16, bytesToBase64,
 import NycMap, { MapMarker, RouteInfo } from './NycMap';
 import { NycSubwayMap } from './NycSubwayMap';
 import { Curriculum } from './Curriculum';
+import { LessonGuide } from './LessonGuide';
 
 import { ProgressDashboard } from './ProgressDashboard';
 import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
@@ -432,6 +433,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const [classroomSubTab, setClassroomSubTab] = useState<'map' | 'subway_map'>('map');
   const [activeDay, setActiveDay] = useState<number>(1);
   const [activeLessonDay, setActiveLessonDay] = useState<number | null>(null);
+  const [activeLessonLevel, setActiveLessonLevel] = useState<'PRINCIPIANTE' | 'INTERMEDIO' | 'AVANZADO' | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState<'PRINCIPIANTE' | 'INTERMEDIO' | 'AVANZADO'>('PRINCIPIANTE');
   const [isVocabHudOpen, setIsVocabHudOpen] = useState<boolean>(false);
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
   const [scores, setScores] = useState({ grammar: 0, pronunciation: 0, confidence: 0, naturalness: 0 });
@@ -1930,7 +1933,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
             <div className={`w-full md:w-7/12 mx-auto md:mx-0 flex-1 flex flex-col justify-start backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl min-h-[480px] md:min-h-[580px] font-tech relative transition-all duration-500 ${showReviewScreen ? 'bg-zinc-950 text-white shadow-[0_10px_35px_rgba(0,0,0,0.3)]' : 'bg-white text-zinc-900 shadow-[0_10px_35px_rgba(0,0,0,0.08)] theme-light'}`}>
                 
                 {isConnected && !showReviewScreen && (
-                    <div className="px-4 pt-14 pb-2 z-20">
+                    <div className="px-4 pt-3 pb-2 z-20">
                         <div className="grid grid-cols-3 p-1 rounded-xl w-full gap-1 transition-all bg-zinc-100">
                             <button
                                 onClick={() => setRightPanelTab('chat')}
@@ -1943,7 +1946,13 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 Chat
                             </button>
                             <button
-                                onClick={() => setRightPanelTab('lessons')}
+                                onClick={() => {
+                                    setRightPanelTab('lessons');
+                                    const text = `[SISTEMA: El usuario ingresó a la pestaña Lecciones. Di exactamente esto en español con voz natural y no escribas corchetes: "Bienvenido a la sección de Lecciones, ¡aprenderás hablando e interactuando conmigo!".]`;
+                                    if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                        wsRef.current.send(JSON.stringify({ text }));
+                                    }
+                                }}
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'lessons'
                                     ? 'bg-black text-white font-extrabold shadow-md'
@@ -2007,67 +2016,113 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             <div className="flex-grow flex flex-col overflow-hidden h-full">
                                 {hasInteracted && (
                                     <div className="px-4 py-2 border-b border-zinc-100 flex items-center justify-start bg-zinc-50/50 flex-shrink-0 z-10">
-                                        
-                                        <div className="flex items-center gap-3.5">
-                                            {/* Bilingual Option Toggle */}
-                                            <label className="flex items-center gap-2 cursor-pointer select-none">
-                                                <input 
-                                                    type="checkbox"
-                                                    checked={isBilingualMode}
-                                                    onChange={(e) => {
-                                                        setIsBilingualMode(e.target.checked);
-                                                        if (e.target.checked) {
-                                                            setIsTranslateMode(false);
-                                                            setIsListenOnly(false);
-                                                        }
-                                                    }}
-                                                    className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
-                                                />
-                                                <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
-                                                    BILINGÜE
-                                                </span>
-                                            </label>
+                                        {rightPanelTab === 'lessons' ? (
+                                            <div className="flex items-center gap-3.5">
+                                                {/* Principiante Option */}
+                                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={selectedLevel === 'PRINCIPIANTE'}
+                                                        onChange={() => setSelectedLevel('PRINCIPIANTE')}
+                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                    />
+                                                    <span className={`text-[11px] font-sans font-bold uppercase tracking-wider transition-colors ${
+                                                        selectedLevel === 'PRINCIPIANTE' ? 'text-neutral-950 font-extrabold' : 'text-zinc-600 hover:text-zinc-900'
+                                                    }`}>
+                                                        {selectedLang === 'EN' ? 'Beginner' : 'Principiante'}
+                                                    </span>
+                                                </label>
 
-                                            {/* Translate Option Toggle */}
-                                            <label className="flex items-center gap-2 cursor-pointer select-none">
-                                                <input 
-                                                    type="checkbox"
-                                                    checked={isTranslateMode}
-                                                    onChange={(e) => {
-                                                        setIsTranslateMode(e.target.checked);
-                                                        if (e.target.checked) {
-                                                            setIsBilingualMode(false);
-                                                            setIsListenOnly(false);
-                                                        }
-                                                    }}
-                                                    className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
-                                                />
-                                                <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
-                                                    TRADUCE
-                                                </span>
-                                            </label>
+                                                {/* Intermedio Option */}
+                                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={selectedLevel === 'INTERMEDIO'}
+                                                        onChange={() => setSelectedLevel('INTERMEDIO')}
+                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                    />
+                                                    <span className={`text-[11px] font-sans font-bold uppercase tracking-wider transition-colors ${
+                                                        selectedLevel === 'INTERMEDIO' ? 'text-neutral-950 font-extrabold' : 'text-zinc-600 hover:text-zinc-900'
+                                                    }`}>
+                                                        {selectedLang === 'EN' ? 'Intermediate' : 'Intermedio'}
+                                                    </span>
+                                                </label>
 
-                                            {/* Listen Only Option Toggle */}
-                                            <label className="flex items-center gap-2 cursor-pointer select-none">
-                                                <input 
-                                                    type="checkbox"
-                                                    checked={isListenOnly}
-                                                    onChange={(e) => {
-                                                        setIsListenOnly(e.target.checked);
-                                                        if (e.target.checked) {
-                                                            setIsBilingualMode(false);
-                                                            setIsTranslateMode(false);
-                                                        }
-                                                    }}
-                                                    className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
-                                                />
-                                                <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
-                                                    ESCUCHA
-                                                </span>
-                                            </label>
+                                                {/* Avanzado Option */}
+                                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={selectedLevel === 'AVANZADO'}
+                                                        onChange={() => setSelectedLevel('AVANZADO')}
+                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                    />
+                                                    <span className={`text-[11px] font-sans font-bold uppercase tracking-wider transition-colors ${
+                                                        selectedLevel === 'AVANZADO' ? 'text-neutral-950 font-extrabold' : 'text-zinc-600 hover:text-zinc-900'
+                                                    }`}>
+                                                        {selectedLang === 'EN' ? 'Advanced' : 'Avanzado'}
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-3.5">
+                                                {/* Bilingual Option Toggle */}
+                                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={isBilingualMode}
+                                                        onChange={(e) => {
+                                                            setIsBilingualMode(e.target.checked);
+                                                            if (e.target.checked) {
+                                                                setIsTranslateMode(false);
+                                                                setIsListenOnly(false);
+                                                            }
+                                                        }}
+                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                    />
+                                                    <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
+                                                        BILINGÜE
+                                                    </span>
+                                                </label>
 
+                                                {/* Translate Option Toggle */}
+                                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={isTranslateMode}
+                                                        onChange={(e) => {
+                                                            setIsTranslateMode(e.target.checked);
+                                                            if (e.target.checked) {
+                                                                setIsBilingualMode(false);
+                                                                setIsListenOnly(false);
+                                                            }
+                                                        }}
+                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                    />
+                                                    <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
+                                                        TRADUCE
+                                                    </span>
+                                                </label>
 
-                                        </div>
+                                                {/* Listen Only Option Toggle */}
+                                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={isListenOnly}
+                                                        onChange={(e) => {
+                                                            setIsListenOnly(e.target.checked);
+                                                            if (e.target.checked) {
+                                                                setIsBilingualMode(false);
+                                                                setIsTranslateMode(false);
+                                                            }
+                                                        }}
+                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                    />
+                                                    <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
+                                                        ESCUCHA
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                                 
@@ -2078,23 +2133,23 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                     const lessonMissions = activeLesson.missions;
                                     const completedMissionsForThisLesson = lessonMissions.filter(m => completedMissions.includes(m.id));
                                     const isAllMissionsCompleted = lessonMissions.length > 0 && completedMissionsForThisLesson.length === lessonMissions.length;
-                                    const percentComplete = Math.round((completedMissionsForThisLesson.length / lessonMissions.length) * 100);
 
                                     return (
-                                        <div className="mx-4 mt-2 mb-1 p-3 bg-amber-50/85 border border-amber-200/60 rounded-2xl shadow-sm space-y-2 animate-fade-in font-sans text-left z-10 relative">
+                                        <div className="mx-4 mt-1.5 mb-1 py-1.5 px-0 bg-transparent rounded-2xl space-y-1.5 animate-fade-in font-sans text-left z-10 relative">
                                             {/* Header */}
                                             <div className="flex justify-between items-center">
                                                 <div className="flex items-center gap-1.5 min-w-0">
                                                     <span className="w-2 h-2 rounded-full bg-yellow-500 animate-ping flex-shrink-0"></span>
-                                                    <span className="text-[10px] font-mono font-bold tracking-wider text-amber-800 uppercase flex-shrink-0">
-                                                        {selectedLang === 'EN' ? `DAY ${activeLessonDay} LESSON` : `LECCIÓN DÍA ${activeLessonDay}`}
-                                                    </span>
-                                                    <span className="text-[11px] font-bold text-neutral-800 truncate">
-                                                        {selectedLang === 'EN' ? activeLesson.title : activeLesson.titleEs}
-                                                    </span>
+                                                    <button 
+                                                        onClick={() => setIsVocabHudOpen(prev => !prev)}
+                                                        className="text-[11.5px] font-sans font-black text-neutral-850 tracking-wide truncate hover:text-amber-850 hover:underline cursor-pointer border-none bg-transparent flex items-center p-0"
+                                                        title={selectedLang === 'EN' ? "Toggle Lesson Details" : "Mostrar/Ocultar detalles de la lección"}
+                                                    >
+                                                        {activeLessonDay}. {selectedLang === 'EN' ? activeLesson.title : activeLesson.titleEs}
+                                                    </button>
                                                 </div>
                                                 <div className="flex items-center gap-2 flex-shrink-0">
-                                                    <span className="text-[9px] font-mono font-extrabold bg-amber-100 border border-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                                                    <span className="text-[9px] font-mono font-extrabold bg-transparent border border-amber-300/60 text-amber-850 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
                                                         {completedMissionsForThisLesson.length}/{lessonMissions.length}
                                                     </span>
                                                     <button 
@@ -2106,14 +2161,6 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                 </div>
                                             </div>
 
-                                            {/* Progress Bar */}
-                                            <div className="w-full bg-amber-200/30 rounded-full h-1 overflow-hidden">
-                                                <div 
-                                                    className="bg-yellow-500 h-1 rounded-full transition-all duration-500" 
-                                                    style={{ width: `${percentComplete}%` }}
-                                                />
-                                            </div>
-
                                             {/* Celebration Alert if completed */}
                                             {isAllMissionsCompleted && (
                                                 <div className="py-1 px-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 text-[10px] rounded-lg font-semibold flex items-center justify-between animate-bounce">
@@ -2121,21 +2168,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                 </div>
                                             )}
 
-                                            {/* Collapsible Panel Toggle */}
-                                            <div className="flex gap-3 text-[10px] font-bold">
-                                                <button
-                                                    onClick={() => setIsVocabHudOpen(!isVocabHudOpen)}
-                                                    className="text-amber-800 hover:text-amber-950 flex items-center gap-1 border-none bg-transparent cursor-pointer font-semibold underline"
-                                                >
-                                                    {isVocabHudOpen 
-                                                        ? (selectedLang === 'EN' ? 'Hide Details' : 'Ocultar Detalles') 
-                                                        : (selectedLang === 'EN' ? 'Show Missions & Vocab' : 'Ver Misiones y Vocabulario')}
-                                                </button>
-                                            </div>
-
                                             {/* Collapsible Content */}
                                             {isVocabHudOpen && (
-                                                <div className="pt-2 border-t border-amber-200/40 grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[160px] overflow-y-auto pr-1">
+                                                <div className="pt-1.5 grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[160px] overflow-y-auto pr-1">
                                                     {/* Missions Checklist */}
                                                     <div className="space-y-1.5">
                                                         <span className="block text-[8px] font-mono font-bold tracking-wider text-amber-800 uppercase">
@@ -2182,7 +2217,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                                 >
                                                                     <span className="font-bold text-yellow-800 block font-mono">{v.word}</span>
                                                                     <span className="text-zinc-500 text-[8.5px] leading-tight block">
-                                                                        {selectedLang === 'EN' ? v.definition : v.definitionEs}
+                                                        {selectedLang === 'EN' ? v.definition : v.definitionEs}
                                                                     </span>
                                                                 </div>
                                                             ))}
@@ -2194,11 +2229,11 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                     );
                                 })()}
                                 <div className={`flex-1 p-4 pt-2 tab-content-area overflow-y-auto ${
-                                    hasInteracted 
+                                    (hasInteracted || activeLessonDay !== null)
                                     ? 'max-h-[310px] md:max-h-[390px]' 
                                     : 'h-full flex flex-col items-center justify-center'
                                 }`}>
-                            {!hasInteracted ? (
+                            {!hasInteracted && activeLessonDay === null ? (
                                 <div className="w-full h-full flex flex-col items-center justify-center text-center animate-fade-in">
                                     {/* Slideshow Phone Mockup Wrapper */}
                                     <div 
@@ -2262,6 +2297,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 <div className="min-h-full flex flex-col justify-end space-y-4">
                                 {chatMessages.map((msg, index) => {
                             if (msg.sender === 'system') {
+                                return null;
+                            }
+                            if (msg.sender === 'user' && msg.text.startsWith('[')) {
                                 return null;
                             }
                             if (isConnected && msg.id === 'welcome_1') {
@@ -2643,7 +2681,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             </div>
                         ) : (
                             <div className="flex-1 overflow-y-auto pt-1 px-4 pb-4 max-h-[390px] md:max-h-[440px] tab-content-area">
-                                {rightPanelTab === 'lessons' && (
+                                {rightPanelTab === 'lessons' && activeLessonDay === null && (
                                     <Curriculum 
                                         selectedLang={selectedLang}
                                         activeDay={activeDay}
@@ -2679,16 +2717,16 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                         }}
                                         completedMissions={completedMissions}
                                         onToggleMission={handleToggleMission}
-                                        onStartLesson={(day) => {
+                                        onStartLesson={(day, level) => {
                                             setActiveLessonDay(day);
-                                            setRightPanelTab('chat');
+                                            setActiveLessonLevel(level);
                                             
                                             // Get lesson title
                                             const lesson = IMMERSION_CURRICULUM.find(l => l.dayNum === day);
                                             const lessonTitle = lesson ? (selectedLang === 'EN' ? lesson.title : lesson.titleEs) : '';
                                             
                                             // Build starter text message
-                                            const text = `[INICIA LECCIÓN: DÍA ${day}] Comencemos la lección del Día ${day}: "${lessonTitle}". Por favor, preséntate, explícame la lección y sus misiones en español, e inicia el juego de rol interactivo.`;
+                                            const text = `[INICIA LECCIÓN: LECCIÓN ${day} - NIVEL ${level}] Comencemos la lección ${day}: "${lessonTitle}" en el nivel de dificultad ${level}. Por favor, preséntate, explícame la lección and sus misiones en español adaptadas a este nivel de dificultad, e inicia el juego de rol interactivo.`;
                                             
                                             setInputText("");
                                             if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -2698,7 +2736,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                     {
                                                         id: `msg_lessons_start_${Date.now()}`,
                                                         sender: 'user',
-                                                        text: selectedLang === 'EN' ? `Starting Day ${day} Interactive Lesson...` : `Iniciando Lección Interactiva del Día ${day}...`,
+                                                        text: selectedLang === 'EN' ? `Starting Lesson ${day} (${level === 'PRINCIPIANTE' ? 'Beginner' : level === 'INTERMEDIO' ? 'Intermediate' : 'Advanced'}) Interactive Practice...` : `Iniciando Lección ${day} (${level === 'PRINCIPIANTE' ? 'Principiante' : level === 'INTERMEDIO' ? 'Intermedio' : 'Avanzado'}) de Práctica Interactiva...`,
                                                         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                                                         timeMs: Date.now()
                                                     }
@@ -2709,7 +2747,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                     {
                                                         id: `msg_lessons_start_${Date.now()}`,
                                                         sender: 'user',
-                                                        text: selectedLang === 'EN' ? `Starting Day ${day} Interactive Lesson...` : `Iniciando Lección Interactiva del Día ${day}...`,
+                                                        text: selectedLang === 'EN' ? `Starting Lesson ${day} (${level === 'PRINCIPIANTE' ? 'Beginner' : level === 'INTERMEDIO' ? 'Intermediate' : 'Advanced'}) Interactive Practice...` : `Iniciando Lección ${day} (${level === 'PRINCIPIANTE' ? 'Principiante' : level === 'INTERMEDIO' ? 'Intermedio' : 'Avanzado'}) de Práctica Interactiva...`,
                                                         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                                                         timeMs: Date.now()
                                                     }
@@ -2717,6 +2755,18 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                 connectToGemini(text, false);
                                             }
                                         }}
+                                        selectedLevel={selectedLevel}
+                                        setSelectedLevel={setSelectedLevel}
+                                    />
+                                )}
+                                {rightPanelTab === 'lessons' && activeLessonDay !== null && (
+                                    <LessonGuide 
+                                        dayNum={activeLessonDay}
+                                        selectedLang={selectedLang}
+                                        activeLevel={activeLessonLevel || 'PRINCIPIANTE'}
+                                        onEndLesson={() => setActiveLessonDay(null)}
+                                        completedMissions={completedMissions}
+                                        onToggleMission={handleToggleMission}
                                     />
                                 )}
                                 {rightPanelTab === 'trips' && viajesSubTab === 'planner' && (
@@ -3123,7 +3173,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             </div>
                         )}
 
-                    {!showReviewScreen && rightPanelTab === 'chat' && hasInteracted && (
+                    {!showReviewScreen && (rightPanelTab === 'chat' || (rightPanelTab === 'lessons' && activeLessonDay !== null)) && hasInteracted && (
                         <div className="px-4 pb-4 bg-transparent flex items-start gap-2.5 w-full">
                             <div className="w-10 flex-shrink-0 bg-transparent" />
                             <form onSubmit={handleSendMessage} className="flex-1 max-w-[78%] relative rounded-xl transition-all bg-[#fcd34d]">

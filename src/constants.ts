@@ -309,56 +309,60 @@ export interface CurriculumDay {
 export const IMMERSION_CURRICULUM: CurriculumDay[] = [
   {
     dayNum: 1,
-    title: "Greetings, Coffee & Directions",
-    titleEs: "Saludos, Café y Direcciones",
+    title: "Ordering Coffee Like a New Yorker",
+    titleEs: "Ordenando café como un neoyorquino",
     objectives: [
       "Learn polite, natural greetings and ordering expressions (e.g. 'I'd like' instead of 'I want').",
       "Understand the difference between 'for here' and 'to go'.",
-      "Ask for directions to landmarks and subway platforms."
+      "Ask for sizes and milk options (whole milk, oat milk, almond milk)."
     ],
     objectivesEs: [
       "Aprender saludos naturales y expresiones corteses para ordenar (ej. 'I'd like' en lugar de 'I want').",
       "Entender la diferencia entre 'for here' y 'to go'.",
-      "Preguntar por direcciones hacia lugares emblemáticos y andenes del metro."
+      "Pedir tamaños y opciones de leche (leche entera, de avena, de almendra)."
     ],
     vocabulary: [
       { word: "I'd like a...", definition: "Polite way to order food or drink, short for 'I would like'.", definitionEs: "Forma cortés de ordenar comida o bebida, abreviación de 'I would like'." },
       { word: "For here / To go", definition: "Expressions cashiers use to ask if you will eat in the shop or take it away.", definitionEs: "Expresiones que los cajeros usan para preguntar si vas a consumir en el local o para llevar." },
-      { word: "Excuse me, where's...", definition: "Standard polite greeting used to get someone's attention for directions.", definitionEs: "Saludo cortés estándar usado para llamar la atención de alguien al pedir direcciones." },
-      { word: "Platform / Tracks", definition: "The area where you wait for trains / the steel rails the train runs on.", definitionEs: "El área donde esperas el tren / los rieles de acero sobre los que corre el tren." }
+      { word: "Could I get some napkins?", definition: "Polite way to request paper napkins to clean hands or spills.", definitionEs: "Forma cortés de pedir servilletas de papel para limpiarse las manos o derrames." },
+      { word: "What is the Wi-Fi password?", definition: "Asking for the password to connect to the shop's public internet.", definitionEs: "Pedir la contraseña para conectarse al internet público del local." },
+      { word: "To go with it...", definition: "An expression used to order an extra food item that accompanies your beverage.", definitionEs: "Expresión usada para pedir un alimento adicional que acompañe tu bebida." }
     ],
     missions: [
       { id: "day1_coffee", en: "Order coffee using 'I'd like a...'", es: "Ordenar café usando 'I'd like a...'" },
       { id: "day1_togo", en: "Answer the cashier's question 'For here or to go?'", es: "Responder a la pregunta del cajero 'For here or to go?'" },
+      { id: "day1_pastry", en: "Order a croissant or muffin to accompany your coffee using 'to go with it'", es: "Ordenar un croissant o panecillo para acompañar tu café usando 'to go with it'" },
+      { id: "day1_wifi", en: "Ask the barista 'Excuse me, what is the Wi-Fi password?'", es: "Preguntar al barista 'Excuse me, what is the Wi-Fi password?'" },
+      { id: "day1_napkins", en: "Ask the counter staff for napkins: 'Could I get some napkins, please?'", es: "Pedir servilletas en el mostrador: 'Could I get some napkins, please?'" },
       { id: "day1_restroom", en: "Ask 'Excuse me, where's the restroom?'", es: "Preguntar 'Excuse me, where's the restroom?'" },
       { id: "day1_directions", en: "Ask a local for directions to a subway line", es: "Preguntar a un local direcciones para una línea de metro" }
     ]
   },
   {
     dayNum: 2,
-    title: "Restaurants, Shopping & Money",
-    titleEs: "Restaurantes, Compras y Dinero",
+    title: "Navigating the Manhattan Subway",
+    titleEs: "Navegando por el metro de Manhattan",
     objectives: [
-      "Learn restaurant ordering and requesting the check.",
-      "Understand how to ask for prices and deal with retail transactions.",
-      "Get familiar with tipping vocabulary and local payment methods (like OMNY tap)."
+      "Ask for directions to subway lines and platforms.",
+      "Understand subway signage, including Uptown vs Downtown and Local vs Express.",
+      "Learn to transfer between train lines and pay using OMNY contactless tap."
     ],
     objectivesEs: [
-      "Aprender a ordenar en restaurantes y pedir la cuenta.",
-      "Entender cómo preguntar por precios y realizar transacciones de compra.",
-      "Familiarizarse con el vocabulario de propinas y métodos de pago locales (como OMNY tap)."
+      "Pedir direcciones hacia líneas y andenes de metro.",
+      "Entender la señalización del metro, incluyendo Uptown vs Downtown y Local vs Express.",
+      "Aprender a hacer transbordos entre líneas y pagar usando el pago sin contacto OMNY."
     ],
     vocabulary: [
-      { word: "Could we get...", definition: "Polite opening to request items from a waiter (e.g. 'Could we get the check?').", definitionEs: "Apertura cortés para pedir cosas a un mesero (ej. 'Could we get the check?')." },
-      { word: "Keep the change", definition: "Telling a taxi driver or server they can keep the change as a tip.", definitionEs: "Decirle a un taxista o mesero que puede quedarse con el cambio como propina." },
-      { word: "How much is...", definition: "Standard question to inquire about the price of an item.", definitionEs: "Pregunta estándar para averiguar el precio de un artículo." },
-      { word: "OMNY tap", definition: "Tapping your credit card or phone at turnstiles to pay transit fares.", definitionEs: "Tocar con tu tarjeta de crédito o teléfono en los torniquetes para pagar tarifas de tránsito." }
+      { word: "Excuse me, which platform...", definition: "Polite greeting used to ask which platform you need for a train.", definitionEs: "Saludo cortés usado para preguntar qué andén necesitas para abordar el tren." },
+      { word: "Uptown / Downtown", definition: "Uptown means the train travels North; Downtown means South.", definitionEs: "Uptown significa que el tren viaja al norte; Downtown al sur." },
+      { word: "OMNY tap", definition: "Tapping your credit card or phone at turnstiles to pay transit fares.", definitionEs: "Tocar con tu tarjeta de crédito o teléfono en los torniquetes para pagar tarifas de tránsito." },
+      { word: "Do I need to transfer?", definition: "Asking if you need to switch trains during your journey.", definitionEs: "Preguntar si necesitas cambiar de tren durante tu viaje." }
     ],
     missions: [
-      { id: "day2_pizza", en: "Order a classic NYC street slice of pizza", es: "Ordenar una rebanada de pizza clásica de NY" },
-      { id: "day2_omny", en: "Pay for transit or shopping using contactless tap", es: "Pagar el tránsito o compras usando tap sin contacto" },
-      { id: "day2_check", en: "Ask a waiter 'Could we get the check, please?'", es: "Preguntar a un mesero 'Could we get the check, please?'" },
-      { id: "day2_cash_card", en: "Ask a cashier 'Do you accept cash or card?'", es: "Preguntar a un cajero 'Do you accept cash or card?'" }
+      { id: "day2_pizza", en: "Ask 'Which train goes to Times Square?'", es: "Preguntar 'Which train goes to Times Square?'" },
+      { id: "day2_omny", en: "Ask a local: 'Is this the Downtown train?'", es: "Preguntar a un local: 'Is this the Downtown train?'" },
+      { id: "day2_check", en: "Explain OMNY payment: 'Just tap your card or phone'", es: "Explicar pago OMNY: 'Just tap your card or phone'" },
+      { id: "day2_cash_card", en: "Confirm if you need to transfer: 'Do I need to transfer?'", es: "Confirmar si necesitas hacer transbordo: 'Do I need to transfer?'" }
     ]
   },
   {
