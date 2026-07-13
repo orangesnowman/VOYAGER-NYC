@@ -1784,6 +1784,13 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
             .animate-black-neon-glow {
                 animation: blackNeonPulse 2.5s ease-in-out infinite;
             }
+            @keyframes subMenuFlicker {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.55; transform: scale(0.9); }
+            }
+            .animate-submenu-flicker {
+                animation: subMenuFlicker 1.4s infinite ease-in-out;
+            }
             .theme-light {
                 background-color: #f5efe6 !important;
             }
@@ -2180,8 +2187,13 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                                 setIsEnglishOnlyMode(false);
                                                             }
                                                         }}
-                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                        className="sr-only"
                                                     />
+                                                    {isBilingualMode ? (
+                                                        <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                                    ) : (
+                                                        <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                                    )}
                                                     <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
                                                         BILINGÜE
                                                     </span>
@@ -2201,8 +2213,13 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                                 setIsEnglishOnlyMode(false);
                                                             }
                                                         }}
-                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                        className="sr-only"
                                                     />
+                                                    {isTranslateMode ? (
+                                                        <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                                    ) : (
+                                                        <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                                    )}
                                                     <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
                                                         TRADUCE
                                                     </span>
@@ -2222,8 +2239,13 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                                 setIsEnglishOnlyMode(false);
                                                             }
                                                         }}
-                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                        className="sr-only"
                                                     />
+                                                    {isListenOnly ? (
+                                                        <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                                    ) : (
+                                                        <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                                    )}
                                                     <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
                                                         ESCUCHA
                                                     </span>
@@ -2243,8 +2265,13 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                                 setIsEnglishOnlyMode(false);
                                                             }
                                                         }}
-                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                        className="sr-only"
                                                     />
+                                                    {isSpanishOnlyMode ? (
+                                                        <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                                    ) : (
+                                                        <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                                    )}
                                                     <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
                                                         ESPAÑOL
                                                     </span>
@@ -2264,8 +2291,13 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                                 setIsSpanishOnlyMode(false);
                                                             }
                                                         }}
-                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                        className="sr-only"
                                                     />
+                                                    {isEnglishOnlyMode ? (
+                                                        <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                                    ) : (
+                                                        <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                                    )}
                                                     <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
                                                         ENGLISH
                                                     </span>
