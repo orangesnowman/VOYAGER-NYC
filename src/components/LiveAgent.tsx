@@ -2038,7 +2038,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'chat'
                                     ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
-                                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
+                                    : 'bg-[#1e3a8a]/10 text-[#1e3a8a]/70 hover:text-[#1e3a8a] hover:bg-[#1e3a8a]/20'
                                 }`}
                             >
                                 Chat
@@ -2054,7 +2054,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'lessons'
                                     ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
-                                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
+                                    : 'bg-[#1e3a8a]/10 text-[#1e3a8a]/70 hover:text-[#1e3a8a] hover:bg-[#1e3a8a]/20'
                                 }`}
                             >
                                 Lecciones
@@ -2067,7 +2067,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'trips'
                                     ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
-                                    : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
+                                    : 'bg-[#1e3a8a]/10 text-[#1e3a8a]/70 hover:text-[#1e3a8a] hover:bg-[#1e3a8a]/20'
                                 }`}
                             >
                                 Viajes
