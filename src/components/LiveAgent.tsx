@@ -410,8 +410,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const [isTranslateMode, setIsTranslateMode] = useState(false);
   const isTranslateModeRef = useRef(isTranslateMode);
   
-  const [isBilingualMode, setIsBilingualMode] = useState(false);
-  const isBilingualModeRef = useRef(isBilingualMode);
+  const [isBilingualMode, setIsBilingualMode] = useState(true);
+  const isBilingualModeRef = useRef(true);
   
   const [isSpanishOnlyMode, setIsSpanishOnlyMode] = useState(false);
   const isSpanishOnlyModeRef = useRef(isSpanishOnlyMode);
