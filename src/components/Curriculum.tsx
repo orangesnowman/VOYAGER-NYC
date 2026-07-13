@@ -226,7 +226,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
       >
         <div className="min-w-0 flex-1">
           <h3 
-            style={{ fontFamily: "'American Typewriter', Courier, monospace", fontSize: "11pt", fontWeight: "normal" }}
+            style={{ fontFamily: "'American Typewriter', Courier, monospace", fontSize: "14pt", fontWeight: "normal" }}
             className="text-neutral-900 group-hover:text-blue-900 leading-tight tracking-tight truncate transform group-hover:translate-x-1 transition-all duration-250"
           >
             {lesson.dayNum}. {selectedLang === 'EN' ? lesson.title : lesson.titleEs}
