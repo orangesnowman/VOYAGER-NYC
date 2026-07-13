@@ -1757,6 +1757,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
            text-zinc-900 font-sans transition-all duration-300
        `}>
         <style dangerouslySetInnerHTML={{__html: `
+            @import url('https://fonts.googleapis.com/css2?family=Allerta&display=swap');
             @keyframes blackNeonPulse {
                 0% {
                     text-shadow:
@@ -2194,7 +2195,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                     ) : (
                                                         <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
                                                     )}
-                                                    <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                    <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
                                                         BILINGÜE
                                                     </span>
                                                 </label>
@@ -2220,7 +2221,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                     ) : (
                                                         <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
                                                     )}
-                                                    <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                    <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
                                                         TRADUCE
                                                     </span>
                                                 </label>
@@ -2246,7 +2247,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                     ) : (
                                                         <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
                                                     )}
-                                                    <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                    <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
                                                         ESCUCHA
                                                     </span>
                                                 </label>
@@ -2272,7 +2273,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                     ) : (
                                                         <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
                                                     )}
-                                                    <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                    <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
                                                         ESPAÑOL
                                                     </span>
                                                 </label>
@@ -2298,7 +2299,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                     ) : (
                                                         <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
                                                     )}
-                                                    <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                    <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
                                                         ENGLISH
                                                     </span>
                                                 </label>
