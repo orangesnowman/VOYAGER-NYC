@@ -247,7 +247,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
       <div className="space-y-6 pb-4">
         
         {/* Level Selection Checkbox Options */}
-        <div className="px-1 py-1.5 flex items-center justify-start gap-4 flex-shrink-0 border-b border-zinc-300/20 bg-zinc-50/20 rounded-2xl mb-1">
+        <div className="px-1 py-1.5 flex items-center justify-start gap-4 flex-shrink-0 border-b border-zinc-300/20 bg-transparent mb-1">
           {/* Principiante Option */}
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input 
