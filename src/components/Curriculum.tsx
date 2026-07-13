@@ -225,7 +225,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
         className="w-full text-left bg-transparent border-b border-zinc-300/30 py-1.5 px-1 flex items-center justify-between transition-all duration-200 cursor-pointer active:opacity-85 group"
       >
         <div className="min-w-0 flex-1">
-          <h3 className="text-neutral-900 group-hover:text-blue-900 font-serif font-normal text-[12px] md:text-[13px] leading-tight tracking-tight truncate transform group-hover:translate-x-1 transition-all duration-250">
+          <h3 className="text-neutral-900 group-hover:text-blue-900 font-sans font-normal text-[11px] md:text-[12px] leading-tight tracking-tight truncate transform group-hover:translate-x-1 transition-all duration-250">
             {lesson.dayNum}. {selectedLang === 'EN' ? lesson.title : lesson.titleEs}
           </h3>
         </div>
