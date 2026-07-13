@@ -1753,7 +1753,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
      return (
        <div className={`
            relative flex flex-col items-center justify-center overflow-y-auto md:overflow-hidden p-4 md:p-8
-           ${isWidgetMode ? 'w-full h-full bg-black' : 'w-full min-h-screen bg-black'}
+           ${isWidgetMode ? 'w-full h-full bg-white' : 'w-full min-h-screen bg-white'}
            text-zinc-900 font-sans transition-all duration-300
        `}>
         <style dangerouslySetInnerHTML={{__html: `
@@ -1917,10 +1917,10 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                 )}
 
                 <div className="text-center mt-4 flex flex-col items-center w-full">
-                    <h1 className="font-tech uppercase text-4xl md:text-5xl font-black tracking-wider text-white animate-black-neon-glow">
+                    <h1 className="font-tech uppercase text-4xl md:text-5xl font-black tracking-wider text-[#1e3a8a]">
                         YO SOY VOYAGER
                     </h1>
-                    <p className="text-[10px] md:text-xs text-yellow-400 font-mono tracking-widest uppercase mt-1">
+                    <p className="text-[10px] md:text-xs text-[#854d0e] font-mono font-semibold tracking-widest uppercase mt-1">
                         Guía de NYC y Tutor de Inglés
                     </p>
                 </div>
