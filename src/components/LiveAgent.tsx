@@ -2493,7 +2493,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                 : 'bg-zinc-100 border border-zinc-200/60 text-zinc-800 rounded-tl-none'
                                             }
                                         `}>
-                                            <p className="chat-message-text whitespace-pre-line tracking-wider leading-relaxed">
+                                            <div className="chat-message-text whitespace-pre-line tracking-wider leading-relaxed">
                                                 {(() => {
                                                     const rawText = getTranslatedMessageText(msg, selectedLang);
                                                     if (!isUser && rawText.includes(" / ")) {
@@ -2501,14 +2501,17 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                         if (parts.length >= 2) {
                                                             return (
                                                                 <>
-                                                                    {parts[0]} <span className="chat-message-english text-zinc-600 inline-block mt-0.5">{parts.slice(1).join(" / ")}</span>
+                                                                    <div className="font-serif text-zinc-900 leading-relaxed">{parts[0]}</div>
+                                                                    <div className="chat-message-english text-blue-900 font-serif leading-relaxed mt-2.5">
+                                                                        {parts.slice(1).join(" / ")}
+                                                                    </div>
                                                                 </>
                                                             );
                                                         }
                                                     }
-                                                    return rawText;
+                                                    return <div className="font-serif">{rawText}</div>;
                                                 })()}
-                                            </p>
+                                            </div>
                                             
                                             {!isUser && msg.showForm && (
                                                 <div className="border-t border-white/10 pt-3 mt-3 space-y-2.5">
