@@ -3176,20 +3176,20 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                     {!showReviewScreen && (rightPanelTab === 'chat' || (rightPanelTab === 'lessons' && activeLessonDay !== null)) && hasInteracted && (
                         <div className="px-4 pb-4 bg-transparent flex items-start gap-2.5 w-full">
                             <div className="w-10 flex-shrink-0 bg-transparent" />
-                            <form onSubmit={handleSendMessage} className="flex-1 max-w-[78%] relative rounded-xl transition-all bg-[#fcd34d]">
+                            <form onSubmit={handleSendMessage} className="flex-1 max-w-[78%] relative rounded-3xl transition-all bg-[#fcd34d]">
                                 <input
                                     type="text"
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                     placeholder={placeholderText}
-                                    className="w-full pl-4 pr-12 py-2.5 focus:outline-none transition-all min-h-[44px] border-none rounded-xl bg-[#fcd34d] text-zinc-900 placeholder:text-zinc-700/60 font-semibold tracking-wider chat-input-text"
+                                    className="w-full pl-5 pr-12 py-2.5 focus:outline-none transition-all min-h-[44px] border-none rounded-3xl bg-[#fcd34d] text-[#854d0e] placeholder:text-[#854d0e]/60 font-serif text-[15px] chat-input-text"
                                 />
                                 <button
                                     type="submit"
                                     disabled={!inputText.trim()}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center bg-black/50 hover:bg-[#16161a] text-white rounded-lg transition-all cursor-pointer hover:shadow-[0_0_10px_rgba(255,255,255,0.2)]"
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center bg-transparent border-none outline-none text-[#854d0e] hover:text-[#583106] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105"
                                 >
-                                    <svg className="w-4 h-4 transform rotate-90" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-4.5 h-4.5 transform rotate-90" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
                                     </svg>
                                 </button>
