@@ -2035,6 +2035,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                         <div className="grid grid-cols-3 p-1 rounded-xl w-full gap-1 transition-all bg-[#f5efe6] border border-zinc-200/50">
                             <button
                                 onClick={() => setRightPanelTab('chat')}
+                                style={{ color: '#ffffff' }}
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'chat'
                                     ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
@@ -2051,6 +2052,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                         wsRef.current.send(JSON.stringify({ text }));
                                     }
                                 }}
+                                style={{ color: '#ffffff' }}
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'lessons'
                                     ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
@@ -2064,6 +2066,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                     setRightPanelTab('trips');
                                     fetchLeads();
                                 }}
+                                style={{ color: '#ffffff' }}
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'trips'
                                     ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
