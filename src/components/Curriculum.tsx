@@ -296,7 +296,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
 
         {/* Welcome Card from Voyager */}
         <div className="bg-[#FAF6EE] border border-zinc-200/80 p-5 rounded-3xl shadow-md flex items-start gap-4 text-left animate-fade-in">
-          <div className="w-16 h-16 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex-shrink-0 overflow-hidden flex items-center justify-center p-1">
+          <div className="w-20 h-20 flex-shrink-0 overflow-hidden flex items-center justify-center">
             <img 
               src={voyagerRobot} 
               alt="Voyager" 

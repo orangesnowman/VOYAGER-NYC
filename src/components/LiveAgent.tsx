@@ -2472,13 +2472,13 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                             return (
                                 <div key={msg.id} className={`flex items-start ${isUser ? 'justify-end' : 'justify-start'} gap-2.5 animate-fade-in`}>
                                     {!isUser && (
-                                        <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
+                                        <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center">
                                             {showAvatar ? (
                                                 <img 
                                                     src={voyagerRobot} 
                                                     alt="Voyager Guide" 
                                                     referrerPolicy="no-referrer"
-                                                    className="w-full h-full object-contain rounded-lg" 
+                                                    className="w-full h-full object-contain" 
                                                 />
                                             ) : (
                                                 <div className="w-full h-full" />
