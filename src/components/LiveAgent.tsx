@@ -2525,7 +2525,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                         <div className={`
                                             px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-md transition-all
                                             ${isUser 
-                                                ? 'bg-gradient-to-br from-yellow-300/85 to-yellow-400/90 border border-yellow-200/30 backdrop-blur-md text-black rounded-tr-none font-semibold' 
+                                                ? 'bg-gradient-to-br from-yellow-300/30 to-yellow-400/35 border border-yellow-200/20 backdrop-blur-md text-black rounded-tr-none font-semibold' 
                                                 : 'bg-zinc-100 border border-zinc-200/60 text-zinc-800 rounded-tl-none'
                                             }
                                         `}>
