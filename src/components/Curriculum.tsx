@@ -217,22 +217,19 @@ export const Curriculum: React.FC<CurriculumProps> = ({
 
 
 
-  const renderTocRow = (card: CardData) => {
-    const isActive = activeDay === card.dayNum;
-
+  const renderTocRow = (lesson: any) => {
     return (
       <button 
-        key={card.dayNum}
-        onClick={() => onStartLesson(card.dayNum, selectedLevel)}
-        className={`w-full text-left bg-[#FAF6EE] hover:bg-[#FAF6EE]/80 border rounded-2xl p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer active:scale-[0.99] group ${
-          isActive ? 'border-yellow-500 ring-1 ring-yellow-500/20' : 'border-zinc-200/80'
-        }`}
+        key={lesson.dayNum}
+        onClick={() => onStartLesson(lesson.dayNum, selectedLevel)}
+        className="w-full text-left bg-transparent border-b border-zinc-300/30 py-3.5 px-1 flex items-center justify-between transition-all duration-200 cursor-pointer active:opacity-85 group"
       >
         <div className="min-w-0 flex-1">
-          <h3 className="text-neutral-900 group-hover:text-amber-800 font-extrabold text-sm md:text-base leading-tight truncate transform group-hover:translate-x-1.5 transition-all duration-250">
-            {card.dayNum}. {selectedLang === 'EN' ? card.titleEn : card.title}
+          <h3 className="text-neutral-900 group-hover:text-amber-800 font-serif font-normal text-sm md:text-[15px] leading-tight truncate transform group-hover:translate-x-1 transition-all duration-250">
+            {lesson.dayNum}. {selectedLang === 'EN' ? lesson.title : lesson.titleEs}
           </h3>
         </div>
+        <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-amber-700 transition-colors flex-shrink-0 ml-2" />
       </button>
     );
   };
@@ -240,7 +237,7 @@ export const Curriculum: React.FC<CurriculumProps> = ({
   const currentDayData = IMMERSION_CURRICULUM.find(d => d.dayNum === activeDay) || IMMERSION_CURRICULUM[0];
 
   // Display all cards regardless of selected difficulty level
-  const visibleLessons = CARDS;
+  const visibleLessons = IMMERSION_CURRICULUM;
 
   return (
     <div className="w-full h-full flex flex-col bg-[#f2ede4] rounded-3xl pt-2 px-3 pb-3 font-sans text-neutral-900 overflow-y-auto max-h-[500px] md:max-h-[600px] shadow-inner border border-zinc-200/60">
@@ -312,8 +309,8 @@ export const Curriculum: React.FC<CurriculumProps> = ({
           </div>
         </div>
 
-        {/* Lessons Grid list */}
-        <div className="grid grid-cols-1 gap-3">
+        {/* Lessons List - Table of Contents */}
+        <div className="flex flex-col border-t border-zinc-300/30">
           {visibleLessons.map(renderTocRow)}
         </div>
       </div>
