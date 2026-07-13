@@ -413,6 +413,12 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const [isBilingualMode, setIsBilingualMode] = useState(false);
   const isBilingualModeRef = useRef(isBilingualMode);
   
+  const [isSpanishOnlyMode, setIsSpanishOnlyMode] = useState(false);
+  const isSpanishOnlyModeRef = useRef(isSpanishOnlyMode);
+  
+  const [isEnglishOnlyMode, setIsEnglishOnlyMode] = useState(false);
+  const isEnglishOnlyModeRef = useRef(isEnglishOnlyMode);
+  
   const [isPaused, setIsPaused] = useState(false);
   const isPausedRef = useRef(isPaused);
   const lastInteractionTimeRef = useRef(Date.now());
@@ -736,9 +742,75 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   }, [isBilingualMode, selectedLang]);
 
   useEffect(() => {
+    const wasSpanishOnly = isSpanishOnlyModeRef.current;
+    isSpanishOnlyModeRef.current = isSpanishOnlyMode;
+    
+    if (wasSpanishOnly !== isSpanishOnlyMode) {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        const msgText = isSpanishOnlyMode 
+          ? "[SYSTEM MESSAGE: Mode changed. You are now in SPANISH ONLY MODE. You must speak and write strictly and purely in Spanish from now on. Discuss information, landmarks, and details about New York City in Spanish. Do NOT teach English, evaluate grammar, or translate any text. Speak only in Spanish. Do NOT say 'Understood' or 'Entendido'.]"
+          : "[SYSTEM MESSAGE: Mode changed. Speak aloud a brief explanation in Spanish (one warm sentence) telling the user that you are now back in normal voice guide mode, guiding them through NYC and helping with vocabulary. Do NOT say 'Understood' or 'Entendido'.]";
+        
+        wsRef.current.send(JSON.stringify({ text: msgText }));
+      }
+      
+      setChatMessages(prev => [
+        ...prev,
+        {
+          id: `msg_sys_spanish_${Date.now()}`,
+          sender: 'system',
+          text: isSpanishOnlyMode 
+            ? (selectedLang === 'EN' 
+              ? 'ℹ️ Spanish Only Mode active: VOYAGER will converse with you strictly in Spanish to discuss city details.'
+              : 'ℹ️ Modo Solo Español activo: VOYAGER conversará contigo estrictamente en español para hablar de la ciudad.')
+            : (selectedLang === 'EN'
+              ? 'ℹ️ Normal mode active: VOYAGER is back as your NYC guide and tutor.'
+              : 'ℹ️ Modo normal activo: VOYAGER vuelve a ser tu guía y tutor en NYC.'),
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timeMs: Date.now()
+        }
+      ]);
+    }
+  }, [isSpanishOnlyMode, selectedLang]);
+
+  useEffect(() => {
+    const wasEnglishOnly = isEnglishOnlyModeRef.current;
+    isEnglishOnlyModeRef.current = isEnglishOnlyMode;
+    
+    if (wasEnglishOnly !== isEnglishOnlyMode) {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        const msgText = isEnglishOnlyMode 
+          ? "[SYSTEM MESSAGE: Mode changed. You are now in ENGLISH ONLY MODE. You must speak and write strictly and purely in English. Do NOT provide any Spanish translations, hints, corrections, or bilingual tips. Speak naturally as a native English speaker from New York City. This is a pure immersion practice mode for advanced students. Speak only in English. Do NOT say 'Understood' or 'Entendido'.]"
+          : "[SYSTEM MESSAGE: Mode changed. Speak aloud a brief explanation in Spanish (one warm sentence) telling the user that you are now back in normal voice guide mode, guiding them through NYC and helping with vocabulary. Do NOT say 'Understood' or 'Entendido'.]";
+        
+        wsRef.current.send(JSON.stringify({ text: msgText }));
+      }
+      
+      setChatMessages(prev => [
+        ...prev,
+        {
+          id: `msg_sys_english_${Date.now()}`,
+          sender: 'system',
+          text: isEnglishOnlyMode 
+            ? (selectedLang === 'EN' 
+              ? 'ℹ️ English Only Mode active: VOYAGER will speak strictly in English for advanced practice.'
+              : 'ℹ️ Modo Solo Inglés activo: VOYAGER hablará estrictamente en inglés para práctica avanzada.')
+            : (selectedLang === 'EN'
+              ? 'ℹ️ Normal mode active: VOYAGER is back as your NYC guide and tutor.'
+              : 'ℹ️ Modo normal activo: VOYAGER vuelve a ser tu guía y tutor en NYC.'),
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          timeMs: Date.now()
+        }
+      ]);
+    }
+  }, [isEnglishOnlyMode, selectedLang]);
+
+  useEffect(() => {
     if (isTranslateMode) {
       setIsListenOnly(false);
       setIsBilingualMode(false);
+      setIsSpanishOnlyMode(false);
+      setIsEnglishOnlyMode(false);
     }
   }, [isTranslateMode]);
 
@@ -746,6 +818,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
     if (isListenOnly) {
       setIsTranslateMode(false);
       setIsBilingualMode(false);
+      setIsSpanishOnlyMode(false);
+      setIsEnglishOnlyMode(false);
     }
   }, [isListenOnly]);
 
@@ -753,8 +827,28 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
     if (isBilingualMode) {
       setIsListenOnly(false);
       setIsTranslateMode(false);
+      setIsSpanishOnlyMode(false);
+      setIsEnglishOnlyMode(false);
     }
   }, [isBilingualMode]);
+
+  useEffect(() => {
+    if (isSpanishOnlyMode) {
+      setIsListenOnly(false);
+      setIsTranslateMode(false);
+      setIsBilingualMode(false);
+      setIsEnglishOnlyMode(false);
+    }
+  }, [isSpanishOnlyMode]);
+
+  useEffect(() => {
+    if (isEnglishOnlyMode) {
+      setIsListenOnly(false);
+      setIsTranslateMode(false);
+      setIsBilingualMode(false);
+      setIsSpanishOnlyMode(false);
+    }
+  }, [isEnglishOnlyMode]);
 
   const hasInteracted = isConnected || statusText === "Connecting..." || chatMessages.length > 1;
 
@@ -1304,6 +1398,10 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
               greeting += "\n\n[SYSTEM MESSAGE: You are now in INSTANT TRANSLATION MODE. You must act strictly and purely as a speech translator. Do NOT hold a conversation, do NOT give tips, do NOT make small talk, and do NOT guide the user. Your ONLY job is to immediately translate whatever you hear: if you hear Spanish, translate it to English; if you hear English, translate it to Spanish. Output ONLY the translated words and absolutely nothing else, both in your voice and in your text transcription. Keep translations instantaneous, brief, and exact.]";
             } else if (isListenOnlyRef.current) {
               greeting += "\n\n[SYSTEM MESSAGE: You are now starting in Monitor/Listen-only mode. The user is practicing by talking to a real person. You must only listen and analyze their English interaction. Do NOT speak. You can only respond via text. In your text responses, offer helpful, subtle language corrections or tips about their conversation, and if you want to speak aloud, explicitly ask the user for permission to talk (e.g. '¿Puedo hablar?').]";
+            } else if (isSpanishOnlyModeRef.current) {
+              greeting += "\n\n[SYSTEM MESSAGE: You are now in SPANISH ONLY MODE. You must speak and write strictly and purely in Spanish from now on. Discuss information, landmarks, and details about New York City in Spanish. Do NOT teach English, evaluate grammar, or translate any text. Speak only in Spanish.]";
+            } else if (isEnglishOnlyModeRef.current) {
+              greeting += "\n\n[SYSTEM MESSAGE: You are now in ENGLISH ONLY MODE. You must speak and write strictly and purely in English. Do NOT provide any Spanish translations, hints, corrections, or bilingual tips. Speak naturally as a native English speaker from New York City. This is a pure immersion practice mode for advanced students. Speak only in English.]";
             }
             
             if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -2064,9 +2162,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                 </label>
                                             </div>
                                         ) : (
-                                            <div className="flex items-center gap-3.5">
+                                            <div className="flex items-center gap-2 md:gap-3.5 flex-wrap">
                                                 {/* Bilingual Option Toggle */}
-                                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                <label className="flex items-center gap-1.5 cursor-pointer select-none">
                                                     <input 
                                                         type="checkbox"
                                                         checked={isBilingualMode}
@@ -2075,17 +2173,19 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                             if (e.target.checked) {
                                                                 setIsTranslateMode(false);
                                                                 setIsListenOnly(false);
+                                                                setIsSpanishOnlyMode(false);
+                                                                setIsEnglishOnlyMode(false);
                                                             }
                                                         }}
                                                         className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
                                                     />
-                                                    <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
+                                                    <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
                                                         BILINGÜE
                                                     </span>
                                                 </label>
 
                                                 {/* Translate Option Toggle */}
-                                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                <label className="flex items-center gap-1.5 cursor-pointer select-none">
                                                     <input 
                                                         type="checkbox"
                                                         checked={isTranslateMode}
@@ -2094,17 +2194,19 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                             if (e.target.checked) {
                                                                 setIsBilingualMode(false);
                                                                 setIsListenOnly(false);
+                                                                setIsSpanishOnlyMode(false);
+                                                                setIsEnglishOnlyMode(false);
                                                             }
                                                         }}
                                                         className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
                                                     />
-                                                    <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
+                                                    <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
                                                         TRADUCE
                                                     </span>
                                                 </label>
 
                                                 {/* Listen Only Option Toggle */}
-                                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                <label className="flex items-center gap-1.5 cursor-pointer select-none">
                                                     <input 
                                                         type="checkbox"
                                                         checked={isListenOnly}
@@ -2113,12 +2215,56 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                             if (e.target.checked) {
                                                                 setIsBilingualMode(false);
                                                                 setIsTranslateMode(false);
+                                                                setIsSpanishOnlyMode(false);
+                                                                setIsEnglishOnlyMode(false);
                                                             }
                                                         }}
                                                         className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
                                                     />
-                                                    <span className="text-[11px] font-sans font-bold text-zinc-600 uppercase tracking-wider hover:text-zinc-900 transition-colors">
+                                                    <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
                                                         ESCUCHA
+                                                    </span>
+                                                </label>
+
+                                                {/* Spanish Option Toggle */}
+                                                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={isSpanishOnlyMode}
+                                                        onChange={(e) => {
+                                                            setIsSpanishOnlyMode(e.target.checked);
+                                                            if (e.target.checked) {
+                                                                setIsBilingualMode(false);
+                                                                setIsTranslateMode(false);
+                                                                setIsListenOnly(false);
+                                                                setIsEnglishOnlyMode(false);
+                                                            }
+                                                        }}
+                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                    />
+                                                    <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                        ESPAÑOL
+                                                    </span>
+                                                </label>
+
+                                                {/* English Option Toggle */}
+                                                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                                    <input 
+                                                        type="checkbox"
+                                                        checked={isEnglishOnlyMode}
+                                                        onChange={(e) => {
+                                                            setIsEnglishOnlyMode(e.target.checked);
+                                                            if (e.target.checked) {
+                                                                setIsBilingualMode(false);
+                                                                setIsTranslateMode(false);
+                                                                setIsListenOnly(false);
+                                                                setIsSpanishOnlyMode(false);
+                                                            }
+                                                        }}
+                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
+                                                    />
+                                                    <span className="text-[10px] md:text-[11px] font-serif font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                        ENGLISH
                                                     </span>
                                                 </label>
                                             </div>
