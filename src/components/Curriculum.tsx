@@ -246,53 +246,6 @@ export const Curriculum: React.FC<CurriculumProps> = ({
     <div className="w-full h-full flex flex-col bg-[#f2ede4] rounded-3xl pt-2 px-3 pb-3 font-sans text-neutral-900 overflow-y-auto max-h-[500px] md:max-h-[600px] shadow-inner border border-zinc-200/60">
       <div className="space-y-6 pb-4">
         
-        {/* Level Selection Checkbox Options */}
-        <div className="px-1 py-1.5 flex items-center justify-start gap-4 flex-shrink-0 border-b border-zinc-300/20 bg-transparent mb-1">
-          {/* Principiante Option */}
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input 
-              type="checkbox"
-              checked={selectedLevel === 'PRINCIPIANTE'}
-              onChange={() => setSelectedLevel('PRINCIPIANTE')}
-              className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
-            />
-            <span className={`text-[11px] font-sans font-bold uppercase tracking-wider transition-colors ${
-              selectedLevel === 'PRINCIPIANTE' ? 'text-neutral-950 font-extrabold' : 'text-zinc-600 hover:text-zinc-900'
-            }`}>
-              {selectedLang === 'EN' ? 'Beginner' : 'Principiante'}
-            </span>
-          </label>
-
-          {/* Intermedio Option */}
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input 
-              type="checkbox"
-              checked={selectedLevel === 'INTERMEDIO'}
-              onChange={() => setSelectedLevel('INTERMEDIO')}
-              className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
-            />
-            <span className={`text-[11px] font-sans font-bold uppercase tracking-wider transition-colors ${
-              selectedLevel === 'INTERMEDIO' ? 'text-neutral-950 font-extrabold' : 'text-zinc-600 hover:text-zinc-900'
-            }`}>
-              {selectedLang === 'EN' ? 'Intermediate' : 'Intermedio'}
-            </span>
-          </label>
-
-          {/* Avanzado Option */}
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input 
-              type="checkbox"
-              checked={selectedLevel === 'AVANZADO'}
-              onChange={() => setSelectedLevel('AVANZADO')}
-              className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
-            />
-            <span className={`text-[11px] font-sans font-bold uppercase tracking-wider transition-colors ${
-              selectedLevel === 'AVANZADO' ? 'text-neutral-950 font-extrabold' : 'text-zinc-600 hover:text-zinc-900'
-            }`}>
-              {selectedLang === 'EN' ? 'Advanced' : 'Avanzado'}
-            </span>
-          </label>
-        </div>
 
         {/* Welcome Card from Voyager */}
         <div className="bg-[#FAF6EE] border border-zinc-200/80 p-5 rounded-3xl shadow-md flex items-start gap-4 text-left animate-fade-in">

@@ -2121,192 +2121,260 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                     </div>
                 ) : (
                     <>
-                        {rightPanelTab === 'chat' ? (
-                            <div className="flex-grow flex flex-col overflow-hidden h-full">
-                                {hasInteracted && (
-                                    <div className="px-4 py-2 border-b border-zinc-200/50 flex items-center justify-center bg-[#f5efe6] flex-shrink-0 z-10">
-                                        {rightPanelTab === 'lessons' ? (
-                                            <div className="flex items-center gap-3.5">
-                                                {/* Principiante Option */}
-                                                <label className="flex items-center gap-2 cursor-pointer select-none">
-                                                    <input 
-                                                        type="checkbox"
-                                                        checked={selectedLevel === 'PRINCIPIANTE'}
-                                                        onChange={() => setSelectedLevel('PRINCIPIANTE')}
-                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
-                                                    />
-                                                    <span className={`text-[11px] font-sans font-bold uppercase tracking-wider transition-colors ${
-                                                        selectedLevel === 'PRINCIPIANTE' ? 'text-neutral-950 font-extrabold' : 'text-zinc-600 hover:text-zinc-900'
-                                                    }`}>
-                                                        {selectedLang === 'EN' ? 'Beginner' : 'Principiante'}
-                                                    </span>
-                                                </label>
+                        {hasInteracted && (
+                            <div className="px-4 py-2 border-b border-zinc-200/50 flex items-center justify-center bg-[#f5efe6] flex-shrink-0 z-10">
+                                {rightPanelTab === 'chat' && (
+                                    <div className="flex items-center justify-center gap-2 md:gap-3.5 flex-wrap w-full">
+                                        {/* Bilingual Option Toggle */}
+                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                            <input 
+                                                type="checkbox"
+                                                checked={isBilingualMode}
+                                                onChange={(e) => {
+                                                    setIsBilingualMode(e.target.checked);
+                                                    if (e.target.checked) {
+                                                        setIsTranslateMode(false);
+                                                        setIsListenOnly(false);
+                                                        setIsSpanishOnlyMode(false);
+                                                        setIsEnglishOnlyMode(false);
+                                                    }
+                                                }}
+                                                className="sr-only"
+                                            />
+                                            {isBilingualMode ? (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                            ) : (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                            )}
+                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                BILINGÜE
+                                            </span>
+                                        </label>
 
-                                                {/* Intermedio Option */}
-                                                <label className="flex items-center gap-2 cursor-pointer select-none">
-                                                    <input 
-                                                        type="checkbox"
-                                                        checked={selectedLevel === 'INTERMEDIO'}
-                                                        onChange={() => setSelectedLevel('INTERMEDIO')}
-                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
-                                                    />
-                                                    <span className={`text-[11px] font-sans font-bold uppercase tracking-wider transition-colors ${
-                                                        selectedLevel === 'INTERMEDIO' ? 'text-neutral-950 font-extrabold' : 'text-zinc-600 hover:text-zinc-900'
-                                                    }`}>
-                                                        {selectedLang === 'EN' ? 'Intermediate' : 'Intermedio'}
-                                                    </span>
-                                                </label>
+                                        {/* Translate Option Toggle */}
+                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                            <input 
+                                                type="checkbox"
+                                                checked={isTranslateMode}
+                                                onChange={(e) => {
+                                                    setIsTranslateMode(e.target.checked);
+                                                    if (e.target.checked) {
+                                                        setIsBilingualMode(false);
+                                                        setIsListenOnly(false);
+                                                        setIsSpanishOnlyMode(false);
+                                                        setIsEnglishOnlyMode(false);
+                                                    }
+                                                }}
+                                                className="sr-only"
+                                            />
+                                            {isTranslateMode ? (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                            ) : (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                            )}
+                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                TRADUCE
+                                            </span>
+                                        </label>
 
-                                                {/* Avanzado Option */}
-                                                <label className="flex items-center gap-2 cursor-pointer select-none">
-                                                    <input 
-                                                        type="checkbox"
-                                                        checked={selectedLevel === 'AVANZADO'}
-                                                        onChange={() => setSelectedLevel('AVANZADO')}
-                                                        className="w-3.5 h-3.5 accent-yellow-500 cursor-pointer"
-                                                    />
-                                                    <span className={`text-[11px] font-sans font-bold uppercase tracking-wider transition-colors ${
-                                                        selectedLevel === 'AVANZADO' ? 'text-neutral-950 font-extrabold' : 'text-zinc-600 hover:text-zinc-900'
-                                                    }`}>
-                                                        {selectedLang === 'EN' ? 'Advanced' : 'Avanzado'}
-                                                    </span>
-                                                </label>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center justify-center gap-2 md:gap-3.5 flex-wrap w-full">
-                                                {/* Bilingual Option Toggle */}
-                                                <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                                    <input 
-                                                        type="checkbox"
-                                                        checked={isBilingualMode}
-                                                        onChange={(e) => {
-                                                            setIsBilingualMode(e.target.checked);
-                                                            if (e.target.checked) {
-                                                                setIsTranslateMode(false);
-                                                                setIsListenOnly(false);
-                                                                setIsSpanishOnlyMode(false);
-                                                                setIsEnglishOnlyMode(false);
-                                                            }
-                                                        }}
-                                                        className="sr-only"
-                                                    />
-                                                    {isBilingualMode ? (
-                                                        <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                                    ) : (
-                                                        <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                                    )}
-                                                    <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                        BILINGÜE
-                                                    </span>
-                                                </label>
+                                        {/* Listen Only Option Toggle */}
+                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                            <input 
+                                                type="checkbox"
+                                                checked={isListenOnly}
+                                                onChange={(e) => {
+                                                    setIsListenOnly(e.target.checked);
+                                                    if (e.target.checked) {
+                                                        setIsBilingualMode(false);
+                                                        setIsTranslateMode(false);
+                                                        setIsSpanishOnlyMode(false);
+                                                        setIsEnglishOnlyMode(false);
+                                                    }
+                                                }}
+                                                className="sr-only"
+                                            />
+                                            {isListenOnly ? (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                            ) : (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                            )}
+                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                ESCUCHA
+                                            </span>
+                                        </label>
 
-                                                {/* Translate Option Toggle */}
-                                                <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                                    <input 
-                                                        type="checkbox"
-                                                        checked={isTranslateMode}
-                                                        onChange={(e) => {
-                                                            setIsTranslateMode(e.target.checked);
-                                                            if (e.target.checked) {
-                                                                setIsBilingualMode(false);
-                                                                setIsListenOnly(false);
-                                                                setIsSpanishOnlyMode(false);
-                                                                setIsEnglishOnlyMode(false);
-                                                            }
-                                                        }}
-                                                        className="sr-only"
-                                                    />
-                                                    {isTranslateMode ? (
-                                                        <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                                    ) : (
-                                                        <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                                    )}
-                                                    <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                        TRADUCE
-                                                    </span>
-                                                </label>
+                                        {/* Spanish Option Toggle */}
+                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                            <input 
+                                                type="checkbox"
+                                                checked={isSpanishOnlyMode}
+                                                onChange={(e) => {
+                                                    setIsSpanishOnlyMode(e.target.checked);
+                                                    if (e.target.checked) {
+                                                        setIsBilingualMode(false);
+                                                        setIsTranslateMode(false);
+                                                        setIsListenOnly(false);
+                                                        setIsEnglishOnlyMode(false);
+                                                    }
+                                                }}
+                                                className="sr-only"
+                                            />
+                                            {isSpanishOnlyMode ? (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                            ) : (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                            )}
+                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                ESPAÑOL
+                                            </span>
+                                        </label>
 
-                                                {/* Listen Only Option Toggle */}
-                                                <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                                    <input 
-                                                        type="checkbox"
-                                                        checked={isListenOnly}
-                                                        onChange={(e) => {
-                                                            setIsListenOnly(e.target.checked);
-                                                            if (e.target.checked) {
-                                                                setIsBilingualMode(false);
-                                                                setIsTranslateMode(false);
-                                                                setIsSpanishOnlyMode(false);
-                                                                setIsEnglishOnlyMode(false);
-                                                            }
-                                                        }}
-                                                        className="sr-only"
-                                                    />
-                                                    {isListenOnly ? (
-                                                        <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                                    ) : (
-                                                        <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                                    )}
-                                                    <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                        ESCUCHA
-                                                    </span>
-                                                </label>
-
-                                                {/* Spanish Option Toggle */}
-                                                <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                                    <input 
-                                                        type="checkbox"
-                                                        checked={isSpanishOnlyMode}
-                                                        onChange={(e) => {
-                                                            setIsSpanishOnlyMode(e.target.checked);
-                                                            if (e.target.checked) {
-                                                                setIsBilingualMode(false);
-                                                                setIsTranslateMode(false);
-                                                                setIsListenOnly(false);
-                                                                setIsEnglishOnlyMode(false);
-                                                            }
-                                                        }}
-                                                        className="sr-only"
-                                                    />
-                                                    {isSpanishOnlyMode ? (
-                                                        <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                                    ) : (
-                                                        <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                                    )}
-                                                    <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                        ESPAÑOL
-                                                    </span>
-                                                </label>
-
-                                                {/* English Option Toggle */}
-                                                <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                                    <input 
-                                                        type="checkbox"
-                                                        checked={isEnglishOnlyMode}
-                                                        onChange={(e) => {
-                                                            setIsEnglishOnlyMode(e.target.checked);
-                                                            if (e.target.checked) {
-                                                                setIsBilingualMode(false);
-                                                                setIsTranslateMode(false);
-                                                                setIsListenOnly(false);
-                                                                setIsSpanishOnlyMode(false);
-                                                            }
-                                                        }}
-                                                        className="sr-only"
-                                                    />
-                                                    {isEnglishOnlyMode ? (
-                                                        <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                                    ) : (
-                                                        <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                                    )}
-                                                    <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                        ENGLISH
-                                                    </span>
-                                                </label>
-                                            </div>
-                                        )}
+                                        {/* English Option Toggle */}
+                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                            <input 
+                                                type="checkbox"
+                                                checked={isEnglishOnlyMode}
+                                                onChange={(e) => {
+                                                    setIsEnglishOnlyMode(e.target.checked);
+                                                    if (e.target.checked) {
+                                                        setIsBilingualMode(false);
+                                                        setIsTranslateMode(false);
+                                                        setIsListenOnly(false);
+                                                        setIsSpanishOnlyMode(false);
+                                                    }
+                                                }}
+                                                className="sr-only"
+                                            />
+                                            {isEnglishOnlyMode ? (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                            ) : (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                            )}
+                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                ENGLISH
+                                            </span>
+                                        </label>
                                     </div>
                                 )}
+                                {rightPanelTab === 'lessons' && activeLessonDay === null && (
+                                    <div className="flex items-center justify-center gap-2 md:gap-3.5 flex-wrap w-full">
+                                        {/* Principiante Option */}
+                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                            <input 
+                                                type="checkbox"
+                                                checked={selectedLevel === 'PRINCIPIANTE'}
+                                                onChange={() => setSelectedLevel('PRINCIPIANTE')}
+                                                className="sr-only"
+                                            />
+                                            {selectedLevel === 'PRINCIPIANTE' ? (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                            ) : (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                            )}
+                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                {selectedLang === 'EN' ? 'BEGINNER' : 'PRINCIPIANTE'}
+                                            </span>
+                                        </label>
+
+                                        {/* Intermedio Option */}
+                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                            <input 
+                                                type="checkbox"
+                                                checked={selectedLevel === 'INTERMEDIO'}
+                                                onChange={() => setSelectedLevel('INTERMEDIO')}
+                                                className="sr-only"
+                                            />
+                                            {selectedLevel === 'INTERMEDIO' ? (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                            ) : (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                            )}
+                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                {selectedLang === 'EN' ? 'INTERMEDIATE' : 'INTERMEDIO'}
+                                            </span>
+                                        </label>
+
+                                        {/* Avanzado Option */}
+                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                            <input 
+                                                type="checkbox"
+                                                checked={selectedLevel === 'AVANZADO'}
+                                                onChange={() => setSelectedLevel('AVANZADO')}
+                                                className="sr-only"
+                                            />
+                                            {selectedLevel === 'AVANZADO' ? (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                            ) : (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                            )}
+                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                {selectedLang === 'EN' ? 'ADVANCED' : 'AVANZADO'}
+                                            </span>
+                                        </label>
+                                    </div>
+                                )}
+                                {rightPanelTab === 'trips' && (
+                                    <div className="flex items-center justify-center gap-2 md:gap-3.5 flex-wrap w-full">
+                                        {/* Plan de Viaje Toggle */}
+                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                            <input 
+                                                type="checkbox"
+                                                checked={viajesSubTab === 'planner'}
+                                                onChange={() => setViajesSubTab('planner')}
+                                                className="sr-only"
+                                            />
+                                            {viajesSubTab === 'planner' ? (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                            ) : (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                            )}
+                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                {selectedLang === 'EN' ? 'TRIP PLANNER' : 'PLAN DE VIAJE'}
+                                            </span>
+                                        </label>
+
+                                        {/* Mapa de Metro Toggle */}
+                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                            <input 
+                                                type="checkbox"
+                                                checked={viajesSubTab === 'subway'}
+                                                onChange={() => setViajesSubTab('subway')}
+                                                className="sr-only"
+                                            />
+                                            {viajesSubTab === 'subway' ? (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                            ) : (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                            )}
+                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                {selectedLang === 'EN' ? 'SUBWAY MAP' : 'MAPA DE METRO'}
+                                            </span>
+                                        </label>
+
+                                        {/* Google Maps Toggle */}
+                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                            <input 
+                                                type="checkbox"
+                                                checked={viajesSubTab === 'google_map'}
+                                                onChange={() => setViajesSubTab('google_map')}
+                                                className="sr-only"
+                                            />
+                                            {viajesSubTab === 'google_map' ? (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
+                                            ) : (
+                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
+                                            )}
+                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
+                                                GOOGLE MAPS
+                                            </span>
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {rightPanelTab === 'chat' ? (
+                            <div className="flex-grow flex flex-col overflow-hidden h-full">
+
                                 
                                 {activeLessonDay !== null && (() => {
                                     const activeLesson = IMMERSION_CURRICULUM.find(l => l.dayNum === activeLessonDay);
