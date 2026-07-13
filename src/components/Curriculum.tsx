@@ -222,14 +222,14 @@ export const Curriculum: React.FC<CurriculumProps> = ({
       <button 
         key={lesson.dayNum}
         onClick={() => onStartLesson(lesson.dayNum, selectedLevel)}
-        className="w-full text-left bg-transparent border-b border-zinc-300/30 py-3.5 px-1 flex items-center justify-between transition-all duration-200 cursor-pointer active:opacity-85 group"
+        className="w-full text-left bg-transparent border-b border-zinc-300/30 py-2 px-1 flex items-center justify-between transition-all duration-200 cursor-pointer active:opacity-85 group"
       >
         <div className="min-w-0 flex-1">
-          <h3 className="text-neutral-900 group-hover:text-amber-800 font-serif font-normal text-sm md:text-[15px] leading-tight truncate transform group-hover:translate-x-1 transition-all duration-250">
+          <h3 className="text-neutral-900 group-hover:text-blue-900 font-serif font-normal text-sm md:text-[15px] leading-tight tracking-tight truncate transform group-hover:translate-x-1 transition-all duration-250">
             {lesson.dayNum}. {selectedLang === 'EN' ? lesson.title : lesson.titleEs}
           </h3>
         </div>
-        <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-amber-700 transition-colors flex-shrink-0 ml-2" />
+        <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-blue-900 transition-colors flex-shrink-0 ml-2" />
       </button>
     );
   };
