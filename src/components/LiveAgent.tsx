@@ -2116,7 +2116,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                         {rightPanelTab === 'chat' ? (
                             <div className="flex-grow flex flex-col overflow-hidden h-full">
                                 {hasInteracted && (
-                                    <div className="px-4 py-2 border-b border-zinc-200/50 flex items-center justify-start bg-[#f5efe6] flex-shrink-0 z-10">
+                                    <div className="px-4 py-2 border-b border-zinc-200/50 flex items-center justify-center bg-[#f5efe6] flex-shrink-0 z-10">
                                         {rightPanelTab === 'lessons' ? (
                                             <div className="flex items-center gap-3.5">
                                                 {/* Principiante Option */}
@@ -2165,7 +2165,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                 </label>
                                             </div>
                                         ) : (
-                                            <div className="flex items-center gap-2 md:gap-3.5 flex-wrap">
+                                            <div className="flex items-center justify-center gap-2 md:gap-3.5 flex-wrap w-full">
                                                 {/* Bilingual Option Toggle */}
                                                 <label className="flex items-center gap-1.5 cursor-pointer select-none">
                                                     <input 
