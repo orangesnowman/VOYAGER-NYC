@@ -2039,7 +2039,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'chat'
                                     ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
-                                    : 'bg-[#1e3a8a]/50 text-white hover:bg-[#1e3a8a]/65'
+                                    : 'bg-[#1e3a8a]/25 text-white hover:bg-[#1e3a8a]/40'
                                 }`}
                             >
                                 Chat
@@ -2056,7 +2056,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'lessons'
                                     ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
-                                    : 'bg-[#1e3a8a]/50 text-white hover:bg-[#1e3a8a]/65'
+                                    : 'bg-[#1e3a8a]/25 text-white hover:bg-[#1e3a8a]/40'
                                 }`}
                             >
                                 Lecciones
@@ -2070,7 +2070,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'trips'
                                     ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
-                                    : 'bg-[#1e3a8a]/50 text-white hover:bg-[#1e3a8a]/65'
+                                    : 'bg-[#1e3a8a]/25 text-white hover:bg-[#1e3a8a]/40'
                                 }`}
                             >
                                 Viajes
