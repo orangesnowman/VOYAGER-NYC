@@ -2032,7 +2032,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                 
                 {isConnected && !showReviewScreen && (
                     <div className="px-4 pt-3 pb-2 z-20">
-                        <div className="grid grid-cols-3 p-1 rounded-xl w-full gap-1 transition-all bg-zinc-100">
+                        <div className="grid grid-cols-3 p-1 rounded-xl w-full gap-1 transition-all bg-[#f5efe6] border border-zinc-200/50">
                             <button
                                 onClick={() => setRightPanelTab('chat')}
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
