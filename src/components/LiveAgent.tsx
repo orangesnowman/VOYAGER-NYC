@@ -1842,7 +1842,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
             .theme-light .text-neutral-500 {
                 color: #71717a !important;
             }
-            .theme-light button.bg-black {
+            .theme-light button.bg-\\[\\#1e3a8a\\] {
                 color: #ffffff !important;
             }
             .theme-light [class*="border"] {
@@ -2037,7 +2037,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 onClick={() => setRightPanelTab('chat')}
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'chat'
-                                    ? 'bg-black text-white font-extrabold shadow-md'
+                                    ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
                                     : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
                                 }`}
                             >
@@ -2053,7 +2053,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 }}
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'lessons'
-                                    ? 'bg-black text-white font-extrabold shadow-md'
+                                    ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
                                     : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
                                 }`}
                             >
@@ -2066,7 +2066,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 }}
                                 className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'trips'
-                                    ? 'bg-black text-white font-extrabold shadow-md'
+                                    ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
                                     : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50'
                                 }`}
                             >
