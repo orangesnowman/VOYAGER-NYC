@@ -26,9 +26,12 @@ export const LessonGuide: React.FC<LessonGuideProps> = ({
         {/* Title Bar */}
         <div className="flex items-center justify-between border-b border-zinc-200/80 pb-2">
           <div>
-            <h2 className="text-sm font-black text-amber-850 uppercase tracking-wide">
+            <div 
+              style={{ fontFamily: "'American Typewriter', 'Courier New', Courier, Georgia, serif", fontSize: "14pt", color: "black", fontWeight: "bold" }}
+              className="tracking-wide"
+            >
               {selectedLang === 'EN' ? 'Lesson 1: Ordering Coffee Like a New Yorker' : 'Lección 1: Ordenando café como un neoyorquino'}
-            </h2>
+            </div>
             <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
               Level: {activeLevel} • Location: Manhattan Coffee Shop
             </p>
@@ -246,9 +249,12 @@ export const LessonGuide: React.FC<LessonGuideProps> = ({
         {/* Title Bar */}
         <div className="flex items-center justify-between border-b border-zinc-200/80 pb-2">
           <div>
-            <h2 className="text-sm font-black text-amber-850 uppercase tracking-wide">
+            <div 
+              style={{ fontFamily: "'American Typewriter', 'Courier New', Courier, Georgia, serif", fontSize: "14pt", color: "black", fontWeight: "bold" }}
+              className="tracking-wide"
+            >
               {selectedLang === 'EN' ? 'Lesson 2: Navigating the Manhattan Subway' : 'Lección 2: Navegando por el metro de Manhattan'}
-            </h2>
+            </div>
             <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
               Level: Beginner to Intermediate • Location: Manhattan Subway Station
             </p>
@@ -412,9 +418,12 @@ export const LessonGuide: React.FC<LessonGuideProps> = ({
     <div className="w-full flex flex-col font-sans text-neutral-900 space-y-5 text-left pb-6">
       <div className="flex items-center justify-between border-b border-zinc-200/80 pb-2">
         <div>
-          <h2 className="text-sm font-black text-amber-850 uppercase tracking-wide">
+          <div 
+            style={{ fontFamily: "'American Typewriter', 'Courier New', Courier, Georgia, serif", fontSize: "14pt", color: "black", fontWeight: "bold" }}
+            className="tracking-wide"
+          >
             {selectedLang === 'EN' ? `Lesson ${dayNum}` : `Lección ${dayNum}`}
-          </h2>
+          </div>
           <p className="text-[10px] text-zinc-500 font-medium mt-0.5">
             Level: {activeLevel}
           </p>

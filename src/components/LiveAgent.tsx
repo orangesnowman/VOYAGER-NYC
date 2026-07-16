@@ -4,7 +4,9 @@ import { base64ToBytes, createAudioBufferFromPCM, float32ToPcm16, bytesToBase64,
 import NycMap, { MapMarker, RouteInfo } from './NycMap';
 import { NycSubwayMap } from './NycSubwayMap';
 import { Curriculum } from './Curriculum';
-import { LessonGuide } from './LessonGuide';
+import { Profile } from './Profile';
+import { ActiveLessonChat } from './ActiveLessonChat';
+import { LessonCompletion } from './LessonCompletion';
 
 import { ProgressDashboard } from './ProgressDashboard';
 import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
@@ -432,7 +434,11 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
   const [mapZoom, setMapZoom] = useState<number>(13);
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
-  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'lessons' | 'trips'>('chat');
+  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'lessons' | 'trips' | 'profile'>('chat');
+  const [travelerType, setTravelerType] = useState<string>('tourist');
+  const [lessonStage, setLessonStage] = useState<1 | 2 | 3>(1);
+  const [showHelpPortal, setShowHelpPortal] = useState<'translate' | 'explain' | 'pronounce' | null>(null);
+  const [showLessonCompletion, setShowLessonCompletion] = useState<number | null>(null);
   const [viajesSubTab, setViajesSubTab] = useState<'planner' | 'subway' | 'google_map'>('planner');
   const [selectedTripDestination, setSelectedTripDestination] = useState<TravelDestination | null>(null);
   const [customDestinationText, setCustomDestinationText] = useState("");
@@ -1291,10 +1297,12 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
     return () => clearInterval(interval);
   }, [isConnected, isPaused]);
 
-  const connectToGemini = async (initialPrompt?: string, isVoiceConnection: boolean = false, langOverride?: 'EN' | 'ES') => {
+  const connectToGemini = async (initialPrompt?: string, isVoiceConnection: boolean = false, langOverride?: 'EN' | 'ES', keepTab: boolean = false) => {
     setError(null);
     setShowReviewScreen(false);
-    setRightPanelTab('chat');
+    if (!keepTab) {
+      setRightPanelTab('chat');
+    }
     setIsPaused(false);
     isPausedRef.current = false;
     lastInteractionTimeRef.current = Date.now();
@@ -1746,7 +1754,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
     if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
        wsRef.current.send(JSON.stringify({ text: textToSend }));
     } else {
-       connectToGemini(textToSend, false);
+        connectToGemini(textToSend, false, undefined, activeLessonDay !== null);
     }
   };
 
@@ -2040,11 +2048,11 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                 
                 {isConnected && !showReviewScreen && (
                     <div className="px-4 pt-3 pb-2 z-20">
-                        <div className="grid grid-cols-3 p-1 rounded-xl w-full gap-1 transition-all bg-[#f5efe6] border border-zinc-200/50">
+                        <div className="grid grid-cols-4 p-1 rounded-xl w-full gap-1 transition-all bg-[#f5efe6] border border-zinc-200/50">
                             <button
                                 onClick={() => setRightPanelTab('chat')}
                                 style={{ color: '#ffffff' }}
-                                className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
+                                className={`py-1.5 px-1 md:px-3 text-[14px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'chat'
                                     ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
                                     : 'bg-[#1e3a8a]/25 text-white hover:bg-[#1e3a8a]/40'
@@ -2061,7 +2069,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                     }
                                 }}
                                 style={{ color: '#ffffff' }}
-                                className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
+                                className={`py-1.5 px-1 md:px-3 text-[14px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'lessons'
                                     ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
                                     : 'bg-[#1e3a8a]/25 text-white hover:bg-[#1e3a8a]/40'
@@ -2075,13 +2083,26 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                     fetchLeads();
                                 }}
                                 style={{ color: '#ffffff' }}
-                                className={`py-1.5 px-3 text-[16px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
+                                className={`py-1.5 px-1 md:px-3 text-[14px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
                                     rightPanelTab === 'trips'
                                     ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
                                     : 'bg-[#1e3a8a]/25 text-white hover:bg-[#1e3a8a]/40'
                                 }`}
                             >
                                 Viajes
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setRightPanelTab('profile');
+                                }}
+                                style={{ color: '#ffffff' }}
+                                className={`py-1.5 px-1 md:px-3 text-[14px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
+                                    rightPanelTab === 'profile'
+                                    ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
+                                    : 'bg-[#1e3a8a]/25 text-white hover:bg-[#1e3a8a]/40'
+                                }`}
+                            >
+                                Perfil
                             </button>
                         </div>
                     </div>
@@ -2121,7 +2142,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                     </div>
                 ) : (
                     <>
-                        {hasInteracted && (
+                        {hasInteracted && ((rightPanelTab === 'chat') || rightPanelTab === 'trips') && (
                             <div className="px-4 py-2 border-b border-zinc-200/50 flex items-center justify-center bg-[#f5efe6] flex-shrink-0 z-10">
                                 {rightPanelTab === 'chat' && (
                                     <div className="flex items-center justify-center gap-2 md:gap-3.5 flex-wrap w-full">
@@ -2251,64 +2272,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                                 <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
                                             )}
                                             <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                ENGLISH
-                                            </span>
-                                        </label>
-                                    </div>
-                                )}
-                                {rightPanelTab === 'lessons' && activeLessonDay === null && (
-                                    <div className="flex items-center justify-center gap-2 md:gap-3.5 flex-wrap w-full">
-                                        {/* Principiante Option */}
-                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                            <input 
-                                                type="checkbox"
-                                                checked={selectedLevel === 'PRINCIPIANTE'}
-                                                onChange={() => setSelectedLevel('PRINCIPIANTE')}
-                                                className="sr-only"
-                                            />
-                                            {selectedLevel === 'PRINCIPIANTE' ? (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                            ) : (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                            )}
-                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                {selectedLang === 'EN' ? 'BEGINNER' : 'PRINCIPIANTE'}
-                                            </span>
-                                        </label>
-
-                                        {/* Intermedio Option */}
-                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                            <input 
-                                                type="checkbox"
-                                                checked={selectedLevel === 'INTERMEDIO'}
-                                                onChange={() => setSelectedLevel('INTERMEDIO')}
-                                                className="sr-only"
-                                            />
-                                            {selectedLevel === 'INTERMEDIO' ? (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                            ) : (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                            )}
-                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                {selectedLang === 'EN' ? 'INTERMEDIATE' : 'INTERMEDIO'}
-                                            </span>
-                                        </label>
-
-                                        {/* Avanzado Option */}
-                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                            <input 
-                                                type="checkbox"
-                                                checked={selectedLevel === 'AVANZADO'}
-                                                onChange={() => setSelectedLevel('AVANZADO')}
-                                                className="sr-only"
-                                            />
-                                            {selectedLevel === 'AVANZADO' ? (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                            ) : (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                            )}
-                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                {selectedLang === 'EN' ? 'ADVANCED' : 'AVANZADO'}
+                                                {selectedLang === 'EN' ? 'ENGLISH' : 'INGLÉS'}
                                             </span>
                                         </label>
                                     </div>
@@ -2372,7 +2336,30 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                 )}
                             </div>
                         )}
-                        {rightPanelTab === 'chat' ? (
+                        {rightPanelTab === 'lessons' && activeLessonDay !== null ? (
+                            <div className="flex-grow flex flex-col overflow-hidden h-full">
+                                <ActiveLessonChat 
+                                    activeLessonDay={activeLessonDay}
+                                    selectedLang={selectedLang}
+                                    activeLessonLevel={activeLessonLevel || 'PRINCIPIANTE'}
+                                    lessonStage={lessonStage}
+                                    setLessonStage={setLessonStage}
+                                    isConnected={isConnected}
+                                    disconnect={disconnect}
+                                    connectToGemini={(prompt, voice) => connectToGemini(prompt, voice, undefined, true)}
+                                    chatMessages={chatMessages}
+                                    setInputText={setInputText}
+                                    completedMissions={completedMissions}
+                                    onToggleMission={handleToggleMission}
+                                    setShowLessonCompletion={setShowLessonCompletion}
+                                    setActiveLessonDay={setActiveLessonDay}
+                                    showHelpPortal={showHelpPortal}
+                                    setShowHelpPortal={setShowHelpPortal}
+                                    isAiSpeaking={isConnected && audioContextRef.current !== null && (audioContextRef.current.currentTime < nextStartTimeRef.current)}
+                                    getTranslatedMessageText={getTranslatedMessageText}
+                                />
+                            </div>
+                        ) : rightPanelTab === 'chat' ? (
                             <div className="flex-grow flex flex-col overflow-hidden h-full">
 
                                 
@@ -2973,6 +2960,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                         onStartLesson={(day, level) => {
                                             setActiveLessonDay(day);
                                             setActiveLessonLevel(level);
+                                            setLessonStage(1);
+                                            setShowHelpPortal(null);
+                                            setShowLessonCompletion(null);
                                             
                                             // Get lesson title
                                             const lesson = IMMERSION_CURRICULUM.find(l => l.dayNum === day);
@@ -3012,16 +3002,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                         setSelectedLevel={setSelectedLevel}
                                     />
                                 )}
-                                {rightPanelTab === 'lessons' && activeLessonDay !== null && (
-                                    <LessonGuide 
-                                        dayNum={activeLessonDay}
-                                        selectedLang={selectedLang}
-                                        activeLevel={activeLessonLevel || 'PRINCIPIANTE'}
-                                        onEndLesson={() => setActiveLessonDay(null)}
-                                        completedMissions={completedMissions}
-                                        onToggleMission={handleToggleMission}
-                                    />
-                                )}
+
                                 {rightPanelTab === 'trips' && viajesSubTab === 'planner' && (
                                     <div className="w-full h-full flex flex-col bg-[#f2ede4] rounded-3xl p-4 font-sans text-neutral-900 overflow-y-auto max-h-[500px] md:max-h-[600px] shadow-inner border border-zinc-200/60 text-left space-y-4">
                                         {/* Speech Bubble Header */}
@@ -3422,6 +3403,55 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
                                             />
                                         </div>
                                     </div>
+                                )}
+
+                                {rightPanelTab === 'profile' && (
+                                    <Profile 
+                                        selectedLang={selectedLang}
+                                        travelerType={travelerType}
+                                        setTravelerType={setTravelerType}
+                                        completedMissions={completedMissions}
+                                        onStartLesson={(day, level) => {
+                                            setActiveLessonDay(day);
+                                            setActiveLessonLevel(level);
+                                            setLessonStage(1);
+                                            setShowHelpPortal(null);
+                                            setShowLessonCompletion(null);
+                                            setRightPanelTab('lessons');
+                                        }}
+                                        scores={scores}
+                                        learnedWords={learnedWords}
+                                        accentPatterns={accentPatterns}
+                                        onAskVoyager={(text) => {
+                                            setRightPanelTab('chat');
+                                            setInputText(text);
+                                            if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                                wsRef.current.send(JSON.stringify({ text }));
+                                                setChatMessages(prev => [
+                                                    ...prev,
+                                                    {
+                                                        id: `msg_profile_drill_${Date.now()}`,
+                                                        sender: 'user',
+                                                        text,
+                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                        timeMs: Date.now()
+                                                    }
+                                                ]);
+                                            } else {
+                                                setChatMessages(prev => [
+                                                    ...prev,
+                                                    {
+                                                        id: `msg_profile_drill_${Date.now()}`,
+                                                        sender: 'user',
+                                                        text,
+                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                                        timeMs: Date.now()
+                                                    }
+                                                ]);
+                                                connectToGemini(text, false);
+                                            }
+                                        }}
+                                    />
                                 )}
                             </div>
                         )}

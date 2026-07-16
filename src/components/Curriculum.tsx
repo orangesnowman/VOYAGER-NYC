@@ -225,12 +225,12 @@ export const Curriculum: React.FC<CurriculumProps> = ({
         className="w-full text-left bg-transparent border-b border-zinc-300/30 py-1.5 px-1 flex items-center justify-between transition-all duration-200 cursor-pointer active:opacity-85 group"
       >
         <div className="min-w-0 flex-1">
-          <h3 
-            style={{ fontFamily: "'American Typewriter', Courier, monospace", fontSize: "14pt", fontWeight: "normal" }}
+          <div 
+            style={{ fontFamily: "'American Typewriter', 'Courier New', Courier, Georgia, serif", fontSize: "15pt", fontWeight: "normal" }}
             className="text-neutral-900 group-hover:text-blue-900 leading-tight tracking-tight truncate transform group-hover:translate-x-1 transition-all duration-250"
           >
             {lesson.dayNum}. {selectedLang === 'EN' ? lesson.title : lesson.titleEs}
-          </h3>
+          </div>
         </div>
         <ArrowRight className="w-3 h-3 text-zinc-400 group-hover:text-blue-900 transition-colors flex-shrink-0 ml-2" />
       </button>
