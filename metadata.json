@@ -1,6 +1,10 @@
 {
-  "name": "VOYAGER VOICE AGENT- NYC",
-  "description": "VOYAGER: A real-time, bilingual Voice-and-Text AI Assistant serving as an NYC travel guide and English-Spanish language tutor, with interactive Google Maps integration.",
-  "requestFramePermissions": ["microphone"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "name": "USA Voyager",
+  "description": "USA Voyager is an AI-powered American English learning platform focused on natural conversation, personalized learning, and optional live lessons with human teachers.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

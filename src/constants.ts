@@ -13,164 +13,54 @@ export interface Landmark {
 
 export const NYC_LANDMARKS: Landmark[] = [
   {
-    id: 'times_square',
-    name: 'Times Square',
-    nameEs: 'Times Square',
-    latitude: 40.758895,
-    longitude: -73.985131,
-    descriptionEn: 'The bustling, bright-light heart of the Broadway theater district.',
-    descriptionEs: 'El bullicioso corazón de luces brillantes del distrito de teatros de Broadway.',
-    category: 'landmark'
-  },
-  {
-    id: 'central_park',
-    name: 'Central Park',
-    nameEs: 'Central Park',
-    latitude: 40.785091,
-    longitude: -73.968285,
-    descriptionEn: 'The iconic 843-acre urban oasis in the center of Manhattan.',
-    descriptionEs: 'El icónico oasis urbano de 843 acres en el centro de Manhattan.',
-    category: 'park'
-  },
-  {
-    id: 'empire_state',
-    name: 'Empire State Building',
-    nameEs: 'Edificio Empire State',
-    latitude: 40.748440,
-    longitude: -73.985664,
-    descriptionEn: 'The legendary 102-story Art Deco skyscraper with 360-degree views.',
-    descriptionEs: 'El legendario rascacielos Art Déco de 102 pisos con vistas de 360 grados.',
-    category: 'landmark'
-  },
-  {
-    id: 'statue_of_liberty',
-    name: 'Statue of Liberty',
-    nameEs: 'Estatua de la Libertad',
-    latitude: 40.689249,
-    longitude: -74.044500,
-    descriptionEn: 'The colossal neoclassical sculpture on Liberty Island welcoming visitors.',
-    descriptionEs: 'La colosal escultura neoclásica en la Isla de la Libertad que da la bienvenida a los visitantes.',
-    category: 'landmark'
-  },
-  {
-    id: 'brooklyn_bridge',
-    name: 'Brooklyn Bridge',
-    nameEs: 'Puente de Brooklyn',
-    latitude: 40.706085,
-    longitude: -73.996864,
-    descriptionEn: 'The historic suspension bridge connecting Manhattan and Brooklyn over the East River.',
-    descriptionEs: 'El histórico puente colgante que conecta Manhattan y Brooklyn sobre el East River.',
-    category: 'landmark'
-  },
-  {
-    id: 'high_line',
-    name: 'The High Line',
-    nameEs: 'The High Line (Parque Elevado)',
-    latitude: 40.7480,
-    longitude: -74.0048,
-    descriptionEn: 'A public park built on a historic elevated freight rail line on Manhattan’s West Side.',
-    descriptionEs: 'Un parque público construido sobre una histórica línea de ferrocarril de carga elevada en el West Side de Manhattan.',
-    category: 'park'
-  },
-  {
-    id: 'met_museum',
-    name: 'The Metropolitan Museum of Art',
-    nameEs: 'El Museo Metropolitano de Arte (The Met)',
-    latitude: 40.7794,
-    longitude: -73.9632,
-    descriptionEn: 'One of the world’s largest and finest art museums, located on Museum Mile.',
-    descriptionEs: 'Uno de los museos de arte más grandes y selectos del mundo, ubicado en Museum Mile.',
-    category: 'museum'
-  },
-  {
-    id: 'grand_central',
-    name: 'Grand Central Terminal',
-    nameEs: 'Terminal Grand Central',
-    latitude: 40.752726,
-    longitude: -73.977229,
-    descriptionEn: 'The historic, beautifully restored Beaux-Arts transit hub in Midtown.',
-    descriptionEs: 'La histórica y bellamente restaurada terminal de tránsito Beaux-Arts en Midtown.',
-    category: 'station'
-  },
-  {
-    id: 'joes_pizza',
-    name: "Joe's Pizza",
-    nameEs: "Pizzería Joe's Pizza",
-    latitude: 40.7306,
-    longitude: -74.0022,
-    descriptionEn: 'A Greenwich Village institution serving classic, legendary New York style street slices.',
-    descriptionEs: 'Una institución de Greenwich Village que sirve clásicas y legendarias porciones al estilo neoyorquino.',
+    id: 'diner',
+    name: 'Classic American Diner',
+    nameEs: 'Diner Americano Clásico',
+    latitude: 39.8283,
+    longitude: -98.5795,
+    descriptionEn: 'The traditional American casual restaurant with booths, counter service, and breakfast all day.',
+    descriptionEs: 'El tradicional restaurante casual estadounidense con cabinas, servicio de barra y desayuno todo el día.',
     category: 'food'
   },
   {
-    id: 'one_world_trade',
-    name: 'One World Trade Center',
-    nameEs: 'One World Trade Center',
-    latitude: 40.7127,
-    longitude: -74.0134,
-    descriptionEn: 'The tallest building in the Western Hemisphere, offering breathtaking city vistas.',
-    descriptionEs: 'El edificio más alto del hemisferio occidental, que ofrece vistas impresionantes de la ciudad.',
+    id: 'supermarket',
+    name: 'Local Supermarket',
+    nameEs: 'Supermercado Local',
+    latitude: 39.8285,
+    longitude: -98.5790,
+    descriptionEn: 'A standard grocery store for practice with checking out, grocery items, bags, and loyalty cards.',
+    descriptionEs: 'Un supermercado estándar para practicar la compra, artículos de despensa, bolsas y tarjetas de fidelidad.',
     category: 'landmark'
   },
   {
-    id: 'rockefeller_center',
-    name: 'Rockefeller Center',
-    nameEs: 'Centro Rockefeller',
-    latitude: 40.7587,
-    longitude: -73.9787,
-    descriptionEn: 'A large complex of commercial buildings famous for its Christmas Tree and ice rink.',
-    descriptionEs: 'Un gran complejo de edificios comerciales famoso por su árbol de Navidad y pista de hielo.',
+    id: 'gas_station',
+    name: 'Gas Station & Convenience Store',
+    nameEs: 'Gasolinera y Tienda de Conveniencia',
+    latitude: 39.8280,
+    longitude: -98.5800,
+    descriptionEn: 'A typical roadside stop to practice fueling, buying snacks, and asking for highway directions.',
+    descriptionEs: 'Una parada típica de carretera para practicar el reabastecimiento de combustible, comprar bocadillos y pedir indicaciones.',
+    category: 'station'
+  },
+  {
+    id: 'hotel',
+    name: 'Hotel Front Desk',
+    nameEs: 'Recepción del Hotel',
+    latitude: 39.8290,
+    longitude: -98.5780,
+    descriptionEn: 'The lobby reception area to practice check-in, check-out, asking for amenities, or local advice.',
+    descriptionEs: 'El área de recepción del vestíbulo para practicar el registro de entrada, salida, pedir servicios o consejos locales.',
     category: 'landmark'
   },
   {
-    id: 'moma',
-    name: 'Museum of Modern Art (MoMA)',
-    nameEs: 'Museo de Arte Moderno (MoMA)',
-    latitude: 40.7614,
-    longitude: -73.9776,
-    descriptionEn: 'One of the most influential modern art museums in the world.',
-    descriptionEs: 'Uno de los mueos de arte moderno más influyentes del mundo.',
-    category: 'museum'
-  },
-  {
-    id: 'penn_station',
-    name: '34 St - Penn Station Hub',
-    nameEs: 'Estación Penn Station (Calle 34)',
-    latitude: 40.750580,
-    longitude: -73.991102,
-    descriptionEn: 'The busiest transit hub in North America, serving the 1, 2, 3, A, C, and E subway lines.',
-    descriptionEs: 'El centro de tránsito más concurrido de América del Norte, con servicio de las líneas de metro 1, 2, 3, A, C y E.',
-    category: 'station'
-  },
-  {
-    id: 'fulton_transit_center',
-    name: 'Fulton Street Transit Center',
-    nameEs: 'Centro de Tránsito de Fulton Street',
-    latitude: 40.710368,
-    longitude: -74.007582,
-    descriptionEn: 'A major modern subway hub in Lower Manhattan connecting the 2, 3, 4, 5, A, C, J, and Z lines.',
-    descriptionEs: 'Un importante y moderno centro de metro en el Lower Manhattan que conecta las líneas 2, 3, 4, 5, A, C, J y Z.',
-    category: 'station'
-  },
-  {
-    id: 'atlantic_avenue_hub',
-    name: 'Atlantic Av - Barclays Center Station',
-    nameEs: 'Estación de Atlantic Av - Barclays Center',
-    latitude: 40.683661,
-    longitude: -73.978810,
-    descriptionEn: 'The largest transit hub in Brooklyn, connecting the 2, 3, 4, 5, B, D, N, Q, and R lines.',
-    descriptionEs: 'El centro de tránsito más grande de Brooklyn, que conecta las líneas 2, 3, 4, 5, B, D, N, Q y R.',
-    category: 'station'
-  },
-  {
-    id: 'columbus_circle_station',
-    name: '59 St - Columbus Circle Station',
-    nameEs: 'Estación de 59 St - Columbus Circle',
-    latitude: 40.768250,
-    longitude: -73.981928,
-    descriptionEn: 'A bustling Midtown West subway complex at the corner of Central Park, serving the 1, A, B, C, and D lines.',
-    descriptionEs: 'Un bullicioso complejo de metro en Midtown West junto a Central Park, con servicio de las líneas 1, A, B, C y D.',
-    category: 'station'
+    id: 'coffee_shop',
+    name: 'Neighborhood Cafe',
+    nameEs: 'Cafetería del Vecindario',
+    latitude: 39.8275,
+    longitude: -98.5810,
+    descriptionEn: 'A cozy coffee shop to practice custom drink orders, Wi-Fi requests, and casual morning small talk.',
+    descriptionEs: 'Una acogedora cafetería para practicar pedidos de bebidas personalizadas, solicitudes de Wi-Fi y charlas matutinas casuales.',
+    category: 'food'
   }
 ];
 
@@ -198,102 +88,123 @@ export interface SubwayInfo {
 }
 
 export const NYC_SUBWAY_INFO: SubwayInfo = {
-  farePrice: "$2.90",
-  paymentMethods: ["OMNY (Contactless Tap to Pay with Card/Phone)", "MetroCard (Refillable Magnetic Card)"],
+  farePrice: "$1.50 - $3.00",
+  paymentMethods: ["Credit/Debit Card", "Contactless Tap (Apple Pay/Google Pay)", "Cash"],
   lines: [
-    { code: "1", color: "Red", name: "Broadway - 7th Av Local", stations: ["South Ferry", "Chambers St", "Penn Station", "Times Square", "Columbus Circle", "191st St"] },
-    { code: "2", color: "Red", name: "Seventh Avenue Express", stations: ["Flatbush Av", "Atlantic Av", "Fulton St", "Chambers St", "Penn Station", "Times Square", "Bronx Park East"] },
-    { code: "3", color: "Red", name: "Seventh Avenue Express", stations: ["Crown Heights", "Atlantic Av", "Fulton St", "Chambers St", "Penn Station", "Times Square", "Harlem-148 St"] },
-    { code: "A", color: "Blue", name: "Eighth Avenue Express", stations: ["Far Rockaway", "JFK Airport (Airtrain)", "Broadway Junction", "Fulton St", "Penn Station", "Times Square", "Columbus Circle", "Inwood-207 St"] },
-    { code: "C", color: "Blue", name: "Eighth Avenue Local", stations: ["Euclid Av", "Broadway Junction", "Fulton St", "Penn Station", "Times Square", "Columbus Circle", "168 St"] },
-    { code: "E", color: "Blue", name: "Eighth Avenue Local", stations: ["World Trade Center", "Penn Station", "Times Square", "Lexington Av-53 St", "Jackson Hts-Roosevelt Av", "Jamaica Center"] },
-    { code: "4", color: "Green", name: "Lexington Avenue Express", stations: ["Crown Heights", "Atlantic Av", "Fulton St", "Brooklyn Bridge-City Hall", "Grand Central", "86 St", "Woodlawn"] },
-    { code: "5", color: "Green", name: "Lexington Avenue Express", stations: ["Flatbush Av", "Atlantic Av", "Fulton St", "Brooklyn Bridge-City Hall", "Grand Central", "86 St", "Eastchester-Dyre Av"] },
-    { code: "6", color: "Green", name: "Lexington Avenue Local", stations: ["Brooklyn Bridge-City Hall", "Astor Pl", "Union Sq-14 St", "Grand Central", "86 St", "Pelham Bay Park"] },
-    { code: "7", color: "Purple", name: "Flushing Local/Express", stations: ["34 St-Hudson Yards", "Times Square", "Fifth Av", "Grand Central", "Court Sq", "Queensboro Plaza", "Flushing-Main St"] },
-    { code: "L", color: "Grey", name: "14th Street-Canarsie Local", stations: ["8 Av", "6 Av", "Union Sq-14 St", "1 Av", "Bedford Av", "Lorimer St", "Broadway Junction", "Canarsie-Rockaway Pkwy"] },
-    { code: "N", color: "Yellow", name: "Broadway Express", stations: ["Coney Island-Stillwell Av", "Atlantic Av", "Canal St", "Union Sq-14 St", "Times Square", "Queensboro Plaza", "Astoria-Ditmars Blvd"] },
-    { code: "Q", color: "Yellow", name: "Broadway Express", stations: ["Coney Island-Stillwell Av", "Atlantic Av", "Canal St", "Union Sq-14 St", "Times Square", "96 St (2nd Ave)"] },
-    { code: "R", color: "Yellow", name: "Broadway Local", stations: ["Bay Ridge-95 St", "Atlantic Av", "Canal St", "Union Sq-14 St", "Times Square", "Queensboro Plaza", "Jackson Hts-Roosevelt Av", "Forest Hills-71 Av"] }
+    { code: "Diner", color: "Amber", name: "Diner Ordering & Slang", stations: ["Sunny-Side Up", "Over-Easy", "On the Side", "Refill"] },
+    { code: "Retail", color: "Blue", name: "Supermarket & Shopping", stations: ["Paper or Plastic", "Rewards Card", "Receipt", "Cash Back"] },
+    { code: "Transit", color: "Green", name: "Rideshare & Neighborhoods", stations: ["Pick Up", "Drop Off", "Address", "Traffic"] },
+    { code: "Hotel", color: "Purple", name: "Check-In & Small Talk", stations: ["Reservation", "Amenities", "Check-Out", "Have a Good One"] }
   ],
   vocabulary: [
-    { en: "Swipe", es: "Deslizar", definitionEn: "Passing a MetroCard through a turnstile slot.", definitionEs: "Pasar la tarjeta MetroCard por la ranura del torniquete." },
-    { en: "Tap", es: "Tocar / Aproximar", definitionEn: "Tapping a phone/contactless card on OMNY readers.", definitionEs: "Tocar con el móvil o tarjeta sin contacto en los lectores OMNY." },
-    { en: "Turnstile", es: "Torniquete / Molinete", definitionEn: "The physical rotating barrier you walk through to enter the subway platform.", definitionEs: "La barrera giratoria física por la que pasas para entrar al andén del metro." },
-    { en: "Transfer", es: "Transbordo / Transferencia", definitionEn: "Switching from one subway line to another within the same station for free.", definitionEs: "Cambiar de una línea de metro a otra dentro de la misma estación de forma gratuita." },
-    { en: "Express Train", es: "Tren Expreso", definitionEn: "A subway train that skips smaller stations, stopping only at major hubs.", definitionEs: "Un tren de metro que se salta las estaciones más pequeñas, parando solo en los centros principales." },
-    { en: "Local Train", es: "Tren Local", definitionEn: "A train that stops at every single station along the route.", definitionEs: "Un tren que se detiene en cada una de las estaciones a lo largo de la ruta." },
-    { en: "Platform", es: "Andén / Plataforma", definitionEn: "The concrete waiting area next to the subway tracks.", definitionEs: "El área de espera de concreto junto a las vías del metro." },
-    { en: "Tracks", es: "Vías / Rieles", definitionEn: "The steel rails on which the subway trains run.", definitionEs: "Los rieles de acero sobre los cuales corren los trenes del metro." },
-    { en: "Uptown", es: "Dirección Norte / Uptown", definitionEn: "Trains going North (toward Upper Manhattan, Bronx, or Queens).", definitionEs: "Trenes que van hacia el Norte (hacia el norte de Manhattan, Bronx o Queens)." },
-    { en: "Downtown", es: "Dirección Sur / Downtown", definitionEn: "Trains going South (toward Lower Manhattan or Brooklyn).", definitionEs: "Trenes que van hacia el Sur (hacia el sur de Manhattan o Brooklyn)." }
+    { en: "For here / To go", es: "Para comer aquí o para llevar", definitionEn: "The typical option asked at fast-food or counter-service places.", definitionEs: "La opción típica que se pregunta en lugares de comida rápida o de servicio en mostrador." },
+    { en: "Paper or plastic?", es: "¿Bolsa de papel o plástico?", definitionEn: "The standard question cashiers ask for bagging your groceries.", definitionEs: "La pregunta estándar que hacen los cajeros para embolsar tus compras." },
+    { en: "Cash back", es: "Dinero en efectivo en caja", definitionEn: "Withdrawing cash directly from your bank account during a debit card transaction.", definitionEs: "Retirar efectivo directamente de tu cuenta bancaria durante una transacción con tarjeta de débito." },
+    { en: "Have a good one!", es: "¡Que tengas un buen día!", definitionEn: "A very common friendly American farewell greeting.", definitionEs: "Un saludo de despedida amistoso muy común en los EE.UU." },
+    { en: "Refill", es: "Rellenar bebida / Relleno gratis", definitionEn: "Getting more of your beverage (usually water, soda, or drip coffee) for free.", definitionEs: "Obtener más de tu bebida (usualmente agua, refresco o café de filtro) gratis." },
+    { en: "Hold the...", es: "Sin... / Quítale...", definitionEn: "An expression used when ordering to exclude an ingredient (e.g., 'hold the onions').", definitionEs: "Expresión usada al ordenar para excluir un ingrediente (ej. 'sin cebollas')." }
   ],
   tipsEn: [
-    "Subway runs 24/7. Single ride fare is $2.90.",
-    "Pay attention to the letter or number (e.g., 'A' or '1'), NOT just the color. Lines of the same color split and go to different final destinations!",
-    "Check platform screens to verify if the next incoming train is 'Local' or 'Express'.",
-    "OMNY has a weekly fare cap of $34. After 12 rides tapped with the same card/device from Monday-Sunday, subsequent rides are free!"
+    "Most counter service locations expect a tip of 15% to 20% if paying by card, but it is optional.",
+    "Cash back is a convenient way to get cash without ATM fees at major grocery stores or pharmacies.",
+    "Americans love polite small talk. Greeting a cashier with 'How's it going?' is extremely common.",
+    "When driving, remember that you can usually turn right on a red light after stopping, unless a sign says otherwise."
   ],
   tipsEs: [
-    "El metro funciona las 24/7. La tarifa de viaje sencillo es de $2.90.",
-    "Presta atención a la letra o número (ej. 'A' o '1'), NO solo al color. ¡Las líneas del mismo color se bifurcan hacia distintos destinos!",
-    "Revisa las pantallas del andén para verificar si el siguiente tren es 'Local' o 'Express'.",
-    "OMNY tiene un límite semanal de tarifa de $34. ¡Tras 12 viajes con el mismo dispositivo/tarjeta de lunes a domingo, el resto son gratis!"
+    "La mayoría de los lugares con servicio en mostrador sugieren una propina del 15% al 20%, aunque es opcional.",
+    "El 'cash back' es una forma conveniente de obtener efectivo sin pagar comisiones de cajero automático en supermercados.",
+    "A los estadounidenses les encanta la charla informal de cortesía. Saludar a un cajero con 'How's it going?' es sumamente común.",
+    "Al conducir, recuerda que usualmente puedes girar a la derecha con semáforo en rojo tras detenerte por completo, a menos que un cartel indique lo contrario."
   ]
 };
 
 export const SYSTEM_INSTRUCTION = `
-You are VOYAGER, a bilingual companion guiding a Spanish-speaking user through New York City. Your primary and main conversational language is Spanish. You must conduct all conversations and guide dialogue with the user in Spanish. You simultaneously act as the user's Tour Guide, English Teacher, Pronunciation Coach, Conversation Partner, Cultural Interpreter, Navigation Assistant, Real-time Translator, and Personal Tutor. You teach English by translating terms, sharing key phrases, and gently correcting their attempts, but you must speak to the user in Spanish as your default language.
+You are VOYAGER, a bilingual American English Tutor and Cultural Advisor guiding a Spanish-speaking user to master American English. Your primary and main conversational language is Spanish. You must conduct all conversations in Spanish as your default language, while acting as the user's English Teacher, Pronunciation Coach, Conversation Partner, Cultural Advisor, Real-time Translator, and Personal Tutor. Your mission is to teach American English and offer cultural advice, acting as an encouraging mentor. You are no longer a travel guide, but rather a dedicated educator and cultural advisor. You teach English by translating terms, sharing key phrases, explaining daily US culture/context, and gently correcting their attempts.
 
 CONVERSATIONAL GUIDELINES:
-- Be encouraging, enthusiastic, warm, and highly conversational.
+- BREVITY & SHARING THE STAGE (CRITICAL): Speak LESS than the learner. Reduce your response length by approximately 40%. Keep responses extremely brief (1 to 2 short sentences, never more than 3). The learner should produce the majority of the words in every conversation.
+- CASUAL ACKNOWLEDGMENTS: Replace excessive praise (avoid saying "Perfect!", "Amazing job!", "You're doing fantastic!") with real, natural conversational acknowledgments like "Oh, nice.", "Really?", "That sounds fun.", "Makes sense.", "I get that.", or "Cool.".
+- MINIMAL TEACHING: Keep textbook-style explanations to an absolute minimum. Teach naturally through interaction rather than explanation. If they make a mistake, gently model the correct phrasing or ask a soft follow-up question before explaining.
+- AUTHENTIC AMERICAN CONVERSATIONAL MARKERS: Actively use everyday American conversation markers such as "Oh, nice.", "Really?", "That sounds fun.", "Makes sense.", "I get that.", and "Cool.".
+- AGE-APPROPRIATE QUESTIONS: Adapt your question style, vocabulary, and topics dynamically to the learner's age:
+  * 10-year-olds: Keep language extremely simple, clear, and playful. Ask about colors, favorite animals, simple games, cartoons, or school subjects.
+  * 16-year-olds: Use relatable, casual teen style. Ask about music, video games, sports, school clubs, or hobbies.
+  * Adults: Use polite, clear, practical, and conversational topics. Ask about daily routines, travel, movies, work, or local foods.
 - Speak strictly in Spanish as your default, main conversational language. Do NOT translate your own Spanish conversational dialogue, responses, or sentences into English. Keep the dialogue entirely in Spanish. Only use English when correcting the user's grammar, teaching specific English vocabulary words (e.g. day lessons), or when the user explicitly asks for a translation.
-- Ask ONLY ONE question at a time. Keep responses concise and natural (1-3 sentences) to facilitate back-and-forth practice.
-- GREETING PROTOCOL: In your initial welcome greeting, you must introduce yourself as VOYAGER, express excitement to guide the user in New York City, and explicitly ask for the user's name so you can address them properly and determine their correct grammatical gender agreement (masculine/feminine) in subsequent Spanish conversation.
+- Ask ONLY ONE question at a time.
+- GREETING PROTOCOL: When starting the chat session (after the user clicks CONECTA and arrives at the chat area), introduce yourself as USA Voyager, express excitement to help the user practice American English and learn about US culture as their tutor, and explicitly ask for both the user's name and their age, explaining that knowing this helps you tailor the conversation's style, topics, and difficulty level perfectly for them. Do NOT ask for the user's name and age on the welcome screen.
+- EMOJI USAGE: You are encouraged to use emojis naturally in your written text responses (such as 👋, 🚀, 👍, 😊, etc.) to make the conversation friendly, engaging, and expressive. Make sure they fit the context of the learning conversation.
 - CRITICAL: When speaking English, please speak a bit slower and clearer than usual. Pronounce your words deliberately and use short pauses between clauses to ensure the language learner can easily follow.
-- CRITICAL NAME PRONUNCIATION: Whenever you say your name "VOYAGER" (or "Voyager"), you must ALWAYS pronounce it in your spoken voice output with a native English accent. Never pronounce it with a Spanish accent or Spanish phonetics. Crucially, do NOT write any phonetic transcriptions, phonetic spellings, or phonetic symbols (such as "/'vɔɪ.ə.dʒər/", "Vóyayer", "Voyayer", "bo-ya-ger", etc.) in your written text responses or transcriptions. Simply write the word "VOYAGER" or "Voyager" normally in the text, while ensuring the spoken audio is pronounced in English.
+- CRITICAL NAME PRONUNCIATION: Whenever you say your name "Voyager" or "USA Voyager", pronounce it with a native English accent (sounding like "Voyager" in natural American English). Never write or output phonetic spelling, IPA symbols, guide marks, slashes, or pronunciation brackets. Keep your written name strictly as "Voyager" or "USA Voyager" without any symbols.
 - CRITICAL CONVERSATIONAL CONSTRAINT: Never mention scores, grades, numbers, or ratings in your spoken voice output or in the conversational text. You must act 100% like a natural companion during the dialogue. Never write bracketed text tags like [SCORES: ...] or similar structures in your text output, as the Text-to-Speech engine will read them aloud.
 - Do NOT call the 'update_user_progress' tool or output progress metrics in your initial greeting or welcome response. Only call it on subsequent conversational turns after the user has spoken and you are evaluating their input.
-- You have access to Google Maps tools. Whenever the user asks about a location in NYC, wants to see where something is, or requests recommendations (e.g. pizza, museums, parks, or subway stations/hubs), you MUST call 'map_show_location' to display it.
-- Whenever they ask how to get somewhere or want a route, you MUST call 'map_draw_route' to display the path.
-- CRITICAL TRAVEL ENGLISH INTERJECTIONS: Whenever the user mentions any NYC place they want to visit or go, or talks about sightseeing, you MUST actively interject with an English lesson. Introduce 1-2 useful English travel vocabulary terms or phrases related to that place/activity, explain their usage/meaning in Spanish, and ask the user to practice speaking or ordering phrases in English. Make sure learning English is always woven into every sightseeing or navigation discussion.
+- You have access to Google Maps tools. Whenever the user asks about a location or requests cultural/language context about typical US places (e.g. a diner, supermarket, hotel, park, or gas station), you can call 'map_show_location' to display it visually for their learning context.
+- Whenever they want to see a route or learn how to travel/commute as part of their cultural practice, you can call 'map_draw_route' to display the path visually.
+- CRITICAL DAILY ENGLISH INTERJECTIONS: Whenever the user mentions any everyday activity or place (like a diner, grocery store, rideshare, or hotel), you MUST actively interject with an English lesson. Introduce 1-2 useful English vocabulary terms or phrases related to that place/activity, explain their usage/meaning in Spanish, and ask the user to practice speaking or ordering phrases in English. Make sure learning English is always woven into every discussion.
 
 - INSTANT TRANSLATION MODE (TRADUCE): If you receive a message starting with '[SYSTEM MESSAGE: You are now in INSTANT TRANSLATION MODE]' or '[SYSTEM MESSAGE: Mode changed. You are now in INSTANT TRANSLATION MODE]', you must IMMEDIATELY suspend all conversational, tutoring, and guiding instructions. You must act strictly and purely as a bidirectional speech translator. Whatever you hear or receive in English, you must translate to Spanish. If the user speaks or inputs in Spanish, you must translate it to English. Output ONLY the translated words and absolutely nothing else. Do NOT hold a conversation, do NOT make small talk, and do NOT say 'Here is the translation'.
 
 THE IMMERSION LEARNING LOOP:
-1. PREPARE: Before the user walks into a scenario (e.g., ordering coffee, entering a museum, buying tickets), prepare them with natural English phrases. E.g., teach them "I'd like a latte, please" and explain that "I'd like" is much more polite than "I want".
-2. PRONUNCIATION COACH: Analyze the user's pronunciation, stress, rhythm, and intonation. Give them accent coaching tips (e.g., softening the 't' in 'latte', or explaining word linking: "I'd like a bah-dl uhv wah-ter").
-3. GRAMMAR IN CONTEXT: Correct errors immediately but gently. E.g., if they say "Yesterday I go to Central Park", correct it to "I went" and explain why, then practice two more examples.
+1. PREPARE: Before the user walks into a scenario (e.g., ordering at a diner, checking out groceries, booking a rideshare, checking into a hotel), prepare them with natural English phrases. E.g., teach them "I'd like a coffee, please" and explain that "I'd like" is much more polite than "I want".
+2. PRONUNCIATION COACH: Analyze the user's pronunciation, stress, rhythm, and intonation. Give them accent coaching tips (e.g., softening the 't' in 'water', or explaining word linking: "I'd like a bottle of water" -> "I'd like a bah-dl uhv wah-ter").
+3. GRAMMAR IN CONTEXT: Correct errors immediately but gently. E.g., if they say "Yesterday I go to diner", correct it to "I went to the diner" and explain why, then practice two more examples.
 4. ACCENT REDUCTION: Focus on common Spanish-speaker difficulties (e.g., ship/sheep, live/leave, beach/bitch, v/b, thirty/dirty). Suggest targeted practice if you notice these.
-5. TWO-WAY TRANSLATOR: Translate what a waiter, cashier, or driver might say in NYC (e.g. "For here or to go?"), explain the cultural/idiomatic meaning in Spanish, and teach it.
+5. TWO-WAY TRANSLATOR: Translate what a waiter, cashier, or driver might say in America (e.g. "For here or to go?", "Paper or plastic?"), explain the cultural/idiomatic meaning in Spanish, and teach it.
 6. PROGRESS METRICS (CRITICAL): At the end of every evaluation or feedback turn (but NEVER during the initial greeting or welcome response), you MUST silently call the 'update_user_progress' tool to record their progress metrics (grammar, pronunciation, confidence, and naturalness from 1 to 5), newly learned vocabulary words, accent coaching tips, or completed mission IDs. Do NOT write these metrics in your text transcription or speak them aloud.
 
-NYC MAP TOOLS:
-1. 'map_show_location(placeName, latitude, longitude, description)': Focus map on specific venue, landmarks, or subway stations.
+MAP TOOLS:
+1. 'map_show_location(placeName, latitude, longitude, description)': Focus map on specific venue, landmarks, or stations.
 2. 'map_draw_route(origin, destination, travelMode, description)': Traces walking, driving, bicycling, or transit directions.
 
-Landmarks for reference:
-- Times Square: 40.758895, -73.985131
-- Central Park: 40.785091, -73.968285
-- Empire State Building: 40.748440, -73.985664
-- Statue of Liberty: 40.689249, -74.044500
-- Brooklyn Bridge: 40.706085, -73.996864
-- High Line (Chelsea): 40.7480, -74.0048
-- Metropolitan Museum of Art (Met): 40.7794, -73.9632
-- Joe's Pizza (Greenwich Village): 40.7306, -74.0022
-- Grand Central Terminal: 40.752726, -73.977229
-- 34 St - Penn Station Hub: 40.750580, -73.991102
-- Fulton Street Transit Center: 40.710368, -74.007582
-- Atlantic Av - Barclays Center Station: 40.683661, -73.978810
-- 59 St - Columbus Circle Station: 40.768250, -73.981928
-
 INTERACTIVE LESSON PROTOCOL:
-- When a user starts a specific lesson (triggered by a message like "[INICIA LECCIÓN: DÍA X]"), you MUST:
+- When a user starts a specific lesson (triggered by a message like "[INICIA LECCIÓN: LECCIÓN X - NIVEL Y]" or "[INICIA LECCIÓN: DÍA X]"), you MUST:
   1. Introduce the lesson's theme and explain what the lesson is about and its challenges in an engaging, warm manner (2-4 sentences in Spanish).
-  2. Initiate an interactive role-play or guided dialogue immediately (e.g., role-playing as a waiter, cashier, local resident, or hotel clerk).
+  2. Initiate an interactive role-play or guided dialogue immediately (e.g., role-playing as a diner server, supermarket cashier, rideshare driver, or hotel receptionist).
   3. Guide the user step-by-step through their active missions, prompting them to practice speaking or ordering in English.
   4. Verbally quiz the user on the vocabulary terms during the conversation rather than having them do a written quiz.
   5. Check off completed missions silently by calling the 'update_user_progress' tool with the matching 'completedMissionId' (e.g. 'day1_coffee') as soon as the user successfully completes a mission task.
+
+VOYAGER CURRICULUM LESSON DETAILS:
+Here is the full 4-day curriculum detail including objectives, vocabulary, and mission IDs that you must guide the user through:
+
+- DAY 1: "Ordering Food & Drinks" / "Ordenando comida y café en un Diner"
+  - Objectives: Natural greetings and ordering expressions; For here vs To go; milk & ingredient modifications.
+  - Vocabulary: "I'd like a...", "For here / To go", "Could I get some napkins?", "What is the Wi-Fi password?", "Hold the [ingredient]".
+  - Missions & completedMissionId to report:
+    - Order coffee or food using "I'd like a..." (ID: "day1_coffee")
+    - Answer cashier's "For here or to go?" (ID: "day1_togo")
+    - Order a meal with custom adjustments using "Hold the..." (ID: "day1_pastry")
+    - Ask the barista/server: "What is the Wi-Fi password?" (ID: "day1_wifi")
+    - Ask for napkins: "Could I get some napkins, please?" (ID: "day1_napkins")
+    - Ask "Excuse me, where's the restroom?" (ID: "day1_restroom")
+    - Ask for the receipt: "Can I get the receipt, please?" (ID: "day1_directions")
+
+- DAY 2: "Supermarket & Retail Checkout" / "Pago en el Supermercado y Tiendas"
+  - Objectives: Checking out; Paper or plastic; rewards cards; cash back requests.
+  - Vocabulary: "Excuse me, where can I find...", "Paper or plastic?", "Do you have a rewards card?", "Cash back?".
+  - Missions & completedMissionId to report:
+    - Ask where an item is: "Excuse me, where can I find..." (ID: "day2_pizza")
+    - Choose a bag option: "Paper, please" or "I brought my own bag" (ID: "day2_omny")
+    - Respond to rewards card question (ID: "day2_check")
+    - Pay or ask about payment options: "Can I tap my card?" (ID: "day2_cash_card")
+
+- DAY 3: "Rideshare & Neighborhood Directions" / "Viajes en Rideshare y Direcciones"
+  - Objectives: Confirming drivers; explaining simple neighborhood routes; drop-off requests.
+  - Vocabulary: "Are you [Name]?", "Could you drop me off here?", "Excuse me, how do I get to...", "Pull over".
+  - Missions & completedMissionId to report:
+    - Confirm rideshare identity: "Hi, are you picking up [Name]?" (ID: "day3_ticket")
+    - Describe a route or yesterday's trip to driver in past tense (ID: "day3_past_tense")
+    - Ask pedestrian for directions: "Excuse me, could you point me to..." (ID: "day3_photo")
+    - Ask driver to drop you off: "Could you drop me off at the corner?" (ID: "day3_audioguide")
+
+- DAY 4: "Hotel Check-In & Casual Small Talk" / "Registro en el Hotel y Charla Informal"
+  - Objectives: Checking in and out; room amenities; casual small talk with staff.
+  - Vocabulary: "I have a reservation under...", "Amenities", "How's your day going?", "Have a good one!".
+  - Missions & completedMissionId to report:
+    - Check-in: "I have a reservation under [Name]" (ID: "day4_broadway")
+    - Hotel request or check-out: "Could I get extra towels?" or ask about checkout times (ID: "day4_hotel")
+    - Friendly one-minute small talk with receptionist/cashier (ID: "day4_smalltalk")
+    - Bid farewell to someone using "Have a good one!" (ID: "day4_goodone")
 `;
 
 export interface CurriculumDay {
@@ -309,126 +220,125 @@ export interface CurriculumDay {
 export const IMMERSION_CURRICULUM: CurriculumDay[] = [
   {
     dayNum: 1,
-    title: "Ordering Coffee Like a New Yorker",
-    titleEs: "Ordenando café como un neoyorquino",
+    title: "Ordering Food & Drinks",
+    titleEs: "Ordenando comida y café en un Diner",
     objectives: [
       "Learn polite, natural greetings and ordering expressions (e.g. 'I'd like' instead of 'I want').",
       "Understand the difference between 'for here' and 'to go'.",
-      "Ask for sizes and milk options (whole milk, oat milk, almond milk)."
+      "Ask for sizes, milk options, or custom adjustments (like 'hold the onions')."
     ],
     objectivesEs: [
       "Aprender saludos naturales y expresiones corteses para ordenar (ej. 'I'd like' en lugar de 'I want').",
       "Entender la diferencia entre 'for here' y 'to go'.",
-      "Pedir tamaños y opciones de leche (leche entera, de avena, de almendra)."
+      "Pedir tamaños, opciones de leche o ajustes personalizados (ej. 'sin cebollas')."
     ],
     vocabulary: [
       { word: "I'd like a...", definition: "Polite way to order food or drink, short for 'I would like'.", definitionEs: "Forma cortés de ordenar comida o bebida, abreviación de 'I would like'." },
       { word: "For here / To go", definition: "Expressions cashiers use to ask if you will eat in the shop or take it away.", definitionEs: "Expresiones que los cajeros usan para preguntar si vas a consumir en el local o para llevar." },
       { word: "Could I get some napkins?", definition: "Polite way to request paper napkins to clean hands or spills.", definitionEs: "Forma cortés de pedir servilletas de papel para limpiarse las manos o derrames." },
       { word: "What is the Wi-Fi password?", definition: "Asking for the password to connect to the shop's public internet.", definitionEs: "Pedir la contraseña para conectarse al internet público del local." },
-      { word: "To go with it...", definition: "An expression used to order an extra food item that accompanies your beverage.", definitionEs: "Expresión usada para pedir un alimento adicional que acompañe tu bebida." }
+      { word: "Hold the...", definition: "An expression used when ordering to exclude an ingredient (e.g., 'hold the onions').", definitionEs: "Expresión usada al ordenar para excluir un ingrediente (ej. 'sin cebollas')." }
     ],
     missions: [
-      { id: "day1_coffee", en: "Order coffee using 'I'd like a...'", es: "Ordenar café usando 'I'd like a...'" },
+      { id: "day1_coffee", en: "Order coffee or food using 'I'd like a...'", es: "Ordenar café o comida usando 'I'd like a...'" },
       { id: "day1_togo", en: "Answer the cashier's question 'For here or to go?'", es: "Responder a la pregunta del cajero 'For here or to go?'" },
-      { id: "day1_pastry", en: "Order a croissant or muffin to accompany your coffee using 'to go with it'", es: "Ordenar un croissant o panecillo para acompañar tu café usando 'to go with it'" },
+      { id: "day1_pastry", en: "Order a meal with custom adjustments using 'hold the [ingredient]'", es: "Ordenar comida con ajustes usando 'hold the [ingrediente]'" },
       { id: "day1_wifi", en: "Ask the barista 'Excuse me, what is the Wi-Fi password?'", es: "Preguntar al barista 'Excuse me, what is the Wi-Fi password?'" },
       { id: "day1_napkins", en: "Ask the counter staff for napkins: 'Could I get some napkins, please?'", es: "Pedir servilletas en el mostrador: 'Could I get some napkins, please?'" },
       { id: "day1_restroom", en: "Ask 'Excuse me, where's the restroom?'", es: "Preguntar 'Excuse me, where's the restroom?'" },
-      { id: "day1_directions", en: "Ask a local for directions to a subway line", es: "Preguntar a un local direcciones para una línea de metro" }
+      { id: "day1_directions", en: "Ask for the receipt: 'Can I get the receipt, please?'", es: "Pedir el recibo: 'Can I get the receipt, please?'" }
     ]
   },
   {
     dayNum: 2,
-    title: "Navigating the Manhattan Subway",
-    titleEs: "Navegando por el metro de Manhattan",
+    title: "Supermarket & Retail Checkout",
+    titleEs: "Pago en el Supermercado y Tiendas",
     objectives: [
-      "Ask for directions to subway lines and platforms.",
-      "Understand subway signage, including Uptown vs Downtown and Local vs Express.",
-      "Learn to transfer between train lines and pay using OMNY contactless tap."
+      "Ask for item locations in a store.",
+      "Understand standard checkout questions like paper or plastic, rewards cards, or cashback.",
+      "Learn to pay using contactless credit card tap or phone options."
     ],
     objectivesEs: [
-      "Pedir direcciones hacia líneas y andenes de metro.",
-      "Entender la señalización del metro, incluyendo Uptown vs Downtown y Local vs Express.",
-      "Aprender a hacer transbordos entre líneas y pagar usando el pago sin contacto OMNY."
+      "Preguntar por la ubicación de artículos en una tienda.",
+      "Entender las preguntas estándar de caja como bolsa de papel o plástico, tarjetas de puntos o retiro de efectivo.",
+      "Aprender a pagar usando pago sin contacto con tarjeta o móvil."
     ],
     vocabulary: [
-      { word: "Excuse me, which platform...", definition: "Polite greeting used to ask which platform you need for a train.", definitionEs: "Saludo cortés usado para preguntar qué andén necesitas para abordar el tren." },
-      { word: "Uptown / Downtown", definition: "Uptown means the train travels North; Downtown means South.", definitionEs: "Uptown significa que el tren viaja al norte; Downtown al sur." },
-      { word: "OMNY tap", definition: "Tapping your credit card or phone at turnstiles to pay transit fares.", definitionEs: "Tocar con tu tarjeta de crédito o teléfono en los torniquetes para pagar tarifas de tránsito." },
-      { word: "Do I need to transfer?", definition: "Asking if you need to switch trains during your journey.", definitionEs: "Preguntar si necesitas cambiar de tren durante tu viaje." }
+      { word: "Excuse me, where can I find...", definition: "Polite greeting used to ask for an item's aisle or location.", definitionEs: "Saludo cortés usado para preguntar por el pasillo o ubicación de un artículo." },
+      { word: "Paper or plastic?", definition: "Standard question cashiers ask for bagging your groceries.", definitionEs: "La pregunta estándar que hacen los cajeros para embolsar tus compras." },
+      { word: "Do you have a rewards card?", definition: "Asking if you belong to the store's loyalty program to get discounts.", definitionEs: "Preguntar si perteneces al programa de lealtad de la tienda para obtener descuentos." },
+      { word: "Cash back?", definition: "Asking if you want to withdraw cash from your debit card during checkout.", definitionEs: "Preguntar si deseas retirar efectivo de tu tarjeta de débito durante el pago." }
     ],
     missions: [
-      { id: "day2_pizza", en: "Ask 'Which train goes to Times Square?'", es: "Preguntar 'Which train goes to Times Square?'" },
-      { id: "day2_omny", en: "Ask a local: 'Is this the Downtown train?'", es: "Preguntar a un local: 'Is this the Downtown train?'" },
-      { id: "day2_check", en: "Explain OMNY payment: 'Just tap your card or phone'", es: "Explicar pago OMNY: 'Just tap your card or phone'" },
-      { id: "day2_cash_card", en: "Confirm if you need to transfer: 'Do I need to transfer?'", es: "Confirmar si necesitas hacer transbordo: 'Do I need to transfer?'" }
+      { id: "day2_pizza", en: "Ask 'Excuse me, where can I find the water/milk?'", es: "Preguntar 'Excuse me, where can I find the water/milk?'" },
+      { id: "day2_omny", en: "Choose your bag option: 'Paper, please' or 'I brought my own'", es: "Elegir tu opción de bolsa: 'Paper, please' o 'I brought my own'" },
+      { id: "day2_check", en: "Respond to the loyalty card question: 'No, I don't have one'", es: "Responder a la pregunta sobre la tarjeta de lealtad: 'No, I don't have one'" },
+      { id: "day2_cash_card", en: "Ask if you can pay with tap: 'Can I tap my card?'", es: "Preguntar si puedes pagar aproximando la tarjeta: 'Can I tap my card?'" }
     ]
   },
   {
     dayNum: 3,
-    title: "Museums, Opinions & Past Tense",
-    titleEs: "Museos, Opiniones y Pasado",
+    title: "Rideshare & Neighborhood Directions",
+    titleEs: "Viajes en Rideshare y Direcciones",
     objectives: [
-      "Learn to purchase tickets and ask about guides or audio guides at attractions.",
-      "Express opinions using rich vocabulary (e.g. 'breathtaking', 'masterpiece').",
-      "Practice describing past events naturally using the past tense."
+      "Confirm rideshare drivers and coordinates safely.",
+      "Ask local pedestrians for directions using polite greetings.",
+      "Give standard route or drop-off requests like 'pull over' or 'drop me off here'."
     ],
     objectivesEs: [
-      "Aprender a comprar boletos y preguntar por guías o audioguías en atracciones.",
-      "Expresar opiniones usando vocabulario rico (ej. 'breathtaking', 'masterpiece').",
-      "Practicar la descripción de eventos pasados de forma natural usando el tiempo pasado."
+      "Confirmar conductores de rideshare y datos de seguridad.",
+      "Pedir direcciones a peatones locales usando saludos de cortesía.",
+      "Dar indicaciones estándar de ruta o paradas como 'estaciónate' o 'déjame aquí'."
     ],
     vocabulary: [
-      { word: "Yesterday I went...", definition: "Standard opening for past descriptions (correcting common 'Yesterday I go').", definitionEs: "Apertura estándar para descripciones en pasado (corrigiendo el común 'Yesterday I go')." },
-      { word: "Breathtaking", definition: "Extremely beautiful or amazing (e.g. 'The view from the top is breathtaking').", definitionEs: "Extremadamente hermoso o sorprendente (ej. 'La vista desde arriba es impresionante')." },
-      { word: "Admission / Ticket", definition: "Fee charged to enter a museum, gallery, or site.", definitionEs: "Tarifa cobrada para ingresar a un museo, galería o sitio." },
-      { word: "Audio guide", definition: "A recorded tour device providing explanations of art or landmarks.", definitionEs: "Un dispositivo de tour grabado que proporciona explicaciones de arte o lugares de interés." }
+      { word: "Are you picking up...", definition: "Standard greeting to confirm the driver is there for you.", definitionEs: "Saludo estándar para confirmar que el conductor viene por ti." },
+      { word: "Could you drop me off here?", definition: "Expression used to ask the driver to let you out of the car.", definitionEs: "Expresión usada para pedirle al conductor que te permita bajar del auto." },
+      { word: "Excuse me, how do I get to...", definition: "Polite opening to ask for directions to a specific landmark or street.", definitionEs: "Apertura cortés para pedir direcciones hacia un punto de interés o calle específica." },
+      { word: "Pull over", definition: "To move the car to the side of the road and stop.", definitionEs: "Mover el auto hacia el costado de la carretera y detenerse." }
     ],
     missions: [
-      { id: "day3_ticket", en: "Purchase a museum ticket in English", es: "Comprar un boleto de museo en inglés" },
+      { id: "day3_ticket", en: "Confirm driver identity: 'Hi, are you picking up [Name]?'", es: "Confirmar identidad del conductor: 'Hi, are you picking up [Nombre]?'" },
       { id: "day3_past_tense", en: "Explain your yesterday trip in past tense to VOYAGER", es: "Explicar tu viaje de ayer en tiempo pasado a VOYAGER" },
-      { id: "day3_photo", en: "Ask a stranger 'Excuse me, could you take my picture?'", es: "Preguntar a un extraño 'Excuse me, could you take my picture?'" },
-      { id: "day3_audioguide", en: "Ask a museum counter 'Do you have audio guides in Spanish?'", es: "Preguntar en el mostrador del museo 'Do you have audio guides in Spanish?'" }
+      { id: "day3_photo", en: "Ask a pedestrian: 'Excuse me, how do I get to...?'", es: "Preguntar a un peatón: 'Excuse me, how do I get to...?'" },
+      { id: "day3_audioguide", en: "Ask the driver to stop: 'Could you drop me off at the corner?'", es: "Pedir al conductor que se detenga: 'Could you drop me off at the corner?'" }
     ]
   },
   {
     dayNum: 4,
-    title: "Broadway, Hotels & Small Talk",
-    titleEs: "Broadway, Hoteles y Charla Informal",
+    title: "Hotel Check-In & Casual Small Talk",
+    titleEs: "Registro en el Hotel y Charla Informal",
     objectives: [
-      "Master hotel receptionist check-in and check-out scenarios.",
-      "Learn to ask about theater timings, seating options, and discounts (like TKTS).",
-      "Engage in brief, friendly small talk with cashiers or locals."
+      "Master hotel receptionist check-in and check-out conversations.",
+      "Understand and ask about amenities (pool, gym, Wi-Fi, breakfast).",
+      "Practice casual, friendly American greetings and small talk."
     ],
     objectivesEs: [
-      "Dominar los escenarios de check-in y check-out con el recepcionista del hotel.",
-      "Aprender a preguntar por horarios de teatro, opciones de asientos y descuentos (como TKTS).",
-      "Entablar una breve y amistosa charla informal con cajeros o lugareños."
+      "Dominar las conversaciones de registro de entrada y salida con la recepción.",
+      "Entender y preguntar acerca de servicios (alberca, gimnasio, Wi-Fi, desayuno).",
+      "Practicar saludos casuales y charlas amigables típicas de EE.UU."
     ],
     vocabulary: [
-      { word: "Check in / Check out", definition: "The process of arriving at / departing from a hotel.", definitionEs: "El proceso de llegar a / salir de un hotel." },
-      { word: "TKTS booth", definition: "The famous red steps in Times Square selling discounted Broadway tickets.", definitionEs: "La famosa taquilla de escalones rojos en Times Square que vende boletos de Broadway con descuento." },
-      { word: "How's your day going?", definition: "Friendly, casual greeting used with cashiers to initiate small talk.", definitionEs: "Saludo amistoso e informal usado con cajeros para iniciar una charla rápida." },
+      { word: "I have a reservation under...", definition: "Standard formal opening for checking in at hotels or restaurants.", definitionEs: "Apertura estándar formal para registrarse en hoteles o restaurantes." },
+      { word: "Amenities", definition: "Extra features or services provided by hotels (e.g. Wi-Fi, gym, breakfast).", definitionEs: "Características o servicios adicionales proporcionados por hoteles (ej. Wi-Fi, gimnasio, desayuno)." },
+      { word: "How's your day going?", definition: "Friendly, casual greeting used with cashiers or clerks to initiate small talk.", definitionEs: "Saludo amistoso e informal usado con cajeros o empleados para iniciar una charla rápida." },
       { word: "Have a good one!", definition: "A very common American farewell, meaning 'Have a good day'.", definitionEs: "Una despedida estadounidense muy común, que significa 'Que pases un buen día'." }
     ],
     missions: [
-      { id: "day4_broadway", en: "Ask about Broadway tickets at the TKTS booth", es: "Preguntar sobre boletos de Broadway en la taquilla TKTS" },
-      { id: "day4_hotel", en: "Practice checking out of a hotel with VOYAGER", es: "Practicar la salida de un hotel con VOYAGER" },
+      { id: "day4_broadway", en: "Confirm booking: 'I have a reservation under [Name]'", es: "Confirmar reserva: 'I have a reservation under [Nombre]'" },
+      { id: "day4_hotel", en: "Ask receptionist: 'Could I get extra towels?' or check checkout times", es: "Pedir al recepcionista: 'Could I get extra towels?' o consultar hora de salida" },
       { id: "day4_smalltalk", en: "Have a one-minute friendly small-talk with VOYAGER", es: "Tener una charla amistosa de un minuto con VOYAGER" },
-      { id: "day4_goodone", en: "Say goodbye to a cashier using 'Have a good one!'", es: "Despedirse de un cajero usando 'Have a good one!'" }
+      { id: "day4_goodone", en: "Say goodbye to someone using 'Have a good one!'", es: "Despedirse de alguien usando 'Have a good one!'" }
     ]
   }
 ];
 
 export const SUGGESTIONS = [
-  { id: '1', text: "Let's practice ordering coffee for Day 1!" },
-  { id: '2', text: "Prepare me for Ordering Pizza in Greenwich Village." },
+  { id: '1', text: "Let's practice ordering food for Day 1!" },
+  { id: '2', text: "Prepare me for supermarket checkout with Paper or Plastic." },
   { id: '3', text: "Ask me a vocabulary quiz for Day 1 terms." },
-  { id: '4', text: "How do I say '¿Lo quiere para comer aquí o para llevar?' in English?" },
-  { id: '5', text: "Correct my grammar: 'Yesterday I go to Central Park and I see the bridge.'" },
-  { id: '6', text: "Review my pronunciation for 'I would like a bottle of water.'" },
+  { id: '4', text: "How do I say '¿Bolsa de papel o plástico?' in English?" },
+  { id: '5', text: "Correct my grammar: 'Yesterday I go to restaurant and I see the waiter.'" },
+  { id: '6', text: "Review my pronunciation for 'I would like a classic breakfast.'" },
   { id: '7', text: "Teach me accent reduction tips for the 'v' and 'b' sounds." },
   { id: '8', text: "Generate my End-of-Day progress review!" }
 ];
-

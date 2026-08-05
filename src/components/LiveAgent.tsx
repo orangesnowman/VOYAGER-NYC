@@ -1,3561 +1,3320 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { SUGGESTIONS, IMMERSION_CURRICULUM } from '../constants';
-import { base64ToBytes, createAudioBufferFromPCM, float32ToPcm16, bytesToBase64, resampleAudioBuffer } from '../services/audioUtils';
 import NycMap, { MapMarker, RouteInfo } from './NycMap';
 import { NycSubwayMap } from './NycSubwayMap';
-import { Curriculum } from './Curriculum';
-import { Profile } from './Profile';
-import { ActiveLessonChat } from './ActiveLessonChat';
-import { LessonCompletion } from './LessonCompletion';
+import { getAccessToken } from '../services/firebaseAuth';
+import { parseAndRenderEmojis } from './VoyagerEmoji';
 
 import { ProgressDashboard } from './ProgressDashboard';
+import { RoadmapPanel } from './RoadmapPanel';
+import { TeacherInsightsPanel } from './TeacherInsightsPanel';
+import { SettingsPanel } from './SettingsPanel';
+import { ShoppingPanel } from './ShoppingPanel';
+import { ChatInputBox } from './ChatInputBox';
 import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
-import slide1 from '../assets/images/voyager_slide_1.jpg';
-import slide2 from '../assets/images/voyager_slide_2.jpg';
-import slide3 from '../assets/images/voyager_slide_3.jpg';
-import { Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight } from 'lucide-react';
+import chatAvatarIcon from '../assets/images/voyager_pixel_avatar_1784465509169.jpg';
+import { Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight, Headphones, MessageSquare, User, Settings, Apple, Home, Pause, Play, Info, Shield, FileText, Bot, Eye, EyeOff, ShoppingCart, Briefcase, BookOpen, Luggage, Rocket, Check, UserCheck, Presentation, MessageSquareText, Plane, Sprout, Flower, TreeDeciduous, GraduationCap, Award, Mail } from 'lucide-react';
 
-interface CanvasSlideshowProps {
-  slides: { src: string; alt: string }[];
-  slideIndex: number;
-  transitionDuration: number;
-}
+import { ChatMessage, Lead, TravelDestination, PronunciationFeedbackEvent, ConversationEvent } from './LiveAgentTypes';
+import { TRAVEL_PRESETS } from './TravelPresets';
+import { translations, getTranslatedMessageText } from './Translations';
+import { CONVERSATION_MODES, ConversationMode } from './ConversationModes';
+import { useConversationEngine } from './useConversationEngine';
+import { ConversationModePolicy } from '../domain/ConversationModePolicy';
 
-const CanvasSlideshow: React.FC<CanvasSlideshowProps> = ({ slides, slideIndex, transitionDuration }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [currentSrc, setCurrentSrc] = useState(slides[slideIndex].src);
-  const animationRef = useRef<number | null>(null);
-  const imagesRef = useRef<{ [key: string]: HTMLImageElement }>({});
+const modeDetails = [
+ {
+ id: 'SPANISH',
+ nameEs: 'Español',
+ nameEn: 'Spanish',
+ descEs: 'Conversación puramente en español.',
+ descEn: 'Conversation purely in Spanish.',
+ icon: 'MessageSquare',
+ tagEs: 'Español',
+ tagEn: 'Spanish',
+ bg: 'hover:bg-black/5'
+ },
+ {
+ id: 'BILINGUAL',
+ nameEs: 'Bilingüe',
+ nameEn: 'Bilingual',
+ descEs: 'Responde primero en español y luego repite en inglés.',
+ descEn: 'Responds first in Spanish, then repeats in English.',
+ icon: 'Sparkles',
+ tagEs: 'Recomendado',
+ tagEn: 'Recommended',
+ bg: 'hover:bg-black/5'
+ },
+ {
+ id: 'AMERICAN_ENGLISH',
+ nameEs: 'Inglés',
+ nameEn: 'English',
+ descEs: 'Responde y conversa estrictamente en inglés.',
+ descEn: 'Responds and converses strictly in English.',
+ icon: 'Compass',
+ tagEs: 'Práctica Avanzada',
+ tagEn: 'Advanced Practice',
+ bg: 'hover:bg-black/5'
+ },
+ {
+ id: 'LIVE_TRANSLATOR',
+ nameEs: 'Traductor',
+ nameEn: 'Translator',
+ descEs: 'Traduce instantáneamente entre inglés y español.',
+ descEn: 'Translates instantly between English and Spanish.',
+ icon: 'Languages',
+ tagEs: 'Traducción en vivo',
+ tagEn: 'Live translation',
+ bg: 'hover:bg-black/5'
+ },
+ {
+ id: 'LISTEN_ONLY',
+ nameEs: 'Escucha',
+ nameEn: 'Listen Only',
+ descEs: 'Escucha y ofrece correcciones por texto sin hablar.',
+ descEn: 'Listens and provides text-only tips without speaking.',
+ icon: 'Headphones',
+ tagEs: 'Solo Escuchar',
+ tagEn: 'Listen & Observe',
+ bg: 'hover:bg-black/5'
+ }
+];
 
-  useEffect(() => {
-    slides.forEach((slide) => {
-      if (!imagesRef.current[slide.src]) {
-        const img = new Image();
-        img.src = slide.src;
-        img.onload = () => {
-          imagesRef.current[slide.src] = img;
-          if (slide.src === slides[slideIndex].src && canvasRef.current) {
-            drawStatic(img);
-          }
-        };
-      }
-    });
-  }, [slides]);
-
-  const drawStatic = (img: HTMLImageElement) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  };
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const newSrc = slides[slideIndex].src;
-    const startSrc = currentSrc;
-    
-    if (startSrc === newSrc) {
-      const img = imagesRef.current[newSrc];
-      if (img) drawStatic(img);
-      return;
-    }
-
-    const startTime = performance.now();
-    const halfDuration = transitionDuration / 2;
-
-    const animate = (time: number) => {
-      const elapsed = time - startTime;
-      const progress = Math.min(elapsed / transitionDuration, 1);
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (elapsed < halfDuration) {
-        const img = imagesRef.current[startSrc];
-        if (img) {
-          const phaseProgress = elapsed / halfDuration;
-          const scale = 1.0 - phaseProgress * 0.97;
-          drawPixelated(img, scale);
-        }
-      } else {
-        const img = imagesRef.current[newSrc];
-        if (img) {
-          const phaseProgress = (elapsed - halfDuration) / halfDuration;
-          const scale = 0.03 + phaseProgress * 0.97;
-          drawPixelated(img, scale);
-        }
-      }
-
-      if (progress < 1) {
-        animationRef.current = requestAnimationFrame(animate);
-      } else {
-        setCurrentSrc(newSrc);
-        const finalImg = imagesRef.current[newSrc];
-        if (finalImg) drawStatic(finalImg);
-      }
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationRef.current !== null) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [slideIndex]);
-
-  const drawPixelated = (img: HTMLImageElement, scale: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const w = canvas.width;
-    const h = canvas.height;
-
-    const sw = Math.max(4, Math.round(w * scale));
-    const sh = Math.max(4, Math.round(h * scale));
-
-    ctx.imageSmoothingEnabled = false;
-    (ctx as any).mozImageSmoothingEnabled = false;
-    (ctx as any).webkitImageSmoothingEnabled = false;
-    (ctx as any).msImageSmoothingEnabled = false;
-
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = sw;
-    tempCanvas.height = sh;
-    const tempCtx = tempCanvas.getContext('2d');
-    if (!tempCtx) return;
-
-    tempCtx.drawImage(img, 0, 0, sw, sh);
-    ctx.drawImage(tempCanvas, 0, 0, sw, sh, 0, 0, w, h);
-  };
-
-  return (
-    <canvas 
-      ref={canvasRef} 
-      width={286} 
-      height={506} 
-      className="w-full h-full object-cover" 
-    />
-  );
+const getModeExplanationText = (mode: ConversationMode, lang: 'EN' | 'ES'): string => {
+ if (lang === 'EN') {
+ switch (mode) {
+ case 'SPANISH':
+ return "Spanish Mode. We will converse strictly in Spanish.";
+ case 'BILINGUAL':
+ return "Bilingual Mode. I will respond to you in Spanish and repeat my answer in English to help you learn.";
+ case 'AMERICAN_ENGLISH':
+ return "English Immersion Mode. We will speak strictly in English. This is perfect for advanced practice!";
+ case 'LIVE_TRANSLATOR':
+ return "Translator Mode. Speak in either English or Spanish, and I will translate it instantly for you.";
+ case 'LISTEN_ONLY':
+ return "Listen Only Mode. I will listen to you and provide helpful tips and corrections in the text chat without speaking.";
+ default:
+ return "";
+ }
+ } else {
+ switch (mode) {
+ case 'SPANISH':
+ return "Modo Español. Conversaremos estrictamente en español.";
+ case 'BILINGUAL':
+ return "Modo Bilingüe. Te responderé primero en español y luego repetiré la respuesta en inglés para ayudarte a aprender.";
+ case 'AMERICAN_ENGLISH':
+ return "Modo de Inmersión en Inglés. Hablaremos strictly en inglés. ¡Es perfecto para una práctica avanzada!";
+ case 'LIVE_TRANSLATOR':
+ return "Modo Traductor. Habla en inglés o español, y yo lo traducirá instantáneamente para ti.";
+ case 'LISTEN_ONLY':
+ return "Modo Escucha. Te escucharé y te daré consejos y correcciones por chat de texto sin interrumpirte hablando.";
+ default:
+ return "";
+ }
+ }
 };
 
-interface TravelDestination {
-  name: string;
-  nameEn: string;
-  lat: number;
-  lng: number;
-  subwayLines: string[];
-  subwayDirections: string;
-  subwayDirectionsEn: string;
-  taxiTime: string;
-  taxiFare: string;
-  walkTime: string;
-  walkDist: string;
-  bikeTime: string;
-  vocab: string[];
-  phrases: { en: string; es: string }[];
-}
+const sphereParticles = [
+ { top: '15%', left: '32%', size: '1.5px', delay: '0s', duration: '1.2s' },
+ { top: '18%', left: '68%', size: '2px', delay: '0.3s', duration: '1.5s' },
+ { top: '28%', left: '22%', size: '1px', delay: '0.7s', duration: '1s' },
+ { top: '22%', left: '48%', size: '2.5px', delay: '0.1s', duration: '1.8s' },
+ { top: '32%', left: '78%', size: '1.5px', delay: '0.5s', duration: '1.3s' },
+ { top: '42%', left: '18%', size: '2px', delay: '0.9s', duration: '1.6s' },
+ { top: '38%', left: '46%', size: '1px', delay: '0.2s', duration: '1.1s' },
+ { top: '48%', left: '62%', size: '2px', delay: '0.4s', duration: '1.4s' },
+ { top: '52%', left: '28%', size: '1.5px', delay: '0.6s', duration: '1.2s' },
+ { top: '58%', left: '82%', size: '1px', delay: '0.8s', duration: '1.7s' },
+ { top: '68%', left: '22%', size: '2.5px', delay: '0.3s', duration: '1.9s' },
+ { top: '62%', left: '52%', size: '1.5px', delay: '0s', duration: '1.3s' },
+ { top: '72%', left: '72%', size: '2px', delay: '0.5s', duration: '1.5s' },
+ { top: '78%', left: '38%', size: '1px', delay: '0.7s', duration: '1s' },
+ { top: '72%', left: '18%', size: '1.5px', delay: '0.2s', duration: '1.2s' },
+ { top: '82%', left: '58%', size: '2px', delay: '0.4s', duration: '1.4s' },
+ 
+ // Extra dense particles for connected active state
+ { top: '50%', left: '50%', size: '3px', delay: '0.1s', duration: '0.8s', connectedOnly: true },
+ { top: '46%', left: '36%', size: '2px', delay: '0.5s', duration: '1.1s', connectedOnly: true },
+ { top: '54%', left: '64%', size: '2.5px', delay: '0.2s', duration: '0.9s', connectedOnly: true },
+ { top: '36%', left: '54%', size: '1.5px', delay: '0.7s', duration: '1.2s', connectedOnly: true },
+ { top: '64%', left: '46%', size: '2px', delay: '0.3s', duration: '1s', connectedOnly: true },
+ { top: '30%', left: '42%', size: '1px', delay: '0s', duration: '1.4s', connectedOnly: true },
+ { top: '70%', left: '58%', size: '1.5px', delay: '0.6s', duration: '1.3s', connectedOnly: true },
+ { top: '40%', left: '30%', size: '2px', delay: '0.8s', duration: '1.1s', connectedOnly: true },
+ { top: '60%', left: '70%', size: '2.5px', delay: '0.4s', duration: '0.9s', connectedOnly: true },
+ { top: '24%', left: '34%', size: '1px', delay: '0.5s', duration: '1.6s', connectedOnly: true },
+ { top: '76%', left: '66%', size: '1.5px', delay: '0.1s', duration: '1.2s', connectedOnly: true },
+];
 
-const TRAVEL_PRESETS: TravelDestination[] = [
-  {
-    name: "Times Square",
-    nameEn: "Times Square",
-    lat: 40.758895,
-    lng: -73.985131,
-    subwayLines: ['1', '2', '3', 'N', 'Q', 'R', '7'],
-    subwayDirections: "Toma las líneas N, Q, R o 1, 2, 3 directo a la estación Times Square - 42 St.",
-    subwayDirectionsEn: "Take lines N, Q, R or 1, 2, 3 directly to Times Square - 42 St Station.",
-    taxiTime: "8 mins",
-    taxiFare: "$12.00",
-    walkTime: "15 mins",
-    walkDist: "0.7 mi",
-    bikeTime: "6 mins",
-    vocab: ["Crosswalk (Paso de peatones)", "Traffic light (Semáforo)", "Gridlock (Atascamiento)", "Broadway show (Show de Broadway)", "Double-decker bus (Autobús de dos pisos)"],
-    phrases: [
-      { en: "Excuse me, is this the right way to Times Square?", es: "Disculpe, ¿es este el camino correcto a Times Square?" },
-      { en: "Where can I buy tickets for a Broadway show?", es: "¿Dónde puedo comprar boletos para un show de Broadway?" },
-      { en: "How many blocks away is the nearest subway station?", es: "¿A cuántas cuadras está la estación de metro más cercana?" }
-    ]
-  },
-  {
-    name: "Puente de Brooklyn",
-    nameEn: "Brooklyn Bridge",
-    lat: 40.7061,
-    lng: -73.9969,
-    subwayLines: ['4', '5', '6', 'J', 'Z'],
-    subwayDirections: "Toma la línea 4, 5, 6 hacia Brooklyn Bridge - City Hall.",
-    subwayDirectionsEn: "Take the 4, 5, 6 train to Brooklyn Bridge - City Hall Station.",
-    taxiTime: "22 mins",
-    taxiFare: "$32.50",
-    walkTime: "1h 15 mins",
-    walkDist: "3.6 mi",
-    bikeTime: "24 mins",
-    vocab: ["Pedestrian path (Sendero peatonal)", "Suspension bridge (Puente colgante)", "Skyline (Horizonte urbano)", "East River (Río del Este)", "Boardwalk (Camino de madera)"],
-    phrases: [
-      { en: "Where is the entrance to the pedestrian path?", es: "¿Dónde está la entrada al camino peatonal?" },
-      { en: "Can we walk across the Brooklyn Bridge?", es: "¿Podemos cruzar el puente de Brooklyn a pie?" },
-      { en: "Is there a nice viewpoint of the skyline nearby?", es: "¿Hay algún buen mirador del horizonte urbano cerca?" }
-    ]
-  },
-  {
-    name: "Central Park (Strawberry Fields)",
-    nameEn: "Central Park (Strawberry Fields)",
-    lat: 40.7722,
-    lng: -73.9747,
-    subwayLines: ['A', 'B', 'C'],
-    subwayDirections: "Toma la línea C o B hacia 72 St Station, Central Park West.",
-    subwayDirectionsEn: "Take the B or C train to 72 St Station on Central Park West.",
-    taxiTime: "12 mins",
-    taxiFare: "$18.50",
-    walkTime: "25 mins",
-    walkDist: "1.2 mi",
-    bikeTime: "10 mins",
-    vocab: ["Pathway (Sendero)", "Meadow (Pradera/Claro)", "Reservoir (Embalse)", "Rowboat (Bote de remos)", "Conservatory (Invernadero)"],
-    phrases: [
-      { en: "Is it safe to walk through the park at night?", es: "¿Es seguro caminar por el parque de noche?" },
-      { en: "Where can I rent a rowboat in Central Park?", es: "¿Dónde puedo alquilar un bote de remos en Central Park?" },
-      { en: "Could you point me towards Strawberry Fields?", es: "¿Podría indicarme hacia dónde queda Strawberry Fields?" }
-    ]
-  },
-  {
-    name: "Empire State Building",
-    nameEn: "Empire State Building",
-    lat: 40.748440,
-    lng: -73.985664,
-    subwayLines: ['B', 'D', 'F', 'M', 'N', 'Q', 'R'],
-    subwayDirections: "Toma el tren N, R o B, D hacia 34 St - Herald Square.",
-    subwayDirectionsEn: "Take the N, R or B, D train to 34 St - Herald Square.",
-    taxiTime: "6 mins",
-    taxiFare: "$9.50",
-    walkTime: "10 mins",
-    walkDist: "0.4 mi",
-    bikeTime: "4 mins",
-    vocab: ["Observation deck (Plataforma de observación)", "Skyscraper (Rascacielos)", "Lobby (Vestíbulo)", "Elevator ride (Viaje en ascensor)", "Ticket counter (Ventanilla de boletos)"],
-    phrases: [
-      { en: "Excuse me, where is the entrance for the observation deck?", es: "Disculpe, ¿dónde está la entrada para la plataforma de observación?" },
-      { en: "How long is the wait for the elevator?", es: "¿Cuánto tiempo hay que esperar para el ascensor?" },
-      { en: "Can I buy tickets at the ticket counter?", es: "¿Puedo comprar boletos en la ventanilla de boletos?" }
-    ]
-  },
-  {
-    name: "Estatua de la Libertad (Battery Park)",
-    nameEn: "Statue of Liberty (Battery Park)",
-    lat: 40.7036,
-    lng: -74.0169,
-    subwayLines: ['1', 'R', 'W', '4', '5'],
-    subwayDirections: "Toma la línea 1 hacia South Ferry o el 4, 5 hacia Bowling Green.",
-    subwayDirectionsEn: "Take the 1 train to South Ferry or 4, 5 train to Bowling Green.",
-    taxiTime: "24 mins",
-    taxiFare: "$35.00",
-    walkTime: "1h 30 mins",
-    walkDist: "4.2 mi",
-    bikeTime: "28 mins",
-    vocab: ["Ferry dock (Muelle de ferry)", "Harbor (Puerto)", "Pedestal (Pedestal)", "Crown access (Acceso a la corona)", "Security screening (Control de seguridad)"],
-    phrases: [
-      { en: "Which dock does the ferry to Liberty Island leave from?", es: "¿De qué muelle sale el ferry a la Isla de la Libertad?" },
-      { en: "Do I need to book crown access tickets in advance?", es: "¿Necesito reservar boletos de acceso a la corona con anticipación?" },
-      { en: "Where can I board the boat to the Statue of Liberty?", es: "¿Dónde puedo abordar el barco a la Estatua de la Libertad?" }
-    ]
-  }
+const renderModeIcon = (iconName: string) => {
+ switch (iconName) {
+ case 'Sparkles':
+ return <Sparkles className="w-5 h-5 text-yellow-600" />;
+ case 'Compass':
+ return <Compass className="w-5 h-5 text-blue-600" />;
+ case 'Languages':
+ return <Languages className="w-5 h-5 text-emerald-600" />;
+ case 'Headphones':
+ return <Headphones className="w-5 h-5 text-purple-600" />;
+ default:
+ return <MessageSquare className="w-5 h-5 text-zinc-600" />;
+ }
+};
+
+const countries = [
+ { id: 'USA', nameEn: 'United States', nameEs: 'Estados Unidos' },
+ { id: 'AR', nameEn: 'Argentina', nameEs: 'Argentina' },
+ { id: 'BO', nameEn: 'Bolivia', nameEs: 'Bolivia' },
+ { id: 'CL', nameEn: 'Chile', nameEs: 'Chile' },
+ { id: 'CO', nameEn: 'Colombia', nameEs: 'Colombia' },
+ { id: 'CR', nameEn: 'Costa Rica', nameEs: 'Costa Rica' },
+ { id: 'CU', nameEn: 'Cuba', nameEs: 'Cuba' },
+ { id: 'DO', nameEn: 'Dominican Republic', nameEs: 'República Dominicana' },
+ { id: 'EC', nameEn: 'Ecuador', nameEs: 'Ecuador' },
+ { id: 'SV', nameEn: 'El Salvador', nameEs: 'El Salvador' },
+ { id: 'ES', nameEn: 'Spain', nameEs: 'España' },
+ { id: 'GT', nameEn: 'Guatemala', nameEs: 'Guatemala' },
+ { id: 'HN', nameEn: 'Honduras', nameEs: 'Honduras' },
+ { id: 'MX', nameEn: 'Mexico', nameEs: 'México' },
+ { id: 'NI', nameEn: 'Nicaragua', nameEs: 'Nicaragua' },
+ { id: 'PA', nameEn: 'Panama', nameEs: 'Panamá' },
+ { id: 'PY', nameEn: 'Paraguay', nameEs: 'Paraguay' },
+ { id: 'PE', nameEn: 'Peru', nameEs: 'Perú' },
+ { id: 'PR', nameEn: 'Puerto Rico', nameEs: 'Puerto Rico' },
+ { id: 'UY', nameEn: 'Uruguay', nameEs: 'Uruguay' },
+ { id: 'VE', nameEn: 'Venezuela', nameEs: 'Venezuela' }
 ];
 
 interface LiveAgentProps {
-  isWidgetMode: boolean;
-  onClose?: () => void;
+ isWidgetMode?: boolean;
+ onClose?: () => void;
 }
 
-interface ChatMessage {
-  id: string;
-  sender: 'user' | 'splash' | 'system';
-  text: string;
-  timestamp: string;
-  timeMs: number;
-  showForm?: boolean;
-}
-
-interface Lead {
-  id: string;
-  name: string;
-  email: string;
-  company: string;
-  phone: string;
-  notes: string;
-  createdAt: string;
-  chatTranscript: { sender: string; text: string; timestamp: string }[];
-}
-
-const translations = {
-  EN: {
-    standby: "EN ESPERA",
-    connecting: "Conectando...",
-    connect: "CONECTAR",
-    active: "ACTIVO",
-    disconnected: "Desconectado",
-    session: "Sesión",
-    disconnectBtn: "FINALIZAR",
-    connectionError: "Error de Conexión",
-    howToFix: "👉 How to fix this error:",
-    step1: "Open the Settings panel (⚙️ gear icon) in AI Studio.",
-    step2: "Input a valid GEMINI_API_KEY.",
-    step3: "Save and retry connecting.",
-    interactiveConsole: "Consola Interactiva",
-    liveConversation: "Conversación en Vivo",
-    leadsBtn: "Lugares Guardados",
-    collectLeadBtn: "Añadir Notas de Viaje",
-    databaseCapturedLeads: "Historial y Notas de Viaje en NYC",
-    backToChat: "Volver al Chat",
-    noLeads: "No travel notes saved yet.",
-    fillFormTest: "Fill out the notes to save your favorite NYC spots and vocabulary learnings.",
-    viewSavedTranscript: "Ver Transcripción Guardada",
-    askPlaceholder: "Type your query or location here...",
-    blueprintRegistered: "Travel Plan Saved!",
-    proposalSuccessMsg: "Your NYC travel plan and chat history have been successfully saved to the server database.",
-    backToConsole: "Volver al Panel de Voyager",
-    secureAgentBlueprint: "Guardar Plan de Viaje",
-    requestProposal: "Guardar Plan de Viaje en NYC",
-    formInstructions: "Enter your details to save your customized NYC travel log, landmarks list, and practice transcript.",
-    fullName: "Your Name *",
-    fullNamePlaceholder: "e.g. Jane Doe",
-    emailAddress: "Email Address *",
-    emailPlaceholder: "e.g. jane@example.com",
-    company: "Primary Interest",
-    companyPlaceholder: "e.g. History, Food, Language",
-    phone: "Mobile Number",
-    phonePlaceholder: "e.g. +1 555-0199",
-    customReqs: "Travel Notes & Landmark Favorites",
-    textareaPlaceholder: "What neighborhoods or vocabulary topics do you want to keep in your travel log?",
-    submitBtn: "Guardar Diario de Viaje",
-    submittingBtn: "Guardando Diario...",
-    nameEmailRequired: "Name and Email are required fields.",
-    systemOnline: "Voyager language and travel guide system online.",
-    welcomeMsg: "Hello! I'm VOYAGER, your bilingual NYC travel guide and language tutor. Let's practice English or Spanish while exploring New York! Click Connect to begin.",
-    endConversation: "FINALIZAR",
-    reviewChat: "Califica tu Sesión con Voyager",
-    submitReview: "Enviar Calificación",
-    reviewPlaceholder: "Tell us how your conversation went...",
-    thankYouReview: "Thank you for practicing with Voyager!"
-  },
-  ES: {
-    standby: "EN ESPERA",
-    connecting: "Conectando...",
-    connect: "CONECTAR",
-    active: "ACTIVO",
-    disconnected: "Desconectado",
-    session: "Sesión",
-    disconnectBtn: "FINALIZAR",
-    connectionError: "Error de Conexión",
-    howToFix: "👉 Cómo solucionar este error:",
-    step1: "Abre el panel de Configuración (icono de engranaje ⚙️) en AI Studio.",
-    step2: "Introduce una clave GEMINI_API_KEY válida.",
-    step3: "Guarda los cambios y vuelve a intentar la conexión.",
-    interactiveConsole: "Consola Interactiva",
-    liveConversation: "Conversación en Vivo",
-    leadsBtn: "Lugares Guardados",
-    collectLeadBtn: "Añadir Notas de Viaje",
-    databaseCapturedLeads: "Historial y Notas de Viaje en NYC",
-    backToChat: "Volver al Chat",
-    noLeads: "Aún no hay notas de viaje guardadas.",
-    fillFormTest: "Completa tus notas para guardar tus lugares favoritos de NYC y las palabras aprendidas.",
-    viewSavedTranscript: "Ver Transcripción Guardada",
-    askPlaceholder: "Escribe tu consulta o lugar aquí...",
-    blueprintRegistered: "¡Plan de Viaje Registrado!",
-    proposalSuccessMsg: "Tu plan de viaje personalizado y tu historial de conversación se han guardado con éxito.",
-    backToConsole: "Volver al Panel de Voyager",
-    secureAgentBlueprint: "Guardar Plan de Viaje",
-    requestProposal: "Guardar Plan de Viaje en NYC",
-    formInstructions: "Completa tus datos para guardar tu diario de viaje por NYC, tu lista de monumentos y tu transcripción de práctica.",
-    fullName: "Tu Nombre *",
-    fullNamePlaceholder: "ej. Jane Doe",
-    emailAddress: "Correo Electrónico *",
-    emailPlaceholder: "ej. jane@ejemplo.com",
-    company: "Interés Principal",
-    companyPlaceholder: "ej. Historia, Comida, Idioma",
-    phone: "Número de Teléfono",
-    phonePlaceholder: "ej. +1 555-0199",
-    customReqs: "Notas de Viaje y Monumentos Favoritos",
-    textareaPlaceholder: "¿Qué vecindarios o temas de vocabulario deseas mantener en tu diario de viaje?",
-    submitBtn: "Guardar Diario de Viaje",
-    submittingBtn: "Guardando Diario...",
-    nameEmailRequired: "El nombre y el correo electrónico son campos obligatorios.",
-    systemOnline: "Sistema Voyager en línea. Tu tutor de inglés y guía de NYC está listo.",
-    welcomeMsg: "¡Hola! Soy VOYAGER, tu guía de NYC y tutor de inglés. ¡Practiquemos inglés mientras exploramos Nueva York! Haz clic en Conectar para empezar.",
-    endConversation: "FINALIZAR",
-    reviewChat: "Califica tu Sesión con Voyager",
-    submitReview: "Enviar Calificación",
-    reviewPlaceholder: "Cuéntanos sobre tu experiencia de práctica...",
-    thankYouReview: "¡Gracias por practicar con Voyager!"
-  }
-};
-
-const getTranslatedMessageText = (msg: ChatMessage, lang: 'EN' | 'ES') => {
-  if (msg.id === 'system_1') {
-    return translations[lang].systemOnline;
-  }
-  if (msg.id === 'welcome_1') {
-    return translations[lang].welcomeMsg;
-  }
-  return msg.text;
-};
-
-const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode, onClose }) => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [isListenOnly, setIsListenOnly] = useState(false);
-  const isListenOnlyRef = useRef(isListenOnly);
-  
-  const [isTranslateMode, setIsTranslateMode] = useState(false);
-  const isTranslateModeRef = useRef(isTranslateMode);
-  
-  const [isBilingualMode, setIsBilingualMode] = useState(true);
-  const isBilingualModeRef = useRef(true);
-  
-  const [isSpanishOnlyMode, setIsSpanishOnlyMode] = useState(false);
-  const isSpanishOnlyModeRef = useRef(isSpanishOnlyMode);
-  
-  const [isEnglishOnlyMode, setIsEnglishOnlyMode] = useState(false);
-  const isEnglishOnlyModeRef = useRef(isEnglishOnlyMode);
-  
-  const [isPaused, setIsPaused] = useState(false);
-  const isPausedRef = useRef(isPaused);
-  const lastInteractionTimeRef = useRef(Date.now());
-  
-  const [volume, setVolume] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [statusText, setStatusText] = useState("Disconnected");
-
-  // NYC Map State
-  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 40.758895, lng: -73.985131 }); // Default: Times Square
-  const [mapZoom, setMapZoom] = useState<number>(13);
-  const [markers, setMarkers] = useState<MapMarker[]>([]);
-  const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
-  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'lessons' | 'trips' | 'profile'>('chat');
-  const [travelerType, setTravelerType] = useState<string>('tourist');
-  const [lessonStage, setLessonStage] = useState<1 | 2 | 3>(1);
-  const [showHelpPortal, setShowHelpPortal] = useState<'translate' | 'explain' | 'pronounce' | null>(null);
-  const [showLessonCompletion, setShowLessonCompletion] = useState<number | null>(null);
-  const [viajesSubTab, setViajesSubTab] = useState<'planner' | 'subway' | 'google_map'>('planner');
-  const [selectedTripDestination, setSelectedTripDestination] = useState<TravelDestination | null>(null);
-  const [customDestinationText, setCustomDestinationText] = useState("");
-  const [classroomSubTab, setClassroomSubTab] = useState<'map' | 'subway_map'>('map');
-  const [activeDay, setActiveDay] = useState<number>(1);
-  const [activeLessonDay, setActiveLessonDay] = useState<number | null>(null);
-  const [activeLessonLevel, setActiveLessonLevel] = useState<'PRINCIPIANTE' | 'INTERMEDIO' | 'AVANZADO' | null>(null);
-  const [selectedLevel, setSelectedLevel] = useState<'PRINCIPIANTE' | 'INTERMEDIO' | 'AVANZADO'>('PRINCIPIANTE');
-  const [isVocabHudOpen, setIsVocabHudOpen] = useState<boolean>(false);
-  const [completedMissions, setCompletedMissions] = useState<string[]>([]);
-  const [scores, setScores] = useState({ grammar: 0, pronunciation: 0, confidence: 0, naturalness: 0 });
-  const [learnedWords, setLearnedWords] = useState<string[]>([]);
-  const [accentPatterns, setAccentPatterns] = useState<string[]>([]);
-
-  // Slideshow State
-  const [slideIndex, setSlideIndex] = useState(0);
-  const [activeFullscreenSlide, setActiveFullscreenSlide] = useState<number | null>(null);
-  const [isHovered, setIsHovered] = useState(false);
-
-  const slides = [
-    { src: slide1, alt: "Explora NYC, Aprende Inglés" },
-    { src: slide2, alt: "Aprende antes de hablar" },
-    { src: slide3, alt: "Practica conversaciones cotidianas" }
-  ];
-
-
-
-  // Keyboard navigation for fullscreen modal
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (activeFullscreenSlide === null) return;
-      if (e.key === 'Escape') {
-        setActiveFullscreenSlide(null);
-      } else if (e.key === 'ArrowLeft') {
-        setActiveFullscreenSlide((prev) => prev !== null ? (prev - 1 + slides.length) % slides.length : null);
-      } else if (e.key === 'ArrowRight') {
-        setActiveFullscreenSlide((prev) => prev !== null ? (prev + 1) % slides.length : null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeFullscreenSlide, slides.length]);
-
-  const handleToggleMission = (missionId: string) => {
-    setCompletedMissions(prev => 
-      prev.includes(missionId) 
-        ? prev.filter(id => id !== missionId) 
-        : [...prev, missionId]
-    );
-  };
-
-  const handleSelectPresetDestination = (dest: TravelDestination) => {
-    setSelectedTripDestination(dest);
-    setMapCenter({ lat: dest.lat, lng: dest.lng });
-    setMarkers([{
-      id: 'dest_marker',
-      lat: dest.lat,
-      lng: dest.lng,
-      title: dest.name
-    }]);
-  };
-
-  const handleCustomDestinationSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customDestinationText.trim()) return;
-    
-    const destName = customDestinationText.trim();
-    const mockDest: TravelDestination = {
-      name: destName,
-      nameEn: destName,
-      lat: 40.758895 + (Math.random() - 0.5) * 0.04,
-      lng: -73.985131 + (Math.random() - 0.5) * 0.04,
-      subwayLines: ['N', 'R', '1', '6'],
-      subwayDirections: `Toma las líneas N/R o 1/6 hacia la estación más cercana a ${destName}.`,
-      subwayDirectionsEn: `Take the N/R or 1/6 train to the station closest to ${destName}.`,
-      taxiTime: `${Math.floor(Math.random() * 15) + 8} mins`,
-      taxiFare: `$${(Math.random() * 15 + 10).toFixed(2)}`,
-      walkTime: `${Math.floor(Math.random() * 40) + 15} mins`,
-      walkDist: `${(Math.random() * 2 + 0.5).toFixed(1)} mi`,
-      bikeTime: `${Math.floor(Math.random() * 12) + 5} mins`,
-      vocab: ["Navigation (Navegación)", "Corner (Esquina)", "Subway entrance (Entrada del metro)", "Street sign (Letrero de la calle)", "Map routing (Ruta de mapa)"],
-      phrases: [
-        { en: `Excuse me, how do I get to ${destName}?`, es: `Disculpe, ¿cómo llego a ${destName}?` },
-        { en: `Is ${destName} within walking distance from here?`, es: `¿Está ${destName} a una de distancia caminable desde aquí?` },
-        { en: `Could you tell me which train goes to ${destName}?`, es: `¿Podrías decirme qué tren va a ${destName}?` }
-      ]
-    };
-    setSelectedTripDestination(mockDest);
-    setMapCenter({ lat: mockDest.lat, lng: mockDest.lng });
-    setMarkers([{
-      id: 'dest_marker',
-      lat: mockDest.lat,
-      lng: mockDest.lng,
-      title: mockDest.name
-    }]);
-    setCustomDestinationText("");
-  };
-
-  const speakTravelPhrase = (phrase: string, lang: 'en-US' | 'es-ES') => {
-    const speech = new SpeechSynthesisUtterance(phrase);
-    speech.lang = lang;
-    window.speechSynthesis.speak(speech);
-  };
-
-  const parseImmersionTags = (text: string) => {
-    let cleaned = text;
-    let newScores = null;
-    let newLearnedWords: string[] = [];
-    let newAccentPattern = null;
-    let newCompletedMission = null;
-
-    // 1. Scores
-    const scoresMatch = cleaned.match(/\[SCORES:\s*grammar=(\d+),\s*pronunciation=(\d+),\s*confidence=(\d+),\s*naturalness=(\d+)\]/i);
-    if (scoresMatch) {
-      newScores = {
-        grammar: parseInt(scoresMatch[1], 10),
-        pronunciation: parseInt(scoresMatch[2], 10),
-        confidence: parseInt(scoresMatch[3], 10),
-        naturalness: parseInt(scoresMatch[4], 10)
-      };
-      cleaned = cleaned.replace(scoresMatch[0], "");
-    }
-
-    // 2. Learned Words
-    const learnedMatch = cleaned.match(/\[LEARNED_WORDS:\s*([^\]]+)\]/i);
-    if (learnedMatch) {
-      newLearnedWords = learnedMatch[1].split(',').map(w => w.trim()).filter(Boolean);
-      cleaned = cleaned.replace(learnedMatch[0], "");
-    }
-
-    // 3. Accent
-    const accentMatch = cleaned.match(/\[ACCENT:\s*([^\]]+)\]/i);
-    if (accentMatch) {
-      newAccentPattern = accentMatch[1].trim();
-      cleaned = cleaned.replace(accentMatch[0], "");
-    }
-
-    // 4. Mission
-    const missionMatch = cleaned.match(/\[MISSION_COMPLETE:\s*([^\]]+)\]/i);
-    if (missionMatch) {
-      newCompletedMission = missionMatch[1].trim();
-      cleaned = cleaned.replace(missionMatch[0], "");
-    }
-
-    return { cleaned, newScores, newLearnedWords, newAccentPattern, newCompletedMission };
-  };
-
-  const updateLearningState = (parsed: ReturnType<typeof parseImmersionTags>) => {
-    if (parsed.newScores) {
-      setScores(parsed.newScores);
-    }
-    if (parsed.newLearnedWords.length > 0) {
-      setLearnedWords(prev => {
-        const next = [...prev];
-        parsed.newLearnedWords.forEach(w => {
-          if (!next.includes(w)) next.push(w);
-        });
-        return next;
-      });
-    }
-    if (parsed.newAccentPattern) {
-      const pattern = parsed.newAccentPattern;
-      setAccentPatterns(prev => {
-        if (!prev.includes(pattern)) return [...prev, pattern];
-        return prev;
-      });
-    }
-    if (parsed.newCompletedMission) {
-      const mId = parsed.newCompletedMission;
-      setCompletedMissions(prev => {
-        if (!prev.includes(mId)) return [...prev, mId];
-        return prev;
-      });
-    }
-  };
-
-  // Chat & Leads State
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [inputText, setInputText] = useState("");
-  const [serverLeads, setServerLeads] = useState<Lead[]>([]);
-
-  // Inline Lead Form State
-  const [inlineLeadForm, setInlineLeadForm] = useState({
-    name: "",
-    email: "",
-    company: "",
-    phone: "",
-    meetingTime: "",
-    consent: false,
-    notes: ""
-  });
-  const [isSubmittingInlineLead, setIsSubmittingInlineLead] = useState(false);
-  const [inlineLeadSuccess, setInlineLeadSuccess] = useState(false);
-  const [inlineLeadError, setInlineLeadError] = useState<string | null>(null);
-  const [inlineFormStep, setInlineFormStep] = useState<'details' | 'services'>('details');
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
-  const [selectedCalendarDay, setSelectedCalendarDay] = useState<number | null>(null);
-  const [selectedCalendarTime, setSelectedCalendarTime] = useState("09:00");
-
-  // Chat Review State
-  const [showReviewScreen, setShowReviewScreen] = useState(false);
-  const [reviewRating, setReviewRating] = useState(0);
-  const [reviewText, setReviewText] = useState("");
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [reviewSubmitted, setReviewSubmitted] = useState(false);
-
-  // Session Elapsed Time
-  const [secondsElapsed, setSecondsElapsed] = useState(0);
-  const [selectedLang, setSelectedLang] = useState<'EN' | 'ES'>('ES');
-
-  useEffect(() => {
-    const wasListenOnly = isListenOnlyRef.current;
-    isListenOnlyRef.current = isListenOnly;
-    
-    if (wasListenOnly !== isListenOnly) {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        const msgText = isListenOnly 
-          ? "[SYSTEM MESSAGE: Mode changed. You are now in Monitor/Listen-only mode. However, BEFORE you go fully silent, you MUST immediately speak and write a brief explanation in Spanish (only one warm sentence) explaining what this mode does (that you will listen only and offer tips in the text chat, and won't speak unless given permission). End your sentence by saying that you will now be quiet and listen. Do NOT say 'Understood' or 'Entendido'. after saying this explanation, you must remain silent for subsequent turns and only respond via text unless asked '¿Puedo hablar?'.]"
-          : "[SYSTEM MESSAGE: Mode changed. Speak aloud a brief explanation in Spanish (one warm sentence) telling the user you are now back in normal voice mode and will speak and respond normally. Do NOT say 'Understood' or 'Entendido'.]";
-        
-        wsRef.current.send(JSON.stringify({ text: msgText }));
-      }
-      
-      setChatMessages(prev => [
-        ...prev,
-        {
-          id: `msg_sys_listen_${Date.now()}`,
-          sender: 'system',
-          text: isListenOnly 
-            ? (selectedLang === 'EN' 
-              ? 'ℹ️ Monitor mode active: VOYAGER is listening only and will not speak. Feedback will be provided via text.'
-              : 'ℹ️ Modo monitor activo: VOYAGER está solo escuchando y no hablará. Las correcciones se mostrarán por texto.')
-            : (selectedLang === 'EN'
-              ? 'ℹ️ Normal mode active: VOYAGER can speak and respond normally.'
-              : 'ℹ️ Modo normal activo: VOYAGER hablará y responderá con voz.'),
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          timeMs: Date.now()
-        }
-      ]);
-    }
-  }, [isListenOnly, selectedLang]);
-
-  useEffect(() => {
-    const wasTranslateMode = isTranslateModeRef.current;
-    isTranslateModeRef.current = isTranslateMode;
-    
-    if (wasTranslateMode !== isTranslateMode) {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        const msgText = isTranslateMode 
-          ? "[SYSTEM MESSAGE: Mode changed. You are now in INSTANT TRANSLATION MODE. From now on, whatever you hear in English, you must translate to Spanish. If the user speaks in Spanish, you must translate to English. Output ONLY the translated words and absolutely nothing else, both in your voice and in your text transcription. Do NOT say 'Understood' or 'Entendido'. In this very first response, translate this message to Spanish: 'Instant Translation Mode is now active. I am ready to translate.']"
-          : "[SYSTEM MESSAGE: Mode changed. Speak aloud a brief explanation in Spanish (one warm sentence) telling the user that you are now back in normal voice guide mode, guiding them through NYC and helping with vocabulary. Do NOT say 'Understood' or 'Entendido'.]";
-        
-        wsRef.current.send(JSON.stringify({ text: msgText }));
-      }
-      
-      setChatMessages(prev => [
-        ...prev,
-        {
-          id: `msg_sys_translate_${Date.now()}`,
-          sender: 'system',
-          text: isTranslateMode 
-            ? (selectedLang === 'EN' 
-              ? 'ℹ️ Instant Translation Mode active: VOYAGER will translate what you say immediately.'
-              : 'ℹ️ Modo Traducción Instantánea activo: VOYAGER traducirá lo que digas de inmediato.')
-            : (selectedLang === 'EN'
-              ? 'ℹ️ Normal mode active: VOYAGER is back as your NYC guide and tutor.'
-              : 'ℹ️ Modo normal activo: VOYAGER vuelve a ser tu guía y tutor en NYC.'),
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          timeMs: Date.now()
-        }
-      ]);
-    }
-  }, [isTranslateMode, selectedLang]);
-
-  useEffect(() => {
-    const wasBilingualMode = isBilingualModeRef.current;
-    isBilingualModeRef.current = isBilingualMode;
-    
-    if (wasBilingualMode !== isBilingualMode) {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        const msgText = isBilingualMode 
-          ? "[SYSTEM MESSAGE: Mode changed. You are now in BILINGUAL TRANSLATION MODE. You must immediately speak and write a brief explanation in Spanish (only one warm sentence) explaining what this mode does (that you will say all your responses first in Spanish, and then repeat them in English). Do NOT say 'Understood' or 'Entendido'.]"
-          : "[SYSTEM MESSAGE: Mode changed. Speak aloud a brief explanation in Spanish (one warm sentence) telling the user that you are now back in normal voice guide mode, guiding them through NYC and helping with vocabulary. Do NOT say 'Understood' or 'Entendido'.]";
-        
-        wsRef.current.send(JSON.stringify({ text: msgText }));
-      }
-      
-      setChatMessages(prev => [
-        ...prev,
-        {
-          id: `msg_sys_bilingual_${Date.now()}`,
-          sender: 'system',
-          text: isBilingualMode 
-            ? (selectedLang === 'EN' 
-              ? 'ℹ️ Bilingual Mode active: VOYAGER will respond in Spanish and repeat in English.'
-              : 'ℹ️ Modo Bilingüe activo: VOYAGER responderá en español y lo repetirá en inglés.')
-            : (selectedLang === 'EN'
-              ? 'ℹ️ Normal mode active: VOYAGER is back as your NYC guide and tutor.'
-              : 'ℹ️ Modo normal activo: VOYAGER vuelve a ser tu guía y tutor en NYC.'),
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          timeMs: Date.now()
-        }
-      ]);
-    }
-  }, [isBilingualMode, selectedLang]);
-
-  useEffect(() => {
-    const wasSpanishOnly = isSpanishOnlyModeRef.current;
-    isSpanishOnlyModeRef.current = isSpanishOnlyMode;
-    
-    if (wasSpanishOnly !== isSpanishOnlyMode) {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        const msgText = isSpanishOnlyMode 
-          ? "[SYSTEM MESSAGE: Mode changed. You are now in SPANISH ONLY MODE. You must speak and write strictly and purely in Spanish from now on. Discuss information, landmarks, and details about New York City in Spanish. Do NOT teach English, evaluate grammar, or translate any text. Speak only in Spanish. Do NOT say 'Understood' or 'Entendido'.]"
-          : "[SYSTEM MESSAGE: Mode changed. Speak aloud a brief explanation in Spanish (one warm sentence) telling the user that you are now back in normal voice guide mode, guiding them through NYC and helping with vocabulary. Do NOT say 'Understood' or 'Entendido'.]";
-        
-        wsRef.current.send(JSON.stringify({ text: msgText }));
-      }
-      
-      setChatMessages(prev => [
-        ...prev,
-        {
-          id: `msg_sys_spanish_${Date.now()}`,
-          sender: 'system',
-          text: isSpanishOnlyMode 
-            ? (selectedLang === 'EN' 
-              ? 'ℹ️ Spanish Only Mode active: VOYAGER will converse with you strictly in Spanish to discuss city details.'
-              : 'ℹ️ Modo Solo Español activo: VOYAGER conversará contigo estrictamente en español para hablar de la ciudad.')
-            : (selectedLang === 'EN'
-              ? 'ℹ️ Normal mode active: VOYAGER is back as your NYC guide and tutor.'
-              : 'ℹ️ Modo normal activo: VOYAGER vuelve a ser tu guía y tutor en NYC.'),
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          timeMs: Date.now()
-        }
-      ]);
-    }
-  }, [isSpanishOnlyMode, selectedLang]);
-
-  useEffect(() => {
-    const wasEnglishOnly = isEnglishOnlyModeRef.current;
-    isEnglishOnlyModeRef.current = isEnglishOnlyMode;
-    
-    if (wasEnglishOnly !== isEnglishOnlyMode) {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        const msgText = isEnglishOnlyMode 
-          ? "[SYSTEM MESSAGE: Mode changed. You are now in ENGLISH ONLY MODE. You must speak and write strictly and purely in English. Do NOT provide any Spanish translations, hints, corrections, or bilingual tips. Speak naturally as a native English speaker from New York City. This is a pure immersion practice mode for advanced students. Speak only in English. Do NOT say 'Understood' or 'Entendido'.]"
-          : "[SYSTEM MESSAGE: Mode changed. Speak aloud a brief explanation in Spanish (one warm sentence) telling the user that you are now back in normal voice guide mode, guiding them through NYC and helping with vocabulary. Do NOT say 'Understood' or 'Entendido'.]";
-        
-        wsRef.current.send(JSON.stringify({ text: msgText }));
-      }
-      
-      setChatMessages(prev => [
-        ...prev,
-        {
-          id: `msg_sys_english_${Date.now()}`,
-          sender: 'system',
-          text: isEnglishOnlyMode 
-            ? (selectedLang === 'EN' 
-              ? 'ℹ️ English Only Mode active: VOYAGER will speak strictly in English for advanced practice.'
-              : 'ℹ️ Modo Solo Inglés activo: VOYAGER hablará estrictamente en inglés para práctica avanzada.')
-            : (selectedLang === 'EN'
-              ? 'ℹ️ Normal mode active: VOYAGER is back as your NYC guide and tutor.'
-              : 'ℹ️ Modo normal activo: VOYAGER vuelve a ser tu guía y tutor en NYC.'),
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          timeMs: Date.now()
-        }
-      ]);
-    }
-  }, [isEnglishOnlyMode, selectedLang]);
-
-  useEffect(() => {
-    if (isTranslateMode) {
-      setIsListenOnly(false);
-      setIsBilingualMode(false);
-      setIsSpanishOnlyMode(false);
-      setIsEnglishOnlyMode(false);
-    }
-  }, [isTranslateMode]);
-
-  useEffect(() => {
-    if (isListenOnly) {
-      setIsTranslateMode(false);
-      setIsBilingualMode(false);
-      setIsSpanishOnlyMode(false);
-      setIsEnglishOnlyMode(false);
-    }
-  }, [isListenOnly]);
-
-  useEffect(() => {
-    if (isBilingualMode) {
-      setIsListenOnly(false);
-      setIsTranslateMode(false);
-      setIsSpanishOnlyMode(false);
-      setIsEnglishOnlyMode(false);
-    }
-  }, [isBilingualMode]);
-
-  useEffect(() => {
-    if (isSpanishOnlyMode) {
-      setIsListenOnly(false);
-      setIsTranslateMode(false);
-      setIsBilingualMode(false);
-      setIsEnglishOnlyMode(false);
-    }
-  }, [isSpanishOnlyMode]);
-
-  useEffect(() => {
-    if (isEnglishOnlyMode) {
-      setIsListenOnly(false);
-      setIsTranslateMode(false);
-      setIsBilingualMode(false);
-      setIsSpanishOnlyMode(false);
-    }
-  }, [isEnglishOnlyMode]);
-
-  const hasInteracted = isConnected || statusText === "Connecting..." || chatMessages.length > 1;
-
-  useEffect(() => {
-    if (!isConnected) {
-      setSecondsElapsed(0);
-      return;
-    }
-    const interval = setInterval(() => {
-      setSecondsElapsed(prev => prev + 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isConnected]);
-
-  // Scroll ref for chat feed
-  const chatEndRef = useRef<HTMLDivElement | null>(null);
-
-  // Auto-scroll chat to bottom
-  useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [chatMessages]);
-
-  // Input Placeholder typing animation
-  const [placeholderText, setPlaceholderText] = useState("");
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [typingSpeed, setTypingSpeed] = useState(100);
-
-  useEffect(() => {
-    const phrases = [
-      "Empieza aca...",
-      "Pregúntame cómo te puedo ayudar...",
-      "Soy tu agente de voz y chat de IA..."
-    ];
-    let timer: any;
-    const currentPhrase = phrases[placeholderIndex];
-    
-    const handleTyping = () => {
-      if (!isDeleting) {
-        setPlaceholderText(currentPhrase.substring(0, placeholderText.length + 1));
-        if (placeholderText.length + 1 === currentPhrase.length) {
-          timer = setTimeout(() => setIsDeleting(true), 2500);
-          return;
-        }
-        setTypingSpeed(90);
-      } else {
-        setPlaceholderText(currentPhrase.substring(0, placeholderText.length - 1));
-        if (placeholderText.length - 1 === 0) {
-          setIsDeleting(false);
-          setPlaceholderIndex((prev) => (prev + 1) % phrases.length);
-          setTypingSpeed(400);
-          return;
-        }
-        setTypingSpeed(45);
-      }
-    };
-
-    timer = setTimeout(handleTyping, typingSpeed);
-    return () => clearTimeout(timer);
-  }, [placeholderText, isDeleting, placeholderIndex, typingSpeed]);
-
-  // Particle visualizer canvas refs & loop
-  const particleCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const volumeRef = useRef(0);
-  volumeRef.current = volume;
-
-  useEffect(() => {
-    let animationFrameId: number;
-    let time = 0;
-
-    // Initialize 900 ring particles concentrated in a band (yellow cab)
-    const numParticles = 900;
-    const particles: { angle: number; r: number; speed: number; pulsePhase: number; size: number }[] = [];
-
-    for (let i = 0; i < numParticles; i++) {
-      particles.push({
-        angle: Math.random() * 2 * Math.PI,
-        // Bell-curve concentration around radius 56
-        r: 45 + Math.random() * 18 + (Math.random() - 0.5) * 8,
-        speed: (Math.random() * 0.004 + 0.001) * (Math.random() < 0.5 ? 1 : -1),
-        pulsePhase: Math.random() * 2 * Math.PI,
-        size: 0.6 + Math.random() * 1.4
-      });
-    }
-
-    // Initialize orbiting circles (moons) rotating around the oval
-    const numOrbiters = 8;
-    const orbiters: { angle: number; speed: number; rx: number; ry: number; size: number; alpha: number }[] = [];
-    for (let i = 0; i < numOrbiters; i++) {
-      let rxFactor = 1.35 + (i % 3) * 0.12;
-      let ryFactor = 1.0 + (i % 3) * 0.08;
-      orbiters.push({
-        angle: (i * 2 * Math.PI) / numOrbiters + Math.random() * 0.5,
-        speed: (0.007 + (i % 3) * 0.005) * (i % 2 === 0 ? 1 : -1),
-        rx: 55 * rxFactor,
-        ry: 55 * ryFactor,
-        size: 1.8 + (i % 4) * 0.6,
-        alpha: 0.55 + (i % 3) * 0.12
-      });
-    }
-
-    const renderLoop = () => {
-      const canvas = particleCanvasRef.current;
-      if (!canvas) {
-        animationFrameId = requestAnimationFrame(renderLoop);
-        return;
-      }
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      const width = canvas.width;
-      const height = canvas.height;
-      const centerX = width / 2;
-      const centerY = height / 2;
-      const currentVolume = volumeRef.current;
-
-      ctx.clearRect(0, 0, width, height);
-
-      // Radial background glow (yellow cab)
-      let grad = ctx.createRadialGradient(centerX, centerY, 10, centerX, centerY, 60 + currentVolume * 0.65);
-      grad.addColorStop(0, 'rgba(234, 179, 8, 0.2)');
-      grad.addColorStop(0.5, 'rgba(234, 179, 8, 0.06)');
-      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 95 + currentVolume * 0.5, 0, 2 * Math.PI);
-      ctx.fill();
-
-      // Outer ring
-      ctx.beginPath();
-      ctx.ellipse(centerX, centerY, 75, 54.6, 0, 0, 2 * Math.PI);
-      ctx.strokeStyle = 'rgba(234, 179, 8, 0.05)';
-      ctx.lineWidth = 4;
-      ctx.stroke();
-
-      // Shimmering dust particles
-      time += 1;
-      for (let i = 0; i < numParticles; i++) {
-        let p = particles[i];
-        let speedMultiplier = 1.0 + (currentVolume * 0.08);
-        p.angle += p.speed * speedMultiplier;
-
-        let radialJitter = Math.sin(p.pulsePhase + time * 0.05) * (1.2 + currentVolume * 0.08);
-        let volumeJitter = (Math.random() - 0.5) * (currentVolume * 0.5);
-        let finalRadius = p.r + radialJitter + volumeJitter;
-
-        p.pulsePhase += 0.02;
-
-        let px = centerX + Math.cos(p.angle) * finalRadius * 1.35;
-        let py = centerY + Math.sin(p.angle) * finalRadius * 1.0;
-        let opacity = 0.35 + Math.sin(p.pulsePhase + i) * 0.25 + (Math.random() * 0.25);
-        
-        ctx.fillStyle = `rgba(234, 179, 8, ${opacity})`;
-        ctx.fillRect(px, py, p.size, p.size);
-      }
-
-      // Orbiting circles
-      for (let i = 0; i < numOrbiters; i++) {
-        let orb = orbiters[i];
-        let speedMultiplier = 1.0 + (currentVolume * 0.08);
-        orb.angle += orb.speed * speedMultiplier;
-
-        let radialJitter = (Math.random() - 0.5) * (currentVolume * 0.35);
-        let finalRx = orb.rx + radialJitter;
-        let finalRy = orb.ry + radialJitter;
-
-        let ox = centerX + Math.cos(orb.angle) * finalRx;
-        let oy = centerY + Math.sin(orb.angle) * finalRy;
-
-        ctx.beginPath();
-        ctx.arc(ox, oy, orb.size, 0, 2 * Math.PI);
-        ctx.fillStyle = `rgba(234, 179, 8, ${orb.alpha})`;
-        ctx.shadowBlur = 6 + (currentVolume / 100) * 8;
-        ctx.shadowColor = '#eab308';
-        ctx.fill();
-      }
-
-      animationFrameId = requestAnimationFrame(renderLoop);
-    };
-
-    renderLoop();
-    return () => cancelAnimationFrame(animationFrameId);
-  }, []);
-
-  // Fetch leads and set up welcome message
-  useEffect(() => {
-    fetchLeads();
-    
-    setChatMessages([
-      {
-        id: 'welcome_1',
-        sender: 'splash',
-        text: 'Hi! I\'m VOYAGER, your NYC guide and English tutor. Click Connect to start a voice-and-text conversation.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timeMs: Date.now()
-      }
-    ]);
-  }, []);
-
-  const fetchLeads = async () => {
-    try {
-      const response = await fetch('/api/leads');
-      if (response.ok) {
-         const data = await response.json();
-         setServerLeads(data.leads || []);
-      }
-    } catch (err) {
-      console.error("Error fetching leads:", err);
-    }
-  };
-
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDayIndex = new Date(year, month, 1).getDay();
-    const lastDay = new Date(year, month + 1, 0).getDate();
-    const adjustedStart = (firstDayIndex === 0) ? 6 : firstDayIndex - 1;
-    const days: (number | null)[] = [];
-    for (let i = 0; i < adjustedStart; i++) {
-      days.push(null);
-    }
-    for (let i = 1; i <= lastDay; i++) {
-      days.push(i);
-    }
-    return days;
-  };
-
-  const handleInlineLeadSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inlineLeadForm.name.trim() || !inlineLeadForm.email.trim() || !inlineLeadForm.phone.trim()) {
-      setInlineLeadError(selectedLang === 'EN' ? "Name, email, and phone number are required." : "Se requiere nombre, correo y número telefónico.");
-      return;
-    }
-    
-    setIsSubmittingInlineLead(true);
-    setInlineLeadError(null);
-
-    try {
-      let combinedNotes = inlineLeadForm.notes;
-      if (chatMessages.length > 2) {
-        const transcriptText = chatMessages
-          .filter(m => m.id !== 'system_1' && m.id !== 'welcome_1')
-          .map(m => `[${m.timestamp}] ${m.sender.toUpperCase()}: ${getTranslatedMessageText(m, selectedLang)}`)
-          .join('\n');
-        
-        if (transcriptText) {
-          combinedNotes = `${inlineLeadForm.notes}\n\n=== Live Chat Transcript ===\n${transcriptText}`;
-        }
-      }
-
-      const payload = {
-        name: inlineLeadForm.name,
-        email: inlineLeadForm.email,
-        company: inlineLeadForm.company,
-        phone: inlineLeadForm.phone,
-        notes: `Preferred Meeting Time: ${inlineLeadForm.meetingTime || "Not selected"}\nMarketing Consent Given: ${inlineLeadForm.consent ? "Yes" : "No"}\nServices of Interest: ${selectedServices.length > 0 ? selectedServices.join(", ") : "None selected"}\n\n${combinedNotes}`,
-        chatTranscript: chatMessages
-          .filter(m => m.id !== 'system_1' && m.id !== 'welcome_1')
-          .map(m => ({
-            sender: m.sender,
-            text: getTranslatedMessageText(m, selectedLang),
-            timestamp: m.timestamp
-          }))
-      };
-
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-      if (response.ok && data.success) {
-        setInlineLeadSuccess(true);
-        fetchLeads();
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          console.log("Form saved. Relaying lead details to Gemini Live to book meeting...");
-          const triggerMsg = `[SYSTEM MESSAGE: The user has filled out the contact form. Name: ${inlineLeadForm.name}, Email: ${inlineLeadForm.email}, Phone: ${inlineLeadForm.phone || "Not provided"}, Selected Preferred Meeting Time: ${inlineLeadForm.meetingTime || "Not provided"}, Services of Interest: ${selectedServices.length > 0 ? selectedServices.join(", ") : "None selected"}. Please proceed to book the meeting using the calendar_book_meeting tool for this exact selected date/time now.]`;
-          wsRef.current.send(JSON.stringify({ text: triggerMsg }));
-        }
-      } else {
-        setInlineLeadError(data.error || "Failed to submit lead.");
-      }
-    } catch (err) {
-      console.error("Error submitting inline lead:", err);
-      setInlineLeadError("An error occurred while saving your lead.");
-    } finally {
-      setIsSubmittingInlineLead(false);
-    }
-  };
-
-  const handleEndConversation = () => {
-    disconnect();
-    setShowReviewScreen(false);
-    setChatMessages([
-      {
-        id: 'welcome_1',
-        sender: 'splash',
-        text: translations[selectedLang].welcomeMsg,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timeMs: Date.now()
-      }
-    ]);
-  };
-
-  const handleReviewSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (reviewRating === 0) return;
-    
-    setIsSubmittingReview(true);
-    try {
-      const payload = {
-        rating: reviewRating,
-        comment: reviewText,
-        chatTranscript: chatMessages
-          .filter(m => m.id !== 'system_1' && m.id !== 'welcome_1')
-          .map(m => ({
-            sender: m.sender,
-            text: getTranslatedMessageText(m, selectedLang),
-            timestamp: m.timestamp
-          }))
-      };
-
-      const response = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        setReviewSubmitted(true);
-      }
-    } catch (err) {
-      console.error("Error submitting review:", err);
-    } finally {
-      setIsSubmittingReview(false);
-    }
-  };
-
-  // Refs for Audio Logic
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const inputAudioContextRef = useRef<AudioContext | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
-  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const nextStartTimeRef = useRef<number>(0);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const inputAnalyserRef = useRef<AnalyserNode | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-
-  const ensureAudioContexts = () => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      analyserRef.current.fftSize = 64;
-    }
-    if (!inputAudioContextRef.current) {
-      inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-    }
-    if (!inputAnalyserRef.current && inputAudioContextRef.current) {
-      inputAnalyserRef.current = inputAudioContextRef.current.createAnalyser();
-      inputAnalyserRef.current.fftSize = 64;
-    }
-
-    if (audioContextRef.current.state === 'suspended') audioContextRef.current.resume();
-    if (inputAudioContextRef.current.state === 'suspended') inputAudioContextRef.current.resume();
-  };
-
-  useEffect(() => {
-    let animationFrameId: number;
-    const updateVolume = () => {
-      let outputVol = 0;
-      let inputVol = 0;
-
-      if (isConnected) {
-        if (analyserRef.current) {
-          const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-          analyserRef.current.getByteFrequencyData(dataArray);
-          outputVol = dataArray.reduce((a, b) => a + b) / dataArray.length;
-        }
-        if (inputAnalyserRef.current) {
-          const dataArray = new Uint8Array(inputAnalyserRef.current.frequencyBinCount);
-          inputAnalyserRef.current.getByteFrequencyData(dataArray);
-          inputVol = dataArray.reduce((a, b) => a + b) / dataArray.length;
-        }
-      }
-      
-      const combinedVol = Math.max(outputVol, inputVol);
-      setVolume(combinedVol);
-      animationFrameId = requestAnimationFrame(updateVolume);
-    };
-    updateVolume();
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [isConnected]);
-
-  const pauseSession = () => {
-    setIsPaused(true);
-    isPausedRef.current = true;
-    setVolume(0);
-    setChatMessages(prev => [
-      ...prev,
-      {
-        id: `msg_sys_pause_${Date.now()}`,
-        sender: 'system',
-        text: 'ℹ️ Sesión en pausa. Escribe un mensaje en el campo de texto de abajo para reanudar la sesión.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timeMs: Date.now()
-      }
-    ]);
-  };
-
-  const resumeSession = () => {
-    setIsPaused(false);
-    isPausedRef.current = false;
-    lastInteractionTimeRef.current = Date.now();
-    setChatMessages(prev => [
-      ...prev,
-      {
-        id: `msg_sys_resume_${Date.now()}`,
-        sender: 'system',
-        text: 'ℹ️ Sesión reanudada.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timeMs: Date.now()
-      }
-    ]);
-  };
-
-  useEffect(() => {
-    if (!isConnected || isPaused) return;
-    const interval = setInterval(() => {
-      const inactiveMs = Date.now() - lastInteractionTimeRef.current;
-      if (inactiveMs > 60000) {
-        console.log("Auto-pausing session due to 60s inactivity");
-        pauseSession();
-      }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [isConnected, isPaused]);
-
-  const connectToGemini = async (initialPrompt?: string, isVoiceConnection: boolean = false, langOverride?: 'EN' | 'ES', keepTab: boolean = false) => {
-    setError(null);
-    setShowReviewScreen(false);
-    if (!keepTab) {
-      setRightPanelTab('chat');
-    }
-    setIsPaused(false);
-    isPausedRef.current = false;
-    lastInteractionTimeRef.current = Date.now();
-    setScores({ grammar: 0, pronunciation: 0, confidence: 0, naturalness: 0 });
-    setLearnedWords([]);
-    setAccentPatterns([]);
-    ensureAudioContexts();
-    
-    if (initialPrompt && !isVoiceConnection) {
-      setChatMessages([
-        {
-          id: `msg_${Date.now()}`,
-          sender: 'user',
-          text: initialPrompt,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          timeMs: Date.now()
-        }
-      ]);
-    } else {
-      setChatMessages([
-        {
-          id: `msg_sys_${Date.now()}`,
-          sender: 'system',
-          text: (langOverride || selectedLang) === 'EN' ? '🎙️ Connecting to Voyager... Please speak clearly.' : '🎙️ Conectando con Voyager... Por favor habla claro.',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          timeMs: Date.now()
-        }
-      ]);
-    }
-    
-    try {
-      setStatusText("Connecting...");
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-
-      const activeLang = langOverride || selectedLang;
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/api/live?lang=${activeLang}`;
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        setIsConnected(true);
-        setStatusText("Connected");
-        console.log("WebSocket connection to server established");
-        
-        setChatMessages(prev => [
-          ...prev,
-          {
-            id: `msg_sys_open_${Date.now()}`,
-            sender: 'system',
-            text: '🟢 Connected! Speaking is active with SPLASH.',
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            timeMs: Date.now()
-          }
-        ]);
-
-        if (!inputAudioContextRef.current) return;
-        const ctx = inputAudioContextRef.current;
-        const source = ctx.createMediaStreamSource(stream);
-        const processor = ctx.createScriptProcessor(4096, 1, 1);
-        
-        processor.onaudioprocess = (e) => {
-          if (ws.readyState !== WebSocket.OPEN) return;
-          if (isPausedRef.current) return;
-          // Update activity timer when audio is streaming from mic
-          lastInteractionTimeRef.current = Date.now();
-          const resampled = resampleAudioBuffer(e.inputBuffer, 16000);
-          const pcm16 = float32ToPcm16(resampled);
-          const pcmBytes = new Uint8Array(pcm16.buffer);
-          const base64Data = bytesToBase64(pcmBytes);
-          ws.send(JSON.stringify({ audio: base64Data }));
-        };
-
-        source.connect(processor);
-        if (inputAnalyserRef.current) {
-          source.connect(inputAnalyserRef.current);
-        }
-        processor.connect(ctx.destination);
-        
-        sourceRef.current = source;
-        processorRef.current = processor;
-      };
-
-      ws.onmessage = async (event) => {
-        try {
-          // Reset inactivity timer when server sends any message/audio/text
-          lastInteractionTimeRef.current = Date.now();
-          const msg = JSON.parse(event.data);
-          
-          if (msg.status === "connected") {
-            console.log("Gemini session is active on the backend. Dispatching welcome greeting.");
-            let greeting = initialPrompt || (
-              selectedLang === 'ES'
-                ? "Por favor preséntate en español como VOYAGER, dime que estás muy emocionado de ser mi guía en Nueva York, y pregúntame cuál es mi nombre para saber cómo dirigirte a mí (y adaptar los adjetivos en español a mi género correctamente)."
-                : "Please greet me in English as VOYAGER, say you are excited to guide me in NYC, and ask for my name so you can address me properly."
-            );
-            if (isBilingualModeRef.current) {
-              greeting += "\n\n[SYSTEM MESSAGE: You are now in BILINGUAL TRANSLATION MODE. For EVERY SINGLE response, you must first speak and write your response in Spanish, and then immediately repeat the exact same response only in English. Separate the Spanish and English sentences with a slash '/'. Your entire response must consist of the Spanish version followed directly by the English translation, both in your voice output and in your text transcription.]";
-            } else if (isTranslateModeRef.current) {
-              greeting += "\n\n[SYSTEM MESSAGE: You are now in INSTANT TRANSLATION MODE. You must act strictly and purely as a speech translator. Do NOT hold a conversation, do NOT give tips, do NOT make small talk, and do NOT guide the user. Your ONLY job is to immediately translate whatever you hear: if you hear Spanish, translate it to English; if you hear English, translate it to Spanish. Output ONLY the translated words and absolutely nothing else, both in your voice and in your text transcription. Keep translations instantaneous, brief, and exact.]";
-            } else if (isListenOnlyRef.current) {
-              greeting += "\n\n[SYSTEM MESSAGE: You are now starting in Monitor/Listen-only mode. The user is practicing by talking to a real person. You must only listen and analyze their English interaction. Do NOT speak. You can only respond via text. In your text responses, offer helpful, subtle language corrections or tips about their conversation, and if you want to speak aloud, explicitly ask the user for permission to talk (e.g. '¿Puedo hablar?').]";
-            } else if (isSpanishOnlyModeRef.current) {
-              greeting += "\n\n[SYSTEM MESSAGE: You are now in SPANISH ONLY MODE. You must speak and write strictly and purely in Spanish from now on. Discuss information, landmarks, and details about New York City in Spanish. Do NOT teach English, evaluate grammar, or translate any text. Speak only in Spanish.]";
-            } else if (isEnglishOnlyModeRef.current) {
-              greeting += "\n\n[SYSTEM MESSAGE: You are now in ENGLISH ONLY MODE. You must speak and write strictly and purely in English. Do NOT provide any Spanish translations, hints, corrections, or bilingual tips. Speak naturally as a native English speaker from New York City. This is a pure immersion practice mode for advanced students. Speak only in English.]";
-            }
-            
-            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-              wsRef.current.send(JSON.stringify({ text: greeting }));
-            }
-            return;
-          }
-          
-          if (msg.error) {
-             console.error("Server reported error:", msg.error);
-             setError(msg.error);
-             disconnect();
-             return;
-          }
-
-          if (msg.meetingBooked) {
-             console.log("Meeting booked successfully. Transitioning to end chat review screen.");
-             handleEndConversation();
-             return;
-          }
-
-          if (msg.languageSwitch) {
-            setSelectedLang(msg.languageSwitch);
-          }
-
-          if (msg.progressUpdate) {
-            console.log("Received progress update from tool:", msg.progressUpdate);
-            const { scores, learnedWords, accentTips, completedMissionId } = msg.progressUpdate;
-            
-            if (scores) {
-              setScores({
-                grammar: scores.grammar || 0,
-                pronunciation: scores.pronunciation || 0,
-                confidence: scores.confidence || 0,
-                naturalness: scores.naturalness || 0
-              });
-            }
-            
-            if (learnedWords && learnedWords.length > 0) {
-              setLearnedWords(prev => {
-                const updated = [...prev];
-                learnedWords.forEach((w: string) => {
-                  if (!updated.includes(w)) updated.push(w);
-                });
-                return updated;
-              });
-            }
-            
-            if (accentTips) {
-              setAccentPatterns(prev => {
-                if (!prev.includes(accentTips)) {
-                  return [...prev, accentTips];
-                }
-                return prev;
-              });
-            }
-            
-            if (completedMissionId) {
-              setCompletedMissions(prev => {
-                if (!prev.includes(completedMissionId)) {
-                  return [...prev, completedMissionId];
-                }
-                return prev;
-              });
-            }
-            return;
-          }
-
-          if (msg.mapAction) {
-            console.log("Received mapAction:", msg.mapAction, msg.data);
-            if (msg.mapAction === "show_location") {
-              const { placeName, latitude, longitude, description } = msg.data;
-              setMapCenter({ lat: latitude, lng: longitude });
-              setMapZoom(15);
-              setMarkers(prev => [
-                ...prev,
-                {
-                  id: `marker_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-                  lat: latitude,
-                  lng: longitude,
-                  title: placeName,
-                  description: description
-                }
-              ]);
-              setRouteInfo(null);
-            } else if (msg.mapAction === "draw_route") {
-              const { origin, destination, travelMode, description } = msg.data;
-              setRouteInfo({ origin, destination, travelMode, description });
-              setMarkers([]);
-            }
-          }
-
-          if (msg.userTranscription) {
-             setChatMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last && last.sender === 'user' && last.id.startsWith('msg_voice_trans_') && (Date.now() - last.timeMs < 6000)) {
-                   const updated = [...prev];
-                   updated[updated.length - 1] = {
-                      ...last,
-                      text: last.text + msg.userTranscription,
-                      timeMs: Date.now()
-                   };
-                   return updated;
-                } else {
-                   return [...prev, {
-                      id: `msg_voice_trans_${Date.now()}`,
-                      sender: 'user',
-                      text: msg.userTranscription,
-                      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                      timeMs: Date.now()
-                   }];
-                }
-             });
-          }
-
-          if (msg.text) {
-             setChatMessages(prev => {
-                const last = prev[prev.length - 1];
-                const formPattern = /\[SHOW[-_ ]FORM\]|\(SHOW[-_ ]FORM\)/gi;
-                if (last && last.sender === 'splash' && !last.id.startsWith('welcome_') && (Date.now() - last.timeMs < 10000)) {
-                   const updated = [...prev];
-                   const combinedText = last.text + msg.text;
-                   
-                   // Parse immersion tags
-                   const parsed = parseImmersionTags(combinedText);
-                   updateLearningState(parsed);
-
-                   // Handle subway map routing
-                   if (/(subway\s*map|metro\s*map|network\s*grid|subway\s*grid|subway\s*system|mapa\s*de\s*metro|mapa\s*del\s*metro|red\s*de\s*metro|transit\s*map|mapa\s*de\s*tr[aá]nsito)/i.test(parsed.cleaned)) {
-                      setRightPanelTab('lessons');
-                      setClassroomSubTab('subway_map');
-                   }
-
-                   const hasFormTag = formPattern.test(parsed.cleaned) || last.showForm || msg.showForm;
-                   const cleanedText = parsed.cleaned.replace(formPattern, "");
-                   updated[updated.length - 1] = {
-                      ...last,
-                      text: cleanedText,
-                      showForm: hasFormTag,
-                      timeMs: Date.now()
-                   };
-                   return updated;
-                } else {
-                   const parsed = parseImmersionTags(msg.text);
-                   updateLearningState(parsed);
-
-                   // Handle subway map routing
-                   if (/(subway\s*map|metro\s*map|network\s*grid|subway\s*grid|subway\s*system|mapa\s*de\s*metro|mapa\s*del\s*metro|red\s*de\s*metro|transit\s*map|mapa\s*de\s*tr[aá]nsito)/i.test(parsed.cleaned)) {
-                      setRightPanelTab('lessons');
-                      setClassroomSubTab('subway_map');
-                   }
-
-                   const hasFormTag = formPattern.test(parsed.cleaned) || msg.showForm;
-                   const cleanedText = parsed.cleaned.replace(formPattern, "");
-                   return [...prev, {
-                      id: `msg_${Date.now()}_${Math.random()}`,
-                      sender: 'splash',
-                      text: cleanedText,
-                      showForm: hasFormTag,
-                      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                      timeMs: Date.now()
-                   }];
-                }
-             });
-          }
-
-          if (msg.audio && audioContextRef.current && !isListenOnlyRef.current && !isPausedRef.current) {
-            const ctx = audioContextRef.current;
-            if (ctx.state === 'suspended') {
-              ctx.resume();
-            }
-            const pcmData = new Int16Array(base64ToBytes(msg.audio).buffer);
-            const audioBuffer = createAudioBufferFromPCM(ctx, pcmData, 24000);
-            
-            const source = ctx.createBufferSource();
-            source.buffer = audioBuffer;
-            
-            if (analyserRef.current) {
-              source.connect(analyserRef.current);
-              analyserRef.current.connect(ctx.destination);
-            } else {
-               source.connect(ctx.destination);
-            }
-
-            const now = ctx.currentTime;
-            const startTime = Math.max(now, nextStartTimeRef.current);
-            source.start(startTime);
-            nextStartTimeRef.current = startTime + audioBuffer.duration;
-          }
-        } catch (e) {
-          console.error("Error reading message:", e);
-        }
-      };
-
-      ws.onclose = () => {
-         console.log("WebSocket connection closed");
-         disconnect();
-      };
-
-      ws.onerror = (err) => {
-         console.error("WebSocket error:", err);
-         setError("Server connection error");
-         disconnect();
-      };
-
-    } catch (err: any) {
-        console.error("Connection Failed", err);
-        setError(err.message || "Error connecting or accessing microphone. Please ensure microphone permissions are granted.");
-        setStatusText("Disconnected");
-    }
-  };
-
-  const disconnect = () => {
-    if (statusText === "Disconnected" && !wsRef.current) return;
-    setIsConnected(false);
-    setStatusText("Disconnected");
-    setVolume(0);
-    setIsPaused(false);
-    isPausedRef.current = false;
-    
-    setChatMessages(prev => [
-      ...prev,
-      {
-        id: `msg_sys_close_${Date.now()}`,
-        sender: 'system',
-        text: '🔴 Disconnected from VOYAGER Voice Agent.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timeMs: Date.now()
-      }
-    ]);
-    
-    if (wsRef.current) {
-       const ws = wsRef.current;
-       wsRef.current = null;
-       ws.onopen = null;
-       ws.onmessage = null;
-       ws.onerror = null;
-       ws.onclose = null;
-
-       if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-         try {
-           ws.close();
-         } catch (e) {
-           console.error("Error closing WebSocket:", e);
-         }
-       }
-    }
-
-    if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
-        streamRef.current = null;
-    }
-    if (processorRef.current && inputAudioContextRef.current) {
-        processorRef.current.disconnect();
-        if (sourceRef.current) sourceRef.current.disconnect();
-    }
-    nextStartTimeRef.current = 0;
-  };
-
-  useEffect(() => {
-    if (showReviewScreen) {
-      disconnect();
-    }
-  }, [showReviewScreen]);
-
-  const handleLanguageChange = (lang: 'EN' | 'ES') => {
-    if (selectedLang === lang) return;
-    
-    setSelectedLang(lang);
-    
-    if (isConnected || statusText === "Connecting...") {
-      disconnect();
-      const isEn = lang === 'EN';
-      const prompt = isEn 
-        ? "Hello! Let's talk in English now. Please introduce yourself in English in one short sentence, and ask how you can help."
-        : "¡Hola! Hablemos en español ahora. Por favor, preséntate en español en una frase corta y pregúntame cómo puedes ayudar.";
-      
-      setTimeout(() => {
-        connectToGemini(prompt, true, lang);
-      }, 150);
-    }
-  };
-  
-  const handleSuggestionClick = (text: string) => {
-      setChatMessages(prev => {
-        if (prev.some(m => m.text === text && m.sender === 'user')) return prev;
-        return [
-          ...prev,
-          {
-            id: `msg_suggest_${Date.now()}`,
-            sender: 'user',
-            text,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            timeMs: Date.now()
-          }
-        ];
-      });
-
-      // Automatically transition tab on subway map keywords
-      if (/(subway\s*map|metro\s*map|network\s*grid|subway\s*grid|subway\s*system|mapa\s*de\s*metro|mapa\s*del\s*metro|red\s*de\s*metro|transit\s*map|mapa\s*de\s*tr[aá]nsito)/i.test(text)) {
-        setRightPanelTab('lessons');
-        setClassroomSubTab('subway_map');
-      }
-
-      if (!isConnected) {
-          connectToGemini(text);
-      } else {
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-             wsRef.current.send(JSON.stringify({ text }));
-          }
-      }
-  };
-
-  const handleSendMessage = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!inputText.trim()) return;
-
-    lastInteractionTimeRef.current = Date.now();
-    if (isPausedRef.current) {
-      resumeSession();
-    }
-
-    const textToSend = inputText.trim();
-    setInputText("");
-
-    setChatMessages(prev => [
-      ...prev,
-      {
-        id: `msg_text_${Date.now()}`,
-        sender: 'user',
-        text: textToSend,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        timeMs: Date.now()
-      }
-    ]);
-
-    // Automatically transition subtab on subway map keywords
-    if (/(subway\s*map|metro\s*map|network\s*grid|subway\s*grid|subway\s*system|mapa\s*de\s*metro|mapa\s*del\s*metro|red\s*de\s*metro|transit\s*map|mapa\s*de\s*tr[aá]nsito)/i.test(textToSend)) {
-      setClassroomSubTab('subway_map');
-    }
-
-    if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-       wsRef.current.send(JSON.stringify({ text: textToSend }));
-    } else {
-        connectToGemini(textToSend, false, undefined, activeLessonDay !== null);
-    }
-  };
-
-     return (
-       <div className={`
-           relative flex flex-col items-center justify-center overflow-y-auto md:overflow-hidden p-4 md:p-8
-           ${isWidgetMode ? 'w-full h-full bg-black' : 'w-full min-h-screen bg-black'}
-           text-zinc-900 font-sans transition-all duration-300
-       `}>
-        <style dangerouslySetInnerHTML={{__html: `
-            @import url('https://fonts.googleapis.com/css2?family=Allerta&display=swap');
-            @keyframes blackNeonPulse {
-                0% {
-                    text-shadow:
-                        0 0 4px #000000,
-                        0 0 8px #000000,
-                        0 0 15px rgba(0, 0, 0, 0.9),
-                        0 0 30px rgba(0, 0, 0, 0.7);
-                }
-                50% {
-                    text-shadow:
-                        0 0 6px #000000,
-                        0 0 12px #000000,
-                        0 0 25px rgba(0, 0, 0, 0.95),
-                        0 0 50px rgba(0, 0, 0, 0.95),
-                        0 0 80px rgba(0, 0, 0, 0.75);
-                }
-                100% {
-                    text-shadow:
-                        0 0 4px #000000,
-                        0 0 8px #000000,
-                        0 0 15px rgba(0, 0, 0, 0.9),
-                        0 0 30px rgba(0, 0, 0, 0.7);
-                }
-            }
-            .animate-black-neon-glow {
-                animation: blackNeonPulse 2.5s ease-in-out infinite;
-            }
-            @keyframes subMenuFlicker {
-                0%, 100% { opacity: 1; transform: scale(1); }
-                50% { opacity: 0.55; transform: scale(0.9); }
-            }
-            .animate-submenu-flicker {
-                animation: subMenuFlicker 1.4s infinite ease-in-out;
-            }
-            .theme-light {
-                background-color: #f5efe6 !important;
-            }
-            .theme-light .bg-black\\/45 {
-                background-color: transparent !important;
-                color: #18181b !important;
-            }
-            .theme-light .border-white\\/10 {
-                border: none !important;
-            }
-            .theme-light .text-white {
-                color: #18181b !important;
-            }
-            .theme-light .text-neutral-100 {
-                color: #18181b !important;
-            }
-            .theme-light .text-neutral-200 {
-                color: #27272a !important;
-            }
-            .theme-light .text-neutral-300 {
-                color: #3f3f46 !important;
-            }
-            .theme-light .text-neutral-400 {
-                color: #71717a !important;
-            }
-            .theme-light .bg-zinc-100 {
-                background-color: #faf9f6 !important;
-            }
-            .theme-light .bg-white\\/5 {
-                background-color: #faf9f6 !important;
-                border: none !important;
-            }
-            .theme-light .bg-\\[\\#1f1f23\\]\\/60 {
-                background-color: #faf9f6 !important;
-                border: none !important;
-            }
-            .theme-light .border-white\\/5 {
-                border: none !important;
-            }
-            .theme-light .text-yellow-400 {
-                color: #ca8a04 !important;
-            }
-            .theme-light .bg-yellow-500\\/10 {
-                background-color: rgba(202, 138, 4, 0.1) !important;
-            }
-            .theme-light .border-yellow-500\\/30 {
-                border: none !important;
-            }
-            .theme-light .text-emerald-400 {
-                color: #059669 !important;
-            }
-            .theme-light .bg-white {
-                background-color: #18181b !important;
-                color: #ffffff !important;
-            }
-            .theme-light .text-neutral-500 {
-                color: #71717a !important;
-            }
-            .theme-light button.bg-\\[\\#1e3a8a\\] {
-                color: #ffffff !important;
-            }
-            .theme-light [class*="border"] {
-                border: none !important;
-            }
-            .tab-content-area .text-xs,
-            .tab-content-area .text-\\[12px\\],
-            .tab-content-area .text-sm,
-            .tab-content-area .text-\\[14px\\] {
-                font-size: 18.5px !important;
-                line-height: 1.6 !important;
-            }
-            .tab-content-area .text-\\[10px\\],
-            .tab-content-area .text-\\[9px\\],
-            .tab-content-area .text-neutral-400 {
-                font-size: 14.5px !important;
-            }
-            .tab-content-area .text-lg,
-            .tab-content-area .text-xl,
-            .tab-content-area h3 {
-                font-size: 22px !important;
-            }
-            .tab-content-area p {
-                font-size: 18.5px !important;
-                line-height: 1.6 !important;
-            }
-            .tab-content-area .chat-message-text {
-                font-family: "American Typewriter", "Courier New", Courier, Georgia, serif !important;
-                font-size: 12pt !important;
-            }
-            .tab-content-area .chat-message-english {
-                font-size: 11pt !important;
-                line-height: 1.25 !important;
-                font-weight: normal !important;
-                letter-spacing: -0.15px !important;
-            }
-            .tab-content-area input.chat-input-text {
-                font-family: "American Typewriter", "Courier New", Courier, Georgia, serif !important;
-                font-size: 12pt !important;
-                font-weight: 600 !important;
-                letter-spacing: 0.05em !important;
-            }
-            .tab-content-area input,
-            .tab-content-area textarea,
-            .tab-content-area select,
-            .tab-content-area button {
-                font-size: 14.5px !important;
-            }
-            .tab-content-area label {
-                font-size: 14px !important;
-            }
-        `}} />
-        {/* Background Image & Overlay */}
-        {!isWidgetMode && (
-             <div className="absolute inset-0 z-0 pointer-events-none bg-black">
-                 <div className="absolute inset-0 bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] opacity-50"></div>
-             </div>
-        )}
-
-        {/* Outer Grid Layout */}
-        <div className={`relative z-10 flex flex-col md:flex-row items-stretch justify-center w-full ${isWidgetMode ? 'max-w-full h-full space-y-4 md:space-y-0 md:space-x-4' : 'max-w-6xl space-y-8 md:space-y-0 md:space-x-8 animate-fade-in'}`}>
-            
-            {/* Left Column */}
-            <div className="w-full md:w-5/12 max-w-md mx-auto md:mx-0 flex flex-col items-center justify-between space-y-6 bg-[#0a192f] backdrop-blur-2xl rounded-3xl p-6 shadow-2xl relative border border-blue-900/60">
-                
-                {isWidgetMode && onClose && (
-                    <button onClick={onClose} className="absolute top-2 right-2 text-white/50 hover:text-white cursor-pointer">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                )}
-
-                <div className="text-center mt-4 flex flex-col items-center w-full">
-                    <h1 className="font-tech uppercase text-4xl md:text-5xl font-black tracking-wider text-white animate-black-neon-glow">
-                        YO SOY VOYAGER
-                    </h1>
-                    <p className="text-[10px] md:text-xs text-yellow-400 font-mono tracking-widest uppercase mt-1">
-                        Guía de NYC y Tutor de Inglés
-                    </p>
-                </div>
-
-                <div className="w-full flex-1 flex flex-col items-center justify-center space-y-6 py-4 animate-fade-in">
-                    <style dangerouslySetInnerHTML={{__html: `
-                        @keyframes orbFluid {
-                            0%, 100% { border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
-                            33% { border-radius: 70% 30% 52% 48% / 60% 40% 60% 40%; }
-                            66% { border-radius: 50% 50% 30% 70% / 40% 60% 30% 70%; }
-                        }
-                        .animate-orb-fluid {
-                            animation: orbFluid 10s ease-in-out infinite;
-                        }
-                        @keyframes zeroGFloat {
-                            0% { transform: translateY(0px) rotate(0deg) scale(1); }
-                            25% { transform: translateY(-6px) rotate(0.8deg) scale(1.008); }
-                            50% { transform: translateY(-12px) rotate(-0.5deg) scale(1.015); }
-                            75% { transform: translateY(-6px) rotate(-1deg) scale(1.008); }
-                            100% { transform: translateY(0px) rotate(0deg) scale(1); }
-                        }
-                        @keyframes yellowGlowPulse {
-                            0%, 100% { box-shadow: 0 0 10px rgba(234, 179, 8, 0.4), 0 0 5px rgba(234, 179, 8, 0.2); }
-                            50% { box-shadow: 0 0 24px rgba(234, 179, 8, 0.85), 0 0 12px rgba(234, 179, 8, 0.5); }
-                        }
-                        .animate-yellow-glow-pulse {
-                            animation: yellowGlowPulse 2.5s ease-in-out infinite;
-                        }
-                    `}} />
-
-                    <div className="relative flex items-center justify-center w-64 h-[380px]">
-                        <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-tr from-yellow-500/10 via-amber-500/15 to-orange-500/10 blur-3xl animate-pulse duration-[3000ms]"></div>
-                        
-                        <div className="relative w-full h-full flex flex-col items-center justify-center -translate-y-[70px]">
-                            <canvas 
-                                ref={particleCanvasRef} 
-                                width={360} 
-                                height={360} 
-                                className="z-20 transition-transform duration-75 animate-float-zero-g"
-                            />
-                        </div>
-
-                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-20">
-                            {isConnected ? (
-                                <button
-                                    onClick={handleEndConversation}
-                                    className="px-7 py-2.5 text-[12.5px] font-mono font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap bg-white text-black hover:bg-zinc-100 hover:scale-[1.02] active:scale-95 shadow-md"
-                                >
-                                    {translations[selectedLang].disconnectBtn}
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={() => {
-                                        if (statusText === "Connecting...") return;
-                                        const isEn = selectedLang === 'EN';
-                                        const prompt = isEn 
-                                            ? "Hello! Please introduce yourself in one short sentence, and ask how you can help."
-                                            : "¡Hola! Por favor, preséntate en una frase corta y pregúntame cómo te puedo ayudar.";
-                                        connectToGemini(prompt, true);
-                                    }}
-                                    disabled={statusText === "Connecting..."}
-                                    className={`px-7 py-2.5 text-[12.5px] font-mono font-bold tracking-widest uppercase rounded-full transition-all duration-300 cursor-pointer whitespace-nowrap ${
-                                        statusText === "Connecting..."
-                                        ? 'bg-emerald-600 text-white animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.6)]'
-                                        : 'bg-white text-black animate-yellow-glow-pulse hover:bg-zinc-100 hover:scale-[1.02] active:scale-95'
-                                    }`}
-                                >
-                                    {statusText === "Connecting..." ? translations[selectedLang].connecting : translations[selectedLang].connect}
-                                </button>
-                            )}
-
-                            {/* Session Status Display */}
-                            {isConnected && (
-                                <div className="flex items-center gap-1.5 mt-0.5 animate-fade-in">
-                                    <div className="w-1.5 h-1.5 rounded-full animate-pulse bg-emerald-500" />
-                                    <span className="text-[10px] font-sans font-bold text-neutral-300 uppercase tracking-widest">
-                                        {`Sesión (${Math.floor(secondsElapsed / 60)}:${(secondsElapsed % 60).toString().padStart(2, '0')})`}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
+const playPinSound = () => {
+ try {
+ const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+ if (!AudioCtx) return;
+ const ctx = new AudioCtx();
  
-                {error && (
-                    <div className="w-full bg-red-950/45 border border-red-500/35 rounded-xl p-3 text-center space-y-2 animate-fade-in max-w-sm shadow-lg backdrop-blur-md mb-2">
-                        <div className="flex items-center justify-center space-x-2 text-red-400 font-semibold text-xs">
-                            <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            <span>{translations[selectedLang].connectionError}</span>
-                        </div>
-                        <p className="text-[10px] text-neutral-200 leading-relaxed font-mono bg-black/30 p-2 rounded border border-white/5">{error}</p>
-                        {(error.toLowerCase().includes('api') || error.toLowerCase().includes('key') || error.toLowerCase().includes('expired') || error.toLowerCase().includes('clave') || error.toLowerCase().includes('caducada')) && (
-                            <div className="text-[10px] text-neutral-300 bg-black/55 p-2 rounded-lg text-left space-y-1 border border-white/5">
-                                <p className="font-semibold text-yellow-500/90">{translations[selectedLang].howToFix}</p>
-                                <ol className="list-decimal pl-4 space-y-0.5 text-neutral-400">
-                                    <li>{translations[selectedLang].step1}</li>
-                                    <li>{translations[selectedLang].step2}</li>
-                                    <li>{translations[selectedLang].step3}</li>
-                                </ol>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
+ const osc = ctx.createOscillator();
+ const gain = ctx.createGain();
+ 
+ osc.connect(gain);
+ gain.connect(ctx.destination);
+ 
+ osc.type = 'sine';
+ osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+ osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.12); // G5
+ 
+ gain.gain.setValueAtTime(0.15, ctx.currentTime);
+ gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+ 
+ osc.start();
+ osc.stop(ctx.currentTime + 0.4);
+ } catch (e) {
+ console.error("Failed to play pin sound:", e);
+ }
+};
 
-            <div className={`w-full md:w-7/12 mx-auto md:mx-0 flex-1 flex flex-col justify-start backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl min-h-[480px] md:min-h-[580px] font-tech relative transition-all duration-500 ${showReviewScreen ? 'bg-zinc-950 text-white shadow-[0_10px_35px_rgba(0,0,0,0.3)]' : 'bg-white text-zinc-900 shadow-[0_10px_35px_rgba(0,0,0,0.08)] theme-light'}`}>
-                
-                {isConnected && !showReviewScreen && (
-                    <div className="px-4 pt-3 pb-2 z-20">
-                        <div className="grid grid-cols-4 p-1 rounded-xl w-full gap-1 transition-all bg-[#f5efe6] border border-zinc-200/50">
-                            <button
-                                onClick={() => setRightPanelTab('chat')}
-                                style={{ color: '#ffffff' }}
-                                className={`py-1.5 px-1 md:px-3 text-[14px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
-                                    rightPanelTab === 'chat'
-                                    ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
-                                    : 'bg-[#1e3a8a]/25 text-white hover:bg-[#1e3a8a]/40'
-                                }`}
-                            >
-                                Chat
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setRightPanelTab('lessons');
-                                    const text = `[SISTEMA: El usuario ingresó a la pestaña Lecciones. Di exactamente esto en español con voz natural y no escribas corchetes: "Bienvenido a la sección de Lecciones, ¡aprenderás hablando e interactuando conmigo!".]`;
-                                    if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                                        wsRef.current.send(JSON.stringify({ text }));
-                                    }
-                                }}
-                                style={{ color: '#ffffff' }}
-                                className={`py-1.5 px-1 md:px-3 text-[14px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
-                                    rightPanelTab === 'lessons'
-                                    ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
-                                    : 'bg-[#1e3a8a]/25 text-white hover:bg-[#1e3a8a]/40'
-                                }`}
-                            >
-                                Lecciones
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setRightPanelTab('trips');
-                                    fetchLeads();
-                                }}
-                                style={{ color: '#ffffff' }}
-                                className={`py-1.5 px-1 md:px-3 text-[14px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
-                                    rightPanelTab === 'trips'
-                                    ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
-                                    : 'bg-[#1e3a8a]/25 text-white hover:bg-[#1e3a8a]/40'
-                                }`}
-                            >
-                                Viajes
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setRightPanelTab('profile');
-                                }}
-                                style={{ color: '#ffffff' }}
-                                className={`py-1.5 px-1 md:px-3 text-[14px] md:text-[18px] font-sans font-bold tracking-wider rounded-lg transition-all cursor-pointer ${
-                                    rightPanelTab === 'profile'
-                                    ? 'bg-[#1e3a8a] text-white font-extrabold shadow-md'
-                                    : 'bg-[#1e3a8a]/25 text-white hover:bg-[#1e3a8a]/40'
-                                }`}
-                            >
-                                Perfil
-                            </button>
-                        </div>
-                    </div>
-                )}
+const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) => {
+ const [rightPanelTab, setRightPanelTab] = useState<'home' | 'chat' | 'roadmap' | 'teachers' | 'progress' | 'settings' | 'shopping'>('home');
 
-                {showReviewScreen ? (
-                    <div className="flex-1 flex flex-col justify-between p-6 animate-fade-in bg-zinc-950 tab-content-area">
-                        <div className="text-center mb-4">
-                            <span className="text-xs tracking-widest uppercase text-yellow-500 font-mono">PROGRESO</span>
-                            <h3 className="text-lg text-white font-bold uppercase tracking-wider mt-1">Estadísticas de tu Interacción</h3>
-                        </div>
-                        
-                        <div className="flex-1 flex justify-center items-center overflow-hidden">
-                            <div className="w-full max-w-[95%] md:max-w-[75%] transform scale-95 md:scale-75 origin-center my-auto">
-                                <ProgressDashboard 
-                                    selectedLang={selectedLang}
-                                    scores={scores}
-                                    learnedWords={learnedWords}
-                                    accentPatterns={accentPatterns}
-                                    onAskVoyager={(text) => {
-                                        setShowReviewScreen(false);
-                                        setChatMessages([
-                                          {
-                                            id: 'welcome_1',
-                                            sender: 'splash',
-                                            text: 'Hi! I\'m VOYAGER, your NYC guide and English tutor. Click Connect to start a voice-and-text conversation.',
-                                            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                            timeMs: Date.now()
-                                          }
-                                        ]);
-                                        connectToGemini(text, false);
-                                    }}
-                                />
-                            </div>
-                        </div>
+ const {
+ isConnected,
+ statusText,
+ isPaused,
+ secondsElapsed,
+ volume,
+ error,
+ setError,
+ selectedLang,
+ setSelectedLang,
+ isListenOnly,
+ setIsListenOnly,
+ isTranslateMode,
+ setIsTranslateMode,
+ isBilingualMode,
+ setIsBilingualMode,
+ isSpanishOnlyMode,
+ setIsSpanishOnlyMode,
+ isEnglishOnlyMode,
+ setIsEnglishOnlyMode,
+ scores,
+ setScores,
+ learnedWords,
+ setLearnedWords,
+ accentPatterns,
+ setAccentPatterns,
+ pronunciationEvents,
+ chatMessages,
+ setChatMessages,
+ addUserMessage,
+ connect,
+ disconnect,
+ sendText,
+ pause,
+ resume,
+ hasInteracted,
+ setHasInteracted,
+ } = useConversationEngine(rightPanelTab);
+ const [hasClickedConnect, setHasClickedConnect] = useState<boolean>(false);
+ const [chosenStartMode, setChosenStartMode] = useState<ConversationMode | null>('SPANISH');
+ const [onboardingStep, setOnboardingStep] = useState<number>(0);
+ const [selectedGoal, setSelectedGoal] = useState<'PROFESSIONAL' | 'ESTUDIO' | 'VIAJANTE' | 'DOCENTES' | null>(null);
+ const [selectedLevel, setSelectedLevel] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'NOT_SURE' | null>(null);
+ const [selectedProfSubGoal, setSelectedProfSubGoal] = useState<'CONSEGUIR_EMPLEO' | 'COMUNICARME_TRABAJO' | 'CRECER_PROFESIONAL' | null>(null);
+ const [selectedProfInterest, setSelectedProfInterest] = useState<'EMPRENDEDOR' | 'GERENCIA' | 'MERCADEO' | 'VENTAS' | null>(null);
+ const [selectedSchoolLevel, setSelectedSchoolLevel] = useState<'ELEMENTARY_SCHOOL' | 'MIDDLE_SCHOOL' | 'HIGH_SCHOOL' | 'COLLEGE_UNIVERSITY' | 'GRADUATE_SCHOOL' | null>(null);
+ const [selectedAcademicGoal, setSelectedAcademicGoal] = useState<'PASS_EXAM' | 'ACADEMIC_SUCCESS' | 'STUDY_ABROAD' | 'IMPROVE_CONVERSATION' | 'GENERAL_KNOWLEDGE' | null>(null);
+ const [selectedViajanteSubGoal, setSelectedViajanteSubGoal] = useState<'EXPLORAR' | 'AMISTAD' | 'CULTURA' | null>(null);
+ const [selectedDocenteProfile, setSelectedDocenteProfile] = useState<'PROFESOR_INGLES' | 'TUTOR_PRIVADO' | 'ACADEMIA' | 'PROFESOR_UNIVERSITARIO' | 'INSTRUCTOR_CORPORATIVO' | 'ORGANIZACION' | 'CREADOR_CONTENIDO' | null>(null);
+ const [selectedDocenteGoal, setSelectedDocenteGoal] = useState<'MEJORAR_CLASES' | 'AHORRAR_TIEMPO' | 'PERSONALIZAR' | 'VENDER_CURSOS' | null>(null);
+ const [userName, setUserName] = useState<string>(() => {
+ try {
+ const saved = localStorage.getItem('voyager_user_account');
+ if (saved) {
+ const parsed = JSON.parse(saved);
+ if (parsed.name && parsed.name !== 'Estudiante' && parsed.name !== 'Learner') return parsed.name;
+ }
+ } catch (e) {}
+ return '';
+ });
+ const [userAge, setUserAge] = useState<string>(() => {
+ try {
+ const saved = localStorage.getItem('voyager_user_account');
+ if (saved) {
+ const parsed = JSON.parse(saved);
+ if (parsed.age) return String(parsed.age);
+ }
+ } catch (e) {}
+ return '';
+ });
+ const [userEmail, setUserEmail] = useState<string>(() => {
+ try {
+ const saved = localStorage.getItem('voyager_user_account');
+ if (saved) {
+ const parsed = JSON.parse(saved);
+ if (parsed.email && parsed.email !== 'learner@usavoyager.com') return parsed.email;
+ }
+ } catch (e) {}
+ return '';
+ });
+ const [userCountry, setUserCountry] = useState<string>(() => {
+ try {
+ const saved = localStorage.getItem('voyager_user_account');
+ if (saved) {
+ const parsed = JSON.parse(saved);
+ if (parsed.country && parsed.country !== 'Desconocido' && parsed.country !== 'Unknown') return parsed.country;
+ }
+ } catch (e) {}
+ return '';
+ });
+ const [contactMessage, setContactMessage] = useState<string>('');
+ const [contactSubmitted, setContactSubmitted] = useState<boolean>(false);
+ const [explanationCountdown, setExplanationCountdown] = useState<number | null>(null);
+ const [showReviewScreen, setShowReviewScreen] = useState<boolean>(false);
+ const [inputText, setInputText] = useState<string>('');
+ const [isFadingMascot, setIsFadingMascot] = useState<boolean>(false);
+ const [activePolicyModal, setActivePolicyModal] = useState<'privacy' | 'terms' | 'copyright' | 'contact' | null>(null);
+ const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+ const [cartCount, setCartCount] = useState<number>(0);
 
-                    </div>
-                ) : (
-                    <>
-                        {hasInteracted && ((rightPanelTab === 'chat') || rightPanelTab === 'trips') && (
-                            <div className="px-4 py-2 border-b border-zinc-200/50 flex items-center justify-center bg-[#f5efe6] flex-shrink-0 z-10">
-                                {rightPanelTab === 'chat' && (
-                                    <div className="flex items-center justify-center gap-2 md:gap-3.5 flex-wrap w-full">
-                                        {/* Bilingual Option Toggle */}
-                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                            <input 
-                                                type="checkbox"
-                                                checked={isBilingualMode}
-                                                onChange={(e) => {
-                                                    setIsBilingualMode(e.target.checked);
-                                                    if (e.target.checked) {
-                                                        setIsTranslateMode(false);
-                                                        setIsListenOnly(false);
-                                                        setIsSpanishOnlyMode(false);
-                                                        setIsEnglishOnlyMode(false);
-                                                    }
-                                                }}
-                                                className="sr-only"
-                                            />
-                                            {isBilingualMode ? (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                            ) : (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                            )}
-                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                BILINGÜE
-                                            </span>
-                                        </label>
+ const visitorFullName = useMemo(() => {
+ if (userName && userName.trim()) {
+ const name = userName.trim();
+ if (name && name !== 'Estudiante' && name !== 'Learner') return name;
+ }
+ try {
+ const saved = localStorage.getItem('voyager_user_account');
+ if (saved) {
+ const parsed = JSON.parse(saved);
+ if (parsed.name && parsed.name !== 'Estudiante' && parsed.name !== 'Learner') {
+ const name = parsed.name.trim();
+ if (name) return name;
+ }
+ }
+ } catch (e) {}
+ return '';
+ }, [userName]);
 
-                                        {/* Translate Option Toggle */}
-                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                            <input 
-                                                type="checkbox"
-                                                checked={isTranslateMode}
-                                                onChange={(e) => {
-                                                    setIsTranslateMode(e.target.checked);
-                                                    if (e.target.checked) {
-                                                        setIsBilingualMode(false);
-                                                        setIsListenOnly(false);
-                                                        setIsSpanishOnlyMode(false);
-                                                        setIsEnglishOnlyMode(false);
-                                                    }
-                                                }}
-                                                className="sr-only"
-                                            />
-                                            {isTranslateMode ? (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                            ) : (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                            )}
-                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                TRADUCE
-                                            </span>
-                                        </label>
+ // Auto-sync user profile & contact info to localStorage and PERFIL dynamically
+ useEffect(() => {
+ if (!userName.trim() && !userEmail.trim() && !userCountry && !userAge) return;
 
-                                        {/* Listen Only Option Toggle */}
-                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                            <input 
-                                                type="checkbox"
-                                                checked={isListenOnly}
-                                                onChange={(e) => {
-                                                    setIsListenOnly(e.target.checked);
-                                                    if (e.target.checked) {
-                                                        setIsBilingualMode(false);
-                                                        setIsTranslateMode(false);
-                                                        setIsSpanishOnlyMode(false);
-                                                        setIsEnglishOnlyMode(false);
-                                                    }
-                                                }}
-                                                className="sr-only"
-                                            />
-                                            {isListenOnly ? (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                            ) : (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                            )}
-                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                ESCUCHA
-                                            </span>
-                                        </label>
+ const mapLevelEstimate = (lvl: typeof selectedLevel) => {
+ if (lvl === 'BEGINNER') return 'Beginner';
+ if (lvl === 'INTERMEDIATE') return 'Intermediate';
+ if (lvl === 'ADVANCED') return 'Advanced';
+ if (lvl === 'NOT_SURE') return 'Not Sure';
+ return 'Intermediate';
+ };
+ 
+ const getGoalText = () => {
+ if (selectedGoal === 'PROFESSIONAL') {
+ const subGoalText = selectedProfSubGoal ? ` (${selectedProfSubGoal})` : '';
+ const interestText = selectedProfInterest ? ` - ${selectedProfInterest}` : '';
+ return `Professional${subGoalText}${interestText}`;
+ }
+ if (selectedGoal === 'ESTUDIO') {
+ const schoolText = selectedSchoolLevel ? ` (${selectedSchoolLevel})` : '';
+ const academicText = selectedAcademicGoal ? ` - ${selectedAcademicGoal}` : '';
+ return `Academic / Study${schoolText}${academicText}`;
+ }
+ if (selectedGoal === 'VIAJANTE') {
+ const subGoalText = selectedViajanteSubGoal ? ` (${selectedViajanteSubGoal})` : '';
+ return `Traveler${subGoalText}`;
+ }
+ if (selectedGoal === 'DOCENTES') {
+ const profileText = selectedDocenteProfile ? ` (${selectedDocenteProfile})` : '';
+ const goalText = selectedDocenteGoal ? ` - ${selectedDocenteGoal}` : '';
+ return `Teachers${profileText}${goalText}`;
+ }
+ return 'Travel & Daily Conversation';
+ };
 
-                                        {/* Spanish Option Toggle */}
-                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                            <input 
-                                                type="checkbox"
-                                                checked={isSpanishOnlyMode}
-                                                onChange={(e) => {
-                                                    setIsSpanishOnlyMode(e.target.checked);
-                                                    if (e.target.checked) {
-                                                        setIsBilingualMode(false);
-                                                        setIsTranslateMode(false);
-                                                        setIsListenOnly(false);
-                                                        setIsEnglishOnlyMode(false);
-                                                    }
-                                                }}
-                                                className="sr-only"
-                                            />
-                                            {isSpanishOnlyMode ? (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                            ) : (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                            )}
-                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                ESPAÑOL
-                                            </span>
-                                        </label>
+ const saved = localStorage.getItem('voyager_user_account');
+ let u = {
+ name: userName.trim() || (selectedLang === 'EN' ? 'Learner' : 'Estudiante'),
+ email: userEmail.trim() || 'learner@usavoyager.com',
+ age: userAge.trim() ? parseInt(userAge.trim()) : undefined,
+ country: userCountry.trim() || (selectedLang === 'EN' ? 'Not specified' : 'Desconocido'),
+ provider: 'Guest' as const,
+ goal: getGoalText(),
+ levelEstimate: mapLevelEstimate(selectedLevel),
+ completedDays: [1],
+ plan: 'FREE' as const
+ };
+ if (saved) {
+ try {
+ const parsed = JSON.parse(saved);
+ u = {
+ ...parsed,
+ name: userName.trim() || parsed.name,
+ email: userEmail.trim() || parsed.email,
+ age: userAge.trim() ? parseInt(userAge.trim()) : parsed.age,
+ country: userCountry.trim() || parsed.country,
+ goal: getGoalText(),
+ levelEstimate: mapLevelEstimate(selectedLevel),
+ };
+ } catch (e) {}
+ }
+ localStorage.setItem('voyager_user_account', JSON.stringify(u));
+ }, [userName, userAge, userCountry, userEmail, selectedGoal, selectedLevel, selectedProfSubGoal, selectedProfInterest, selectedSchoolLevel, selectedAcademicGoal, selectedViajanteSubGoal, selectedDocenteProfile, selectedDocenteGoal, selectedLang]);
 
-                                        {/* English Option Toggle */}
-                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                            <input 
-                                                type="checkbox"
-                                                checked={isEnglishOnlyMode}
-                                                onChange={(e) => {
-                                                    setIsEnglishOnlyMode(e.target.checked);
-                                                    if (e.target.checked) {
-                                                        setIsBilingualMode(false);
-                                                        setIsTranslateMode(false);
-                                                        setIsListenOnly(false);
-                                                        setIsSpanishOnlyMode(false);
-                                                    }
-                                                }}
-                                                className="sr-only"
-                                            />
-                                            {isEnglishOnlyMode ? (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                            ) : (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                            )}
-                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                {selectedLang === 'EN' ? 'ENGLISH' : 'INGLÉS'}
-                                            </span>
-                                        </label>
-                                    </div>
-                                )}
-                                {rightPanelTab === 'trips' && (
-                                    <div className="flex items-center justify-center gap-2 md:gap-3.5 flex-wrap w-full">
-                                        {/* Plan de Viaje Toggle */}
-                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                            <input 
-                                                type="checkbox"
-                                                checked={viajesSubTab === 'planner'}
-                                                onChange={() => setViajesSubTab('planner')}
-                                                className="sr-only"
-                                            />
-                                            {viajesSubTab === 'planner' ? (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                            ) : (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                            )}
-                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                {selectedLang === 'EN' ? 'TRIP PLANNER' : 'PLAN DE VIAJE'}
-                                            </span>
-                                        </label>
+ useEffect(() => {
+ const handleCartCount = () => {
+ const win = window as any;
+ if (win.Ecwid && win.Ecwid.Cart && typeof win.Ecwid.Cart.calculateTotalQuantity === 'function') {
+ try {
+ win.Ecwid.Cart.calculateTotalQuantity((qty: number) => {
+ setCartCount(qty);
+ });
+ } catch (err) {
+ console.warn('Ecwid calculateTotalQuantity error:', err);
+ }
+ }
+ };
 
-                                        {/* Mapa de Metro Toggle */}
-                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                            <input 
-                                                type="checkbox"
-                                                checked={viajesSubTab === 'subway'}
-                                                onChange={() => setViajesSubTab('subway')}
-                                                className="sr-only"
-                                            />
-                                            {viajesSubTab === 'subway' ? (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                            ) : (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                            )}
-                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                {selectedLang === 'EN' ? 'SUBWAY MAP' : 'MAPA DE METRO'}
-                                            </span>
-                                        </label>
+ const win = window as any;
+ if (win.Ecwid && win.Ecwid.OnCartChanged) {
+ win.Ecwid.OnCartChanged.add((cart: any) => {
+ if (cart && typeof cart.productsQuantity === 'number') {
+ setCartCount(cart.productsQuantity);
+ } else {
+ handleCartCount();
+ }
+ });
+ handleCartCount();
+ } else {
+ const interval = setInterval(() => {
+ if (win.Ecwid && win.Ecwid.OnCartChanged) {
+ clearInterval(interval);
+ win.Ecwid.OnCartChanged.add((cart: any) => {
+ if (cart && typeof cart.productsQuantity === 'number') {
+ setCartCount(cart.productsQuantity);
+ } else {
+ handleCartCount();
+ }
+ });
+ handleCartCount();
+ }
+ }, 1000);
+ return () => clearInterval(interval);
+ }
+ }, []);
 
-                                        {/* Google Maps Toggle */}
-                                        <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                                            <input 
-                                                type="checkbox"
-                                                checked={viajesSubTab === 'google_map'}
-                                                onChange={() => setViajesSubTab('google_map')}
-                                                className="sr-only"
-                                            />
-                                            {viajesSubTab === 'google_map' ? (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-green-500 animate-submenu-flicker flex-shrink-0" />
-                                            ) : (
-                                                <span className="w-3.5 h-3.5 rounded-full bg-[#1e3a8a]/25 flex-shrink-0" />
-                                            )}
-                                            <span style={{ fontFamily: "'Allerta', sans-serif" }} className="text-[10px] md:text-[11px] font-bold text-zinc-700 uppercase tracking-wider hover:text-zinc-950 transition-colors">
-                                                GOOGLE MAPS
-                                            </span>
-                                        </label>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                        {rightPanelTab === 'lessons' && activeLessonDay !== null ? (
-                            <div className="flex-grow flex flex-col overflow-hidden h-full">
-                                <ActiveLessonChat 
-                                    activeLessonDay={activeLessonDay}
-                                    selectedLang={selectedLang}
-                                    activeLessonLevel={activeLessonLevel || 'PRINCIPIANTE'}
-                                    lessonStage={lessonStage}
-                                    setLessonStage={setLessonStage}
-                                    isConnected={isConnected}
-                                    disconnect={disconnect}
-                                    connectToGemini={(prompt, voice) => connectToGemini(prompt, voice, undefined, true)}
-                                    chatMessages={chatMessages}
-                                    setInputText={setInputText}
-                                    completedMissions={completedMissions}
-                                    onToggleMission={handleToggleMission}
-                                    setShowLessonCompletion={setShowLessonCompletion}
-                                    setActiveLessonDay={setActiveLessonDay}
-                                    showHelpPortal={showHelpPortal}
-                                    setShowHelpPortal={setShowHelpPortal}
-                                    isAiSpeaking={isConnected && audioContextRef.current !== null && (audioContextRef.current.currentTime < nextStartTimeRef.current)}
-                                    getTranslatedMessageText={getTranslatedMessageText}
-                                />
-                            </div>
-                        ) : rightPanelTab === 'chat' ? (
-                            <div className="flex-grow flex flex-col overflow-hidden h-full">
+ useEffect(() => {
+ if (typeof window === 'undefined' || !window.speechSynthesis) return;
+ const updateVoices = () => {
+ setVoices(window.speechSynthesis.getVoices());
+ };
+ updateVoices();
+ window.speechSynthesis.onvoiceschanged = updateVoices;
+ return () => {
+ if (window.speechSynthesis) {
+ window.speechSynthesis.onvoiceschanged = null;
+ }
+ };
+ }, []);
 
-                                
-                                {activeLessonDay !== null && (() => {
-                                    const activeLesson = IMMERSION_CURRICULUM.find(l => l.dayNum === activeLessonDay);
-                                    if (!activeLesson) return null;
-                                    
-                                    const lessonMissions = activeLesson.missions;
-                                    const completedMissionsForThisLesson = lessonMissions.filter(m => completedMissions.includes(m.id));
-                                    const isAllMissionsCompleted = lessonMissions.length > 0 && completedMissionsForThisLesson.length === lessonMissions.length;
+ // Leads inline form states
+ const [inlineFormStep, setInlineFormStep] = useState<'details' | 'services'>('details');
+ const [inlineLeadForm, setInlineLeadForm] = useState({
+ name: '',
+ email: '',
+ company: '',
+ phone: '',
+ meetingTime: '',
+ consent: false
+ });
+ const [showCalendar, setShowCalendar] = useState<boolean>(false);
+ const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
+ const [selectedCalendarDay, setSelectedCalendarDay] = useState<number | null>(null);
+ const [selectedCalendarTime, setSelectedCalendarTime] = useState<string>('09:00');
+ const [selectedServices, setSelectedServices] = useState<string[]>([]);
+ const [isSubmittingInlineLead, setIsSubmittingInlineLead] = useState<boolean>(false);
+ const [inlineLeadError, setInlineLeadError] = useState<string | null>(null);
+ const [inlineLeadSuccess, setInlineLeadSuccess] = useState<boolean>(false);
 
-                                    return (
-                                        <div className="mx-4 mt-1.5 mb-1 py-1.5 px-0 bg-transparent rounded-2xl space-y-1.5 animate-fade-in font-sans text-left z-10 relative">
-                                            {/* Header */}
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex items-center gap-1.5 min-w-0">
-                                                    <span className="w-2 h-2 rounded-full bg-yellow-500 animate-ping flex-shrink-0"></span>
-                                                    <button 
-                                                        onClick={() => setIsVocabHudOpen(prev => !prev)}
-                                                        className="text-[11.5px] font-sans font-black text-neutral-850 tracking-wide truncate hover:text-amber-850 hover:underline cursor-pointer border-none bg-transparent flex items-center p-0"
-                                                        title={selectedLang === 'EN' ? "Toggle Lesson Details" : "Mostrar/Ocultar detalles de la lección"}
-                                                    >
-                                                        {activeLessonDay}. {selectedLang === 'EN' ? activeLesson.title : activeLesson.titleEs}
-                                                    </button>
-                                                </div>
-                                                <div className="flex items-center gap-2 flex-shrink-0">
-                                                    <span className="text-[9px] font-mono font-extrabold bg-transparent border border-amber-300/60 text-amber-850 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                                                        {completedMissionsForThisLesson.length}/{lessonMissions.length}
-                                                    </span>
-                                                    <button 
-                                                        onClick={() => setActiveLessonDay(null)}
-                                                        className="text-[9px] font-mono font-bold text-red-600 hover:text-red-700 underline border-none bg-transparent cursor-pointer"
-                                                    >
-                                                        {selectedLang === 'EN' ? 'End' : 'Terminar'}
-                                                    </button>
-                                                </div>
-                                            </div>
+ const chatEndRef = useRef<HTMLDivElement>(null);
 
-                                            {/* Celebration Alert if completed */}
-                                            {isAllMissionsCompleted && (
-                                                <div className="py-1 px-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 text-[10px] rounded-lg font-semibold flex items-center justify-between animate-bounce">
-                                                    <span>🎉 {selectedLang === 'EN' ? 'All missions completed! Good job!' : '¡Todas las misiones completadas! ¡Buen trabajo!'}</span>
-                                                </div>
-                                            )}
+ // Particle visualizer canvas refs & loop
+ const particleCanvasRef = useRef<HTMLCanvasElement | null>(null);
+ const volumeRef = useRef(0);
+ volumeRef.current = volume;
+ const reminderTimerRef = useRef<NodeJS.Timeout | null>(null);
+ const lastVisitedTabRef = useRef<string>('');
+ const lastSpokenStepRef = useRef<number | null>(null);
 
-                                            {/* Collapsible Content */}
-                                            {isVocabHudOpen && (
-                                                <div className="pt-1.5 grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[160px] overflow-y-auto pr-1">
-                                                    {/* Missions Checklist */}
-                                                    <div className="space-y-1.5">
-                                                        <span className="block text-[8px] font-mono font-bold tracking-wider text-amber-800 uppercase">
-                                                            {selectedLang === 'EN' ? 'Missions Checklist' : 'Lista de Misiones'}
-                                                        </span>
-                                                        <div className="space-y-1">
-                                                            {lessonMissions.map(m => {
-                                                                const isCompleted = completedMissions.includes(m.id);
-                                                                return (
-                                                                    <label 
-                                                                        key={m.id}
-                                                                        className={`flex items-start gap-2 text-[10px] cursor-pointer select-none py-0.5 ${isCompleted ? 'text-zinc-400 line-through' : 'text-zinc-700'}`}
-                                                                    >
-                                                                        <input 
-                                                                            type="checkbox"
-                                                                            checked={isCompleted}
-                                                                            onChange={() => handleToggleMission(m.id)}
-                                                                            className="mt-0.5 accent-yellow-600 rounded w-3 h-3 cursor-pointer"
-                                                                        />
-                                                                        <span>{selectedLang === 'EN' ? m.en : m.es}</span>
-                                                                    </label>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
+ useEffect(() => {
+ let animationFrameId: number;
+ let time = 0;
 
-                                                    {/* Vocabulary Cheat Sheet */}
-                                                    <div className="space-y-1.5">
-                                                        <span className="block text-[8px] font-mono font-bold tracking-wider text-amber-800 uppercase">
-                                                            {selectedLang === 'EN' ? 'Vocabulary Cheat Sheet' : 'Acordeón de Vocabulario'}
-                                                        </span>
-                                                        <div className="space-y-1 max-h-[110px] overflow-y-auto">
-                                                            {activeLesson.vocabulary.map((v, i) => (
-                                                                <div 
-                                                                    key={i}
-                                                                    onClick={() => {
-                                                                        const promptText = selectedLang === 'EN' 
-                                                                            ? `Explain the vocabulary term "${v.word}" and give examples.` 
-                                                                            : `Explícame el término de vocabulario "${v.word}" y dame ejemplos de uso.`;
-                                                                        setInputText(promptText);
-                                                                    }}
-                                                                    className="p-1.5 bg-white border border-amber-200/30 hover:border-yellow-500 rounded-lg text-[9.5px] cursor-pointer hover:shadow-xs transition-all"
-                                                                    title="Tap to paste query / Toca para copiar al chat"
-                                                                >
-                                                                    <span className="font-bold text-yellow-800 block font-mono">{v.word}</span>
-                                                                    <span className="text-zinc-500 text-[8.5px] leading-tight block">
-                                                        {selectedLang === 'EN' ? v.definition : v.definitionEs}
-                                                                    </span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })()}
-                                <div className={`flex-1 p-4 pt-2 tab-content-area overflow-y-auto ${
-                                    (hasInteracted || activeLessonDay !== null)
-                                    ? 'max-h-[310px] md:max-h-[390px]' 
-                                    : 'h-full flex flex-col items-center justify-center'
-                                }`}>
-                            {!hasInteracted && activeLessonDay === null ? (
-                                <div className="w-full h-full flex flex-col items-center justify-center text-center animate-fade-in">
-                                    {/* Slideshow Phone Mockup Wrapper */}
-                                    <div 
-                                        className="relative flex flex-col items-center justify-center"
-                                        onMouseEnter={() => setIsHovered(true)}
-                                        onMouseLeave={() => setIsHovered(false)}
-                                    >
-                                        {/* Slideshow Image Container (No Shadows, Max Size) */}
-                                        <div 
-                                            onClick={() => setActiveFullscreenSlide(slideIndex)}
-                                            className="w-[235px] md:w-[286px] h-[418px] md:h-[506px] rounded-2xl md:rounded-3xl border border-zinc-200/80 bg-neutral-950 relative overflow-hidden cursor-pointer group hover:scale-[1.02] transition-all duration-300"
-                                        >
-                                            {/* Active Slide Canvas (Pixelated Transition) */}
-                                            <CanvasSlideshow 
-                                                slides={slides} 
-                                                slideIndex={slideIndex} 
-                                                transitionDuration={4000} 
-                                            />
-                                            
-                                            {/* Hover Zoom Overlay */}
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-1.5 z-10">
-                                                <svg className="w-6 h-6 text-white animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
-                                                </svg>
-                                                <span className="text-[10px] md:text-xs font-bold text-white uppercase tracking-wider">
-                                                    Ampliar
-                                                </span>
-                                            </div>
-                                        </div>
+ // Initialize 1400 ring particles concentrated in a band (yellow cab)
+ const numParticles = 1400;
+ const particles: { angle: number; r: number; speed: number; pulsePhase: number; size: number }[] = [];
 
-                                        {/* Left Navigation Arrow */}
-                                        <button 
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSlideIndex((prev) => (prev - 1 + slides.length) % slides.length);
-                                            }}
-                                            className="absolute left-[-35px] md:left-[-45px] top-1/2 -translate-y-1/2 w-7 h-7 md:w-8 md:h-8 rounded-full bg-yellow-500 hover:bg-yellow-400 hover:scale-105 active:scale-95 text-black flex items-center justify-center border border-yellow-400/50 shadow-sm transition-all cursor-pointer z-10"
-                                            title="Anterior"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                                            </svg>
-                                        </button>
+ for (let i = 0; i < numParticles; i++) {
+ particles.push({
+ angle: Math.random() * 2 * Math.PI,
+ // Bell-curve concentration around radius 64 (56 * 1.15)
+ r: 52 + Math.random() * 21 + (Math.random() - 0.5) * 9,
+ speed: (Math.random() * 0.004 + 0.001) * (Math.random() < 0.5 ? 1 : -1),
+ pulsePhase: Math.random() * 2 * Math.PI,
+ size: (0.6 + Math.random() * 1.4) * 1.25
+ });
+ }
 
-                                        {/* Right Navigation Arrow */}
-                                        <button 
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSlideIndex((prev) => (prev + 1) % slides.length);
-                                            }}
-                                            className="absolute right-[-35px] md:right-[-45px] top-1/2 -translate-y-1/2 w-7 h-7 md:w-8 md:h-8 rounded-full bg-yellow-500 hover:bg-yellow-400 hover:scale-105 active:scale-95 text-black flex items-center justify-center border border-yellow-400/50 shadow-sm transition-all cursor-pointer z-10"
-                                            title="Siguiente"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="min-h-full flex flex-col justify-end space-y-4">
-                                {chatMessages.map((msg, index) => {
-                            if (msg.sender === 'system') {
-                                return null;
-                            }
-                            if (msg.sender === 'user' && msg.text.startsWith('[')) {
-                                return null;
-                            }
-                            if (isConnected && msg.id === 'welcome_1') {
-                                return null;
-                            }
+ // Initialize orbiting circles (moons) rotating around the oval
+ const numOrbiters = 8;
+ const orbiters: { angle: number; speed: number; rx: number; ry: number; size: number; alpha: number }[] = [];
+ for (let i = 0; i < numOrbiters; i++) {
+ let rxFactor = 1.35 + (i % 3) * 0.12;
+ let ryFactor = 1.0 + (i % 3) * 0.08;
+ orbiters.push({
+ angle: (i * 2 * Math.PI) / numOrbiters + Math.random() * 0.5,
+ speed: (0.007 + (i % 3) * 0.005) * (i % 2 === 0 ? 1 : -1),
+ rx: 63 * rxFactor,
+ ry: 63 * ryFactor,
+ size: (1.8 + (i % 4) * 0.6) * 1.25,
+ alpha: 0.55 + (i % 3) * 0.12
+ });
+ }
 
-                            const isUser = msg.sender === 'user';
-                            
-                            let showAvatar = true;
-                            if (index > 0) {
-                                let prevVisibleMsg = null;
-                                for (let i = index - 1; i >= 0; i--) {
-                                    const m = chatMessages[i];
-                                    if (m.sender !== 'system' && !(isConnected && m.id === 'welcome_1')) {
-                                        prevVisibleMsg = m;
-                                        break;
-                                    }
-                                }
-                                if (prevVisibleMsg && prevVisibleMsg.sender !== 'user') {
-                                    showAvatar = false;
-                                }
-                            }
+ const renderLoop = () => {
+ const canvas = particleCanvasRef.current;
+ if (!canvas) {
+ animationFrameId = requestAnimationFrame(renderLoop);
+ return;
+ }
 
-                            return (
-                                <div key={msg.id} className={`flex items-start ${isUser ? 'justify-end' : 'justify-start'} gap-2.5 animate-fade-in`}>
-                                    {!isUser && (
-                                        <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center">
-                                            {showAvatar ? (
-                                                <img 
-                                                    src={voyagerRobot} 
-                                                    alt="Voyager Guide" 
-                                                    referrerPolicy="no-referrer"
-                                                    className="w-full h-full object-contain" 
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full" />
-                                            )}
-                                        </div>
-                                    )}
-                                    <div className={`max-w-[78%] flex flex-col space-y-1 ${isUser ? 'items-end' : 'items-start'}`}>
-                                        <div className={`
-                                            px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-md transition-all
-                                            ${isUser 
-                                                ? 'bg-gradient-to-br from-yellow-300/30 to-yellow-400/35 border border-yellow-200/20 backdrop-blur-md text-black rounded-tr-none font-semibold' 
-                                                : 'bg-zinc-100 border border-zinc-200/60 text-zinc-800 rounded-tl-none'
-                                            }
-                                        `}>
-                                            <div className="chat-message-text whitespace-pre-line tracking-wider leading-relaxed">
-                                                {(() => {
-                                                    const rawText = getTranslatedMessageText(msg, selectedLang);
-                                                    if (!isUser && rawText.includes(" / ")) {
-                                                        const parts = rawText.split(" / ");
-                                                        if (parts.length >= 2) {
-                                                            return (
-                                                                <>
-                                                                    <div className="font-serif text-zinc-900 leading-relaxed">{parts[0]}</div>
-                                                                    <div className="chat-message-english text-blue-900 font-serif leading-relaxed mt-2.5">
-                                                                        {parts.slice(1).join(" / ")}
-                                                                    </div>
-                                                                </>
-                                                            );
-                                                        }
-                                                    }
-                                                    return <div className="font-serif">{rawText}</div>;
-                                                })()}
-                                            </div>
-                                            
-                                            {!isUser && msg.showForm && (
-                                                <div className="border-t border-white/10 pt-3 mt-3 space-y-2.5">
-                                                    {inlineLeadSuccess ? (
-                                                        <div className="text-center py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-xl">
-                                                                <span className="text-xs text-emerald-400 font-bold uppercase tracking-wider">
-                                                                {selectedLang === 'EN' ? "✓ Info Captured Successfully!" : "✓ ¡Datos Guardados Exitosamente!"}
-                                                             </span>
-                                                        </div>
-                                                    ) : inlineFormStep === 'details' ? (
-                                                        <>
-                                                            <div className="grid grid-cols-2 gap-2.5">
-                                                                <div>
-                                                                    <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
-                                                                        {selectedLang === 'EN' ? "Full Name *" : "Nombre Completo *"}
-                                                                    </label>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={inlineLeadForm.name}
-                                                                        onChange={(e) => setInlineLeadForm({...inlineLeadForm, name: e.target.value})}
-                                                                        placeholder="e.g. Jane Doe"
-                                                                        className="w-full px-3 py-1.5 bg-black/35 border border-white/10 hover:border-yellow-500 rounded-xl text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-yellow-500 focus:bg-black/55 transition-all min-h-[36px]"
-                                                                    />
-                                                                </div>
+ const ctx = canvas.getContext('2d');
+ if (!ctx) return;
 
-                                                                <div>
-                                                                    <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
-                                                                        {selectedLang === 'EN' ? "Email Address *" : "Correo Electrónico *"}
-                                                                    </label>
-                                                                    <input
-                                                                        type="email"
-                                                                        value={inlineLeadForm.email}
-                                                                        onChange={(e) => setInlineLeadForm({...inlineLeadForm, email: e.target.value})}
-                                                                        placeholder="e.g. jane@company.com"
-                                                                        className="w-full px-3 py-1.5 bg-black/35 border border-white/10 hover:border-yellow-500 rounded-xl text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-yellow-500 focus:bg-black/55 transition-all min-h-[36px]"
-                                                                    />
-                                                                </div>
-                                                            </div>
+ const width = canvas.width;
+ const height = canvas.height;
+ const centerX = width / 2;
+ const centerY = height / 2;
+ const scale = width / 360;
+ const currentVolume = volumeRef.current;
 
-                                                            <div className="grid grid-cols-2 gap-2.5">
-                                                                <div>
-                                                                    <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
-                                                                        {selectedLang === 'EN' ? "Company" : "Empresa"}
-                                                                    </label>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={inlineLeadForm.company}
-                                                                        onChange={(e) => setInlineLeadForm({...inlineLeadForm, company: e.target.value})}
-                                                                        placeholder="e.g. Acme Corp"
-                                                                        className="w-full px-3 py-1.5 bg-black/35 border border-white/10 hover:border-yellow-500 rounded-xl text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-yellow-500 focus:bg-black/55 transition-all min-h-[36px]"
-                                                                    />
-                                                                </div>
-                                                                <div>
-                                                                    <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
-                                                                        {selectedLang === 'EN' ? "Phone Number *" : "Número Telefónico *"}
-                                                                    </label>
-                                                                    <input
-                                                                        type="tel"
-                                                                        value={inlineLeadForm.phone}
-                                                                        onChange={(e) => setInlineLeadForm({...inlineLeadForm, phone: e.target.value})}
-                                                                        placeholder="e.g. +1 555-0199"
-                                                                        className="w-full px-3 py-1.5 bg-black/35 border border-white/10 hover:border-yellow-500 rounded-xl text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-yellow-500 focus:bg-black/55 transition-all min-h-[36px]"
-                                                                    />
-                                                                </div>
-                                                            </div>
+ ctx.clearRect(0, 0, width, height);
 
-                                                            <div>
-                                                                <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
-                                                                    Agendar Reunión
-                                                                </label>
-                                                                <div className="grid grid-cols-2 gap-2.5">
-                                                                    <div className="relative">
-                                                                        <div
-                                                                            onClick={() => setShowCalendar(!showCalendar)}
-                                                                            className="w-full px-3 py-1.5 bg-black/35 border border-white/10 hover:border-yellow-500 rounded-xl text-xs text-neutral-200 cursor-pointer focus:outline-none focus:border-yellow-500 focus:bg-black/55 transition-all min-h-[36px] flex items-center gap-2"
-                                                                        >
-                                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-yellow-500 flex-shrink-0">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
-                                                                            </svg>
-                                                                            <span className="truncate text-yellow-400 font-mono font-semibold">
-                                                                                {inlineLeadForm.meetingTime 
-                                                                                    ? new Date(inlineLeadForm.meetingTime).toLocaleDateString([], { dateStyle: 'medium' }) 
-                                                                                    : "Seleccione Fecha"}
-                                                                            </span>
-                                                                        </div>
+ // Reset shadow blur to avoid applying it to background elements
+ ctx.shadowBlur = 0;
+ ctx.shadowColor = 'transparent';
 
-                                                                        {showCalendar && (
-                                                                            <div className="absolute left-0 mt-1.5 p-3 w-[240px] bg-neutral-950 border border-white/10 rounded-2xl shadow-[0_12px_30px_rgba(0,0,0,0.95)] backdrop-blur-md z-50 text-white select-none">
-                                                                                <div className="flex items-center justify-between mb-2">
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => {
-                                                                                            const prev = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1);
-                                                                                            setCalendarMonth(prev);
-                                                                                        }}
-                                                                                        className="p-1 hover:bg-white/10 rounded-lg text-yellow-400 cursor-pointer transition-all"
-                                                                                    >
-                                                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3">
-                                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                                                                                        </svg>
-                                                                                    </button>
-                                                                                    <span className="text-[10px] font-bold tracking-wider uppercase text-neutral-300">
-                                                                                        {calendarMonth.toLocaleString([], { month: 'long', year: 'numeric' })}
-                                                                                    </span>
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => {
-                                                                                            const next = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
-                                                                                            setCalendarMonth(next);
-                                                                                        }}
-                                                                                        className="p-1 hover:bg-white/10 rounded-lg text-yellow-400 cursor-pointer transition-all"
-                                                                                    >
-                                                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3">
-                                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                                                                                        </svg>
-                                                                                    </button>
-                                                                                </div>
+ // Draw solid background circle (color: #50411a) in the center of the orb
+ ctx.beginPath();
+ ctx.arc(centerX, centerY, (71 + currentVolume * 0.15) * scale, 0, 2 * Math.PI);
+ ctx.fillStyle = '#50411a';
+ ctx.fill();
+ ctx.strokeStyle = 'rgba(255, 215, 0, 0.25)';
+ ctx.lineWidth = 1.5 * scale;
+ ctx.stroke();
 
-                                                                                <div className="grid grid-cols-7 gap-1 text-center mb-1 text-[8px] font-bold text-yellow-400">
-                                                                                    <span>{selectedLang === 'EN' ? "MO" : "LU"}</span>
-                                                                                    <span>{selectedLang === 'EN' ? "TU" : "MA"}</span>
-                                                                                    <span>{selectedLang === 'EN' ? "WE" : "MI"}</span>
-                                                                                    <span>{selectedLang === 'EN' ? "TH" : "JU"}</span>
-                                                                                    <span>{selectedLang === 'EN' ? "FR" : "VI"}</span>
-                                                                                    <span>{selectedLang === 'EN' ? "SA" : "SÁ"}</span>
-                                                                                    <span>{selectedLang === 'EN' ? "SU" : "DO"}</span>
-                                                                                </div>
+ // Radial background glow (gold)
+ let grad = ctx.createRadialGradient(centerX, centerY, 11.5 * scale, centerX, centerY, (69 + currentVolume * 0.65) * scale);
+ grad.addColorStop(0, 'rgba(255, 223, 0, 0.45)');
+ grad.addColorStop(0.5, 'rgba(255, 215, 0, 0.18)');
+ grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+ ctx.fillStyle = grad;
+ ctx.beginPath();
+ ctx.arc(centerX, centerY, (109 + currentVolume * 0.5) * scale, 0, 2 * Math.PI);
+ ctx.fill();
 
-                                                                                <div className="grid grid-cols-7 gap-1 text-center">
-                                                                                    {getDaysInMonth(calendarMonth).map((day, idx) => {
-                                                                                        if (day === null) {
-                                                                                            return <div key={`empty-${idx}`} />;
-                                                                                        }
-                                                                                        const isSelected = selectedCalendarDay === day;
-                                                                                        return (
-                                                                                            <button
-                                                                                                key={`day-${day}`}
-                                                                                                type="button"
-                                                                                                onClick={() => setSelectedCalendarDay(day)}
-                                                                                                className={`w-6 h-6 rounded-lg text-[10px] font-mono font-bold flex items-center justify-center cursor-pointer transition-all ${
-                                                                                                    isSelected 
-                                                                                                        ? 'bg-yellow-500 text-black shadow-[0_0_8px_rgba(234,179,8,0.6)]' 
-                                                                                                        : 'hover:bg-white/10 text-neutral-300'
-                                                                                                }`}
-                                                                                            >
-                                                                                                {day}
-                                                                                            </button>
-                                                                                        );
-                                                                                    })}
-                                                                                </div>
+ // Outer ring
+ ctx.beginPath();
+ ctx.ellipse(centerX, centerY, 86 * scale, 63 * scale, 0, 0, 2 * Math.PI);
+ ctx.strokeStyle = 'rgba(255, 215, 0, 0.15)';
+ ctx.lineWidth = 4 * scale;
+ ctx.stroke();
 
-                                                                                <button
-                                                                                    type="button"
-                                                                                    disabled={selectedCalendarDay === null}
-                                                                                    onClick={() => {
-                                                                                        if (selectedCalendarDay !== null) {
-                                                                                            const yr = calendarMonth.getFullYear();
-                                                                                            const mo = String(calendarMonth.getMonth() + 1).padStart(2, '0');
-                                                                                            const dy = String(selectedCalendarDay).padStart(2, '0');
-                                                                                            const formatted = `${yr}-${mo}-${dy}T${selectedCalendarTime}:00Z`;
-                                                                                            setInlineLeadForm({ ...inlineLeadForm, meetingTime: formatted });
-                                                                                            setShowCalendar(false);
-                                                                                        }
-                                                                                    }}
-                                                                                    className="w-full mt-3 py-1 bg-black border border-yellow-500/40 text-yellow-400 text-[9px] font-mono font-bold tracking-widest rounded-full cursor-pointer hover:bg-yellow-500 hover:text-black transition-all uppercase text-center disabled:opacity-30 disabled:pointer-events-none"
-                                                                                >
-                                                                                    CONFIRMAR
-                                                                                </button>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
+ // Shimmering dust particles
+ time += 1;
+ for (let i = 0; i < numParticles; i++) {
+ let p = particles[i];
+ let speedMultiplier = 1.0 + (currentVolume * 0.08);
+ p.angle += p.speed * speedMultiplier;
 
-                                                                    <div className="relative">
-                                                                        <select
-                                                                            value={selectedCalendarTime}
-                                                                            onChange={(e) => {
-                                                                                setSelectedCalendarTime(e.target.value);
-                                                                                if (selectedCalendarDay !== null) {
-                                                                                    const yr = calendarMonth.getFullYear();
-                                                                                    const mo = String(calendarMonth.getMonth() + 1).padStart(2, '0');
-                                                                                    const dy = String(selectedCalendarDay).padStart(2, '0');
-                                                                                    const formatted = `${yr}-${mo}-${dy}T${e.target.value}:00Z`;
-                                                                                    setInlineLeadForm(prev => ({ ...prev, meetingTime: formatted }));
-                                                                                }
-                                                                            }}
-                                                                            className="w-full pl-9 pr-3 py-1.5 bg-black/35 border border-white/10 hover:border-yellow-500 rounded-xl text-xs text-yellow-400 font-mono focus:outline-none focus:border-yellow-500 focus:bg-black/55 transition-all min-h-[36px] cursor-pointer appearance-none"
-                                                                        >
-                                                                            <option value="09:00">09:00 AM</option>
-                                                                            <option value="10:00">10:00 AM</option>
-                                                                            <option value="11:00">11:00 AM</option>
-                                                                            <option value="12:00">12:00 PM</option>
-                                                                            <option value="13:00">01:00 PM</option>
-                                                                            <option value="14:00">02:00 PM</option>
-                                                                            <option value="15:00">03:00 PM</option>
-                                                                            <option value="16:00">04:00 PM</option>
-                                                                            <option value="17:00">05:00 PM</option>
-                                                                        </select>
-                                                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center">
-                                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-yellow-500">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                                                            </svg>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
+ let radialJitter = Math.sin(p.pulsePhase + time * 0.05) * (1.2 + currentVolume * 0.08);
+ let volumeJitter = (Math.random() - 0.5) * (currentVolume * 0.5);
+ let finalRadius = (p.r + radialJitter + volumeJitter) * scale;
 
-                                                            {inlineLeadError && (
-                                                                <span className="text-[10px] text-red-500 font-bold block mt-2.5 pl-1">{inlineLeadError}</span>
-                                                            )}
+ p.pulsePhase += 0.02;
 
-                                                            <div className="flex items-center gap-4 mt-2.5 pl-1">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        if (!inlineLeadForm.name.trim() || !inlineLeadForm.email.trim() || !inlineLeadForm.phone.trim()) {
-                                                                            setInlineLeadError(selectedLang === 'EN' ? "Name, email, and phone number are required." : "Se requiere nombre, correo y número telefónico.");
-                                                                            return;
-                                                                        }
-                                                                        setInlineLeadError(null);
-                                                                        setInlineFormStep('services');
-                                                                    }}
-                                                                    className="flex-shrink-0 w-auto px-4 py-1.5 bg-yellow-500 hover:bg-yellow-600 border-none text-[10px] font-mono font-bold tracking-widest rounded-full transition-all duration-300 cursor-pointer shadow-md active:scale-95 min-h-[26px] uppercase text-center inline-flex items-center justify-center text-black"
-                                                                >
-                                                                    SIGUIENTE
-                                                                </button>
-                                                                <div className="flex items-center gap-2 select-none cursor-pointer">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        id="marketingConsent"
-                                                                        checked={inlineLeadForm.consent}
-                                                                        onChange={(e) => setInlineLeadForm({...inlineLeadForm, consent: e.target.checked})}
-                                                                        className="w-4 h-4 rounded border-white/20 text-yellow-500 focus:ring-yellow-500 focus:ring-opacity-25 bg-black/30 cursor-pointer"
-                                                                    />
-                                                                    <label htmlFor="marketingConsent" className="text-[9px] font-bold tracking-wider text-neutral-300 cursor-pointer leading-tight">
-                                                                        Enviarme la info
-                                                                    </label>
-                                                                </div>
-                                                            </div>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <div className="space-y-2">
-                                                                <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
-                                                                    Seleccione los Servicios de Interés
-                                                                </label>
-                                                                <div className="grid grid-cols-2 gap-2">
-                                                                    {[
-                                                                        { id: "AI Voice Agent", labelEn: "AI Voice Agent & Call Automation", labelEs: "Agente de Voz IA" },
-                                                                        { id: "CRM Integration", labelEn: "Custom CRM Integration", labelEs: "Integración CRM" },
-                                                                        { id: "Marketing Roadmap", labelEn: "Local Marketing Roadmap", labelEs: "Plan de Marketing Local" },
-                                                                        { id: "Marketing Automations", labelEn: "SMS & Email Automations", labelEs: "Automatizaciones SMS/Email" }
-                                                                    ].map(srv => {
-                                                                        const isChecked = selectedServices.includes(srv.id);
-                                                                        return (
-                                                                            <label key={srv.id} className="flex items-center gap-2 px-2.5 py-1.5 bg-black/25 border border-white/10 hover:border-yellow-500/50 rounded-xl cursor-pointer transition-all select-none min-h-[36px] hover:bg-black/40">
-                                                                                <input
-                                                                                    type="checkbox"
-                                                                                    checked={isChecked}
-                                                                                    onChange={(e) => {
-                                                                                        if (e.target.checked) {
-                                                                                            setSelectedServices([...selectedServices, srv.id]);
-                                                                                        } else {
-                                                                                            setSelectedServices(selectedServices.filter(s => s !== srv.id));
-                                                                                        }
-                                                                                    }}
-                                                                                    className="w-4 h-4 rounded border-white/20 text-yellow-500 focus:ring-yellow-500 focus:ring-opacity-25 bg-black/30 cursor-pointer"
-                                                                                />
-                                                                                <span className="text-[10px] text-neutral-200 font-medium leading-tight">
-                                                                                    {selectedLang === 'EN' ? srv.labelEn : srv.labelEs}
-                                                                                </span>
-                                                                            </label>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            </div>
+ let px = centerX + Math.cos(p.angle) * finalRadius * 1.35;
+ let py = centerY + Math.sin(p.angle) * finalRadius * 1.0;
+ let opacity = 0.35 + Math.sin(p.pulsePhase + i) * 0.25 + (Math.random() * 0.25);
+ 
+ ctx.fillStyle = `rgba(255, 215, 0, ${opacity})`;
+ ctx.fillRect(px, py, p.size * scale, p.size * scale);
+ }
 
-                                                            {inlineLeadError && (
-                                                                <span className="text-[10px] text-red-500 font-bold block mt-1">{inlineLeadError}</span>
-                                                            )}
+ // Orbiting circles
+ for (let i = 0; i < numOrbiters; i++) {
+ let orb = orbiters[i];
+ let speedMultiplier = 1.0 + (currentVolume * 0.08);
+ orb.angle += orb.speed * speedMultiplier;
 
-                                                            <div className="grid grid-cols-2 gap-2.5 mt-3 pt-2 border-t border-white/10">
-                                                                <div>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setInlineFormStep('details')}
-                                                                        className="w-full py-1 bg-transparent border border-white/20 text-neutral-300 text-[10px] font-mono font-bold tracking-widest rounded-full transition-all hover:bg-white/5 min-h-[26px] uppercase text-center inline-flex items-center justify-center cursor-pointer"
-                                                                    >
-                                                                        ATRÁS
-                                                                    </button>
-                                                                </div>
-                                                                <div>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={handleInlineLeadSubmit}
-                                                                        disabled={isSubmittingInlineLead}
-                                                                        className="w-full px-3.5 py-1 bg-yellow-500 text-black border-none text-[10px] font-mono font-bold tracking-widest rounded-full transition-all duration-300 cursor-pointer shadow-md hover:bg-yellow-600 active:scale-95 disabled:opacity-50 min-h-[26px] uppercase text-center inline-flex items-center justify-center font-bold"
-                                                                    >
-                                                                        {isSubmittingInlineLead ? "ENVIANDO..." : "ENVIAR"}
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                        {/* Timestamp removed */}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                                <div ref={chatEndRef} />
-                            </div>
-                        )}
-                            </div>
-                            </div>
-                        ) : (
-                            <div className="flex-1 overflow-y-auto pt-1 px-4 pb-4 max-h-[390px] md:max-h-[440px] tab-content-area">
-                                {rightPanelTab === 'lessons' && activeLessonDay === null && (
-                                    <Curriculum 
-                                        selectedLang={selectedLang}
-                                        activeDay={activeDay}
-                                        onSelectDay={setActiveDay}
-                                        onAskVoyager={(text) => {
-                                            setRightPanelTab('chat');
-                                            setInputText(text);
-                                            if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                                                wsRef.current.send(JSON.stringify({ text }));
-                                                setChatMessages(prev => [
-                                                    ...prev,
-                                                    {
-                                                        id: `msg_lessons_${Date.now()}`,
-                                                        sender: 'user',
-                                                        text,
-                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                                        timeMs: Date.now()
-                                                    }
-                                                ]);
-                                            } else {
-                                                setChatMessages(prev => [
-                                                    ...prev,
-                                                    {
-                                                        id: `msg_lessons_${Date.now()}`,
-                                                        sender: 'user',
-                                                        text,
-                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                                        timeMs: Date.now()
-                                                    }
-                                                ]);
-                                                connectToGemini(text, false);
-                                            }
-                                        }}
-                                        completedMissions={completedMissions}
-                                        onToggleMission={handleToggleMission}
-                                        onStartLesson={(day, level) => {
-                                            setActiveLessonDay(day);
-                                            setActiveLessonLevel(level);
-                                            setLessonStage(1);
-                                            setShowHelpPortal(null);
-                                            setShowLessonCompletion(null);
-                                            
-                                            // Get lesson title
-                                            const lesson = IMMERSION_CURRICULUM.find(l => l.dayNum === day);
-                                            const lessonTitle = lesson ? (selectedLang === 'EN' ? lesson.title : lesson.titleEs) : '';
-                                            
-                                            // Build starter text message
-                                            const text = `[INICIA LECCIÓN: LECCIÓN ${day} - NIVEL ${level}] Comencemos la lección ${day}: "${lessonTitle}" en el nivel de dificultad ${level}. Por favor, preséntate, explícame la lección and sus misiones en español adaptadas a este nivel de dificultad, e inicia el juego de rol interactivo.`;
-                                            
-                                            setInputText("");
-                                            if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                                                wsRef.current.send(JSON.stringify({ text }));
-                                                setChatMessages(prev => [
-                                                    ...prev,
-                                                    {
-                                                        id: `msg_lessons_start_${Date.now()}`,
-                                                        sender: 'user',
-                                                        text: selectedLang === 'EN' ? `Starting Lesson ${day} (${level === 'PRINCIPIANTE' ? 'Beginner' : level === 'INTERMEDIO' ? 'Intermediate' : 'Advanced'}) Interactive Practice...` : `Iniciando Lección ${day} (${level === 'PRINCIPIANTE' ? 'Principiante' : level === 'INTERMEDIO' ? 'Intermedio' : 'Avanzado'}) de Práctica Interactiva...`,
-                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                                        timeMs: Date.now()
-                                                    }
-                                                ]);
-                                            } else {
-                                                setChatMessages(prev => [
-                                                    ...prev,
-                                                    {
-                                                        id: `msg_lessons_start_${Date.now()}`,
-                                                        sender: 'user',
-                                                        text: selectedLang === 'EN' ? `Starting Lesson ${day} (${level === 'PRINCIPIANTE' ? 'Beginner' : level === 'INTERMEDIO' ? 'Intermediate' : 'Advanced'}) Interactive Practice...` : `Iniciando Lección ${day} (${level === 'PRINCIPIANTE' ? 'Principiante' : level === 'INTERMEDIO' ? 'Intermedio' : 'Avanzado'}) de Práctica Interactiva...`,
-                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                                        timeMs: Date.now()
-                                                    }
-                                                ]);
-                                                connectToGemini(text, false);
-                                            }
-                                        }}
-                                        selectedLevel={selectedLevel}
-                                        setSelectedLevel={setSelectedLevel}
-                                    />
-                                )}
+ let radialJitter = (Math.random() - 0.5) * (currentVolume * 0.35);
+ let finalRx = (orb.rx + radialJitter) * scale;
+ let finalRy = (orb.ry + radialJitter) * scale;
 
-                                {rightPanelTab === 'trips' && viajesSubTab === 'planner' && (
-                                    <div className="w-full h-full flex flex-col bg-[#f2ede4] rounded-3xl p-4 font-sans text-neutral-900 overflow-y-auto max-h-[500px] md:max-h-[600px] shadow-inner border border-zinc-200/60 text-left space-y-4">
-                                        {/* Speech Bubble Header */}
-                                        <div className="flex items-start gap-3 bg-[#FAF6EE] border border-zinc-200/80 p-3 rounded-2xl shadow-sm">
-                                            <div className="w-8 h-8 rounded-full bg-yellow-500/10 border border-yellow-500/25 flex items-center justify-center flex-shrink-0">
-                                                <Compass className="w-4 h-4 text-yellow-600 animate-spin-slow" />
-                                            </div>
-                                            <div className="flex-1 space-y-1">
-                                                <span className="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest block">VOYAGER TRAVEL PLANNER</span>
-                                                <p className="text-xs text-neutral-800 leading-normal font-semibold">
-                                                    {selectedLang === 'EN' 
-                                                        ? 'Where do you want to go today? Enter a NYC spot or select a preset below to plan your trip (Subway, Taxi, or Walk).' 
-                                                        : '¿A dónde quieres ir hoy? Ingresa un punto de NYC o selecciona un atajo para planificar tu viaje (Metro, Taxi o a pie).'}
-                                                </p>
-                                            </div>
-                                        </div>
+ let ox = centerX + Math.cos(orb.angle) * finalRx;
+ let oy = centerY + Math.sin(orb.angle) * finalRy;
 
-                                        {/* Search Input Box */}
-                                        <form onSubmit={handleCustomDestinationSubmit} className="flex gap-2">
-                                            <input 
-                                                type="text"
-                                                value={customDestinationText}
-                                                onChange={(e) => setCustomDestinationText(e.target.value)}
-                                                placeholder={selectedLang === 'EN' ? 'Enter destination... (e.g. Central Park)' : 'Ingresa destino... (ej. Central Park)'}
-                                                className="flex-1 px-4 py-2 text-xs border border-zinc-300 rounded-xl bg-white focus:outline-none focus:ring-1 focus:ring-yellow-500"
-                                            />
-                                            <button 
-                                                type="submit"
-                                                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black border-none text-xs font-mono font-bold uppercase rounded-xl transition-all cursor-pointer shadow-sm active:scale-95"
-                                            >
-                                                {selectedLang === 'EN' ? 'PLAN' : 'IR'}
-                                            </button>
-                                        </form>
+ ctx.beginPath();
+ ctx.arc(ox, oy, orb.size * scale, 0, 2 * Math.PI);
+ ctx.fillStyle = `rgba(255, 215, 0, ${orb.alpha})`;
+ ctx.shadowBlur = (6 + (currentVolume / 100) * 8) * scale;
+ ctx.shadowColor = '#ffd700';
+ ctx.fill();
+ }
 
-                                        {/* Presets Grid */}
-                                        <div className="space-y-1.5">
-                                            <span className="block text-[8px] font-mono font-bold text-neutral-400 uppercase tracking-wider">
-                                                📍 {selectedLang === 'EN' ? 'QUICK PRESETS:' : 'PUNTOS CLAVE:'}
-                                            </span>
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {TRAVEL_PRESETS.map((preset) => (
-                                                    <button
-                                                        key={preset.name}
-                                                        onClick={() => handleSelectPresetDestination(preset)}
-                                                        className={`px-3 py-1 text-[10px] font-medium rounded-full border transition-all cursor-pointer ${
-                                                            selectedTripDestination?.name === preset.name
-                                                                ? 'bg-yellow-500 text-black border-yellow-600 shadow-sm font-bold'
-                                                                : 'bg-[#FAF6EE] border-zinc-200/80 hover:border-zinc-300 text-neutral-700'
-                                                        }`}
-                                                    >
-                                                        {selectedLang === 'EN' ? preset.nameEn : preset.name}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
+ animationFrameId = requestAnimationFrame(renderLoop);
+ };
 
-                                        {/* Active Plan Details Card */}
-                                        {selectedTripDestination ? (
-                                            <div className="bg-[#FAF6EE] border border-zinc-200/80 rounded-2xl p-4 space-y-4 shadow-sm animate-fade-in">
-                                                <div className="flex justify-between items-center border-b border-zinc-300/30 pb-2">
-                                                    <div>
-                                                        <span className="text-[8px] font-mono font-bold text-neutral-400 uppercase tracking-wider block">ROUTE & DIRECTIONS</span>
-                                                        <h3 className="text-sm font-extrabold text-neutral-950 font-sans mt-0.5">
-                                                            {selectedLang === 'EN' ? selectedTripDestination.nameEn : selectedTripDestination.name}
-                                                        </h3>
-                                                    </div>
-                                                    <button 
-                                                        onClick={() => {
-                                                            setSelectedTripDestination(null);
-                                                            setMarkers([]);
-                                                        }}
-                                                        className="text-[9px] font-mono font-bold text-neutral-400 hover:text-red-500 cursor-pointer underline uppercase"
-                                                    >
-                                                        {selectedLang === 'EN' ? 'Clear' : 'Limpiar'}
-                                                    </button>
-                                                </div>
+ renderLoop();
+ return () => cancelAnimationFrame(animationFrameId);
+ }, []);
 
-                                                {/* Transit Options Grid */}
-                                                <div className="grid grid-cols-1 gap-3">
-                                                    
-                                                    {/* Subway (Metro) Option */}
-                                                    <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 space-y-2 text-left">
-                                                        <div className="flex justify-between items-center">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <span className="text-base">🚇</span>
-                                                                <span className="text-xs font-extrabold text-neutral-900">{selectedLang === 'EN' ? 'Subway Route' : 'Ruta de Metro'}</span>
-                                                            </div>
-                                                            <button 
-                                                                onClick={() => setViajesSubTab('subway')}
-                                                                className="px-2.5 py-1 bg-white hover:bg-zinc-50 border border-zinc-300/50 text-[9px] font-mono font-bold uppercase rounded-lg transition-all cursor-pointer"
-                                                            >
-                                                                {selectedLang === 'EN' ? 'View Subway Map' : 'Ver Mapa de Metro'}
-                                                            </button>
-                                                        </div>
-                                                        <p className="text-[11px] text-neutral-700 leading-normal">
-                                                            {selectedLang === 'EN' ? selectedTripDestination.subwayDirectionsEn : selectedTripDestination.subwayDirections}
-                                                        </p>
-                                                        <div className="flex flex-wrap gap-1 pt-1">
-                                                            {selectedTripDestination.subwayLines.map(line => (
-                                                                <span 
-                                                                    key={line}
-                                                                    className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white ${
-                                                                        line === '1' || line === '2' || line === '3' ? 'bg-red-600' :
-                                                                        line === '4' || line === '5' || line === '6' ? 'bg-emerald-600' :
-                                                                        line === '7' ? 'bg-purple-600' :
-                                                                        line === 'A' || line === 'C' || line === 'E' ? 'bg-blue-600' :
-                                                                        line === 'B' || line === 'D' || line === 'F' || line === 'M' ? 'bg-orange-500' :
-                                                                        line === 'N' || line === 'Q' || line === 'R' || line === 'W' ? 'bg-yellow-400 text-black' :
-                                                                        'bg-neutral-500'
-                                                                    }`}
-                                                                >
-                                                                    {line}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    </div>
+ // Auto-scroll chat
+ useEffect(() => {
+ if (chatEndRef.current) {
+ chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+ }
+ }, [chatMessages]);
 
-                                                    {/* Taxi Option */}
-                                                    <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 space-y-2 text-left">
-                                                        <div className="flex justify-between items-center">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <span className="text-base">🚕</span>
-                                                                <span className="text-xs font-extrabold text-neutral-900">{selectedLang === 'EN' ? 'Yellow Cab (Taxi)' : 'Taxi de NYC'}</span>
-                                                            </div>
-                                                            <span className="text-[10px] font-mono font-bold text-neutral-600 bg-white/70 px-2 py-0.5 rounded-full border border-zinc-300/20">
-                                                                {selectedTripDestination.taxiTime} • est. {selectedTripDestination.taxiFare}
-                                                            </span>
-                                                        </div>
-                                                        <div className="bg-white border border-zinc-200/50 p-2.5 rounded-lg flex items-center justify-between gap-2 group cursor-pointer"
-                                                             onClick={() => speakTravelPhrase(`Can you take me to ${selectedTripDestination.nameEn}, please?`, 'en-US')}
-                                                        >
-                                                            <div className="text-left min-w-0">
-                                                                <span className="block text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
-                                                                    {selectedLang === 'EN' ? 'USEFUL PHRASE (TAP TO HEAR)' : 'FRASE ÚTIL (TOCA PARA ESCUCHAR)'}
-                                                                </span>
-                                                                <span className="text-[11px] text-yellow-800 font-bold block truncate mt-0.5">"Can you take me to {selectedTripDestination.nameEn}, please?"</span>
-                                                            </div>
-                                                            <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">
-                                                                {selectedLang === 'EN' ? '🗣️ SPEAK' : '🗣️ ESCUCHAR'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
+ // Voice TTS Helper
+ const speakText = (text: string) => {
+ if (!window.speechSynthesis) return;
+ window.speechSynthesis.cancel();
+ const utterance = new SpeechSynthesisUtterance(text);
+ 
+ // Explicitly filter out any female voices to keep Voyager male
+ const isFemaleVoice = (name: string) => {
+ const lower = name.toLowerCase();
+ return lower.includes('female') || 
+ lower.includes('samantha') || 
+ lower.includes('victoria') || 
+ lower.includes('karen') || 
+ lower.includes('tessa') || 
+ lower.includes('veena') || 
+ lower.includes('moira') || 
+ lower.includes('fiona') || 
+ lower.includes('susan') || 
+ lower.includes('serena') || 
+ lower.includes('hazel') || 
+ lower.includes('zira') ||
+ lower.includes('siri') ||
+ lower.includes('kyoko');
+ };
 
-                                                    {/* Walking Option */}
-                                                    <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 space-y-2 text-left">
-                                                        <div className="flex justify-between items-center">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <span className="text-base">🚶</span>
-                                                                <span className="text-xs font-extrabold text-neutral-900">{selectedLang === 'EN' ? 'Walking (On Foot)' : 'A Pie (Caminando)'}</span>
-                                                            </div>
-                                                            <span className="text-[10px] font-mono font-bold text-neutral-600 bg-white/70 px-2 py-0.5 rounded-full border border-zinc-300/20">
-                                                                {selectedTripDestination.walkTime} • {selectedTripDestination.walkDist}
-                                                            </span>
-                                                        </div>
-                                                        <div className="bg-white border border-zinc-200/50 p-2.5 rounded-lg flex items-center justify-between gap-2 group cursor-pointer"
-                                                             onClick={() => speakTravelPhrase(`How do I walk to ${selectedTripDestination.nameEn}?`, 'en-US')}
-                                                        >
-                                                            <div className="text-left min-w-0">
-                                                                <span className="block text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
-                                                                    {selectedLang === 'EN' ? 'USEFUL PHRASE (TAP TO HEAR)' : 'FRASE ÚTIL (TOCA PARA ESCUCHAR)'}
-                                                                </span>
-                                                                <span className="text-[11px] text-yellow-800 font-bold block truncate mt-0.5">"How do I walk to {selectedTripDestination.nameEn}?"</span>
-                                                            </div>
-                                                            <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">
-                                                                {selectedLang === 'EN' ? '🗣️ SPEAK' : '🗣️ ESCUCHAR'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
+ // Attempt to find a male English/US voice for VOYAGER's American-accented Spanish
+ const voicesList = voices.length > 0 ? voices : (window.speechSynthesis ? window.speechSynthesis.getVoices() : []);
+ const voyagerVoice = voicesList.find(v => 
+ v.name.toLowerCase() === 'alex' && !isFemaleVoice(v.name)
+ ) || voicesList.find(v => 
+ v.lang.toLowerCase().startsWith('en') && 
+ !isFemaleVoice(v.name) &&
+ (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('google us english') || v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('premium'))
+ ) || voicesList.find(v => 
+ v.lang.toLowerCase().startsWith('en') && 
+ !isFemaleVoice(v.name) &&
+ (v.name.toLowerCase().includes('daniel') || v.name.toLowerCase().includes('fred') || v.name.toLowerCase().includes('rishi') || v.name.toLowerCase().includes('google'))
+ ) || voicesList.find(v => 
+ v.lang.toLowerCase().startsWith('en-us') && !isFemaleVoice(v.name)
+ ) || voicesList.find(v => 
+ v.lang.toLowerCase().startsWith('en') && !isFemaleVoice(v.name)
+ );
+ 
+ if (voyagerVoice) {
+ utterance.voice = voyagerVoice;
+ utterance.lang = voyagerVoice.lang;
+ } else {
+ utterance.lang = 'es-ES';
+ }
+ 
+ utterance.rate = 1.05;
+ utterance.pitch = 1.05;
+ 
+ window.speechSynthesis.speak(utterance);
+ };
 
-                                                    {/* Bicycle Option */}
-                                                    <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 space-y-2 text-left">
-                                                        <div className="flex justify-between items-center">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <span className="text-base">🚲</span>
-                                                                <span className="text-xs font-extrabold text-neutral-900">{selectedLang === 'EN' ? 'Citi Bike (Bicycle)' : 'En Bicicleta (Citi Bike)'}</span>
-                                                            </div>
-                                                            <span className="text-[10px] font-mono font-bold text-neutral-600 bg-white/70 px-2 py-0.5 rounded-full border border-zinc-300/20">
-                                                                {selectedTripDestination.bikeTime} • {selectedTripDestination.walkDist}
-                                                            </span>
-                                                        </div>
-                                                        <div className="bg-white border border-zinc-200/50 p-2.5 rounded-lg flex items-center justify-between gap-2 group cursor-pointer"
-                                                             onClick={() => speakTravelPhrase(`Where is the nearest Citi Bike station?`, 'en-US')}
-                                                        >
-                                                            <div className="text-left min-w-0">
-                                                                <span className="block text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-widest">
-                                                                    {selectedLang === 'EN' ? 'USEFUL PHRASE (TAP TO HEAR)' : 'FRASE ÚTIL (TOCA PARA ESCUCHAR)'}
-                                                                </span>
-                                                                <span className="text-[11px] text-yellow-800 font-bold block truncate mt-0.5">"Where is the nearest Citi Bike station?"</span>
-                                                            </div>
-                                                            <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">
-                                                                {selectedLang === 'EN' ? '🗣️ SPEAK' : '🗣️ ESCUCHAR'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
+ const resetReminderTimer = () => {
+ if (reminderTimerRef.current) {
+ clearTimeout(reminderTimerRef.current);
+ }
+ 
+ if (!isConnected) return; // Don't run reminder if disconnected to avoid mechanical browser TTS
+ 
+ reminderTimerRef.current = setTimeout(() => {
+ if (!hasClickedConnect) {
+ const reminderText = selectedLang === 'EN'
+ ? "Remember to click the CONNECT button to start."
+ : "Recuerda hacer clic en el botón CONECTA para comenzar.";
+ 
+ sendText(`[SYSTEM INSTRUCTION: Please speak aloud the following reminder message in your natural voice. Do not write any scores, tags, or explanations, just say this exact message clearly: "${reminderText}"]`);
+ }
+ }, 4000);
+ };
 
-                                                    {/* Google Maps / Live Map Option */}
-                                                    <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 flex justify-between items-center">
-                                                        <div className="flex items-center gap-1.5">
-                                                            <span className="text-base">🗺️</span>
-                                                            <span className="text-xs font-extrabold text-neutral-900">{selectedLang === 'EN' ? 'Interactive Google Maps' : 'Google Maps Interactivo'}</span>
-                                                        </div>
-                                                        <button 
-                                                            onClick={() => setViajesSubTab('google_map')}
-                                                            className="px-2.5 py-1 bg-white hover:bg-zinc-50 border border-zinc-300/50 text-[9px] font-mono font-bold uppercase rounded-lg transition-all cursor-pointer shadow-sm"
-                                                        >
-                                                            {selectedLang === 'EN' ? 'View Google Maps' : 'Ver Google Maps'}
-                                                        </button>
-                                                    </div>
-                                                </div>
+ useEffect(() => {
+ if (!hasClickedConnect) {
+ resetReminderTimer();
+ } else {
+ if (reminderTimerRef.current) {
+ clearTimeout(reminderTimerRef.current);
+ reminderTimerRef.current = null;
+ }
+ }
+ return () => {
+ if (reminderTimerRef.current) {
+ clearTimeout(reminderTimerRef.current);
+ }
+ };
+ }, [hasClickedConnect, isConnected, selectedLang]);
 
-                                                {/* Navigation Vocabulary Section */}
-                                                <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 space-y-2 text-left">
-                                                    <span className="block text-[8px] font-mono font-bold text-neutral-500 uppercase tracking-widest">
-                                                        {selectedLang === 'EN' ? 'NAVIGATION VOCABULARY:' : 'VOCABULARIO DE NAVEGACIÓN:'}
-                                                    </span>
-                                                    <div className="flex flex-wrap gap-1.5 pt-1">
-                                                        {selectedTripDestination.vocab.map((v, idx) => (
-                                                            <span 
-                                                                key={idx}
-                                                                className="bg-white border border-zinc-200 text-neutral-700 text-[10px] font-medium px-2 py-0.5 rounded shadow-sm"
-                                                            >
-                                                                {v}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
+ // Speak explanation when arriving at the Teacher, Profile, or Settings section
+ useEffect(() => {
+ // 1. Play pin sound and pause conversation whenever we switch page sections (from any tab to any other tab)
+ if (lastVisitedTabRef.current && lastVisitedTabRef.current !== rightPanelTab) {
+ playPinSound();
+ pause();
+ }
 
-                                                {/* Navigation Complete Phrases Section */}
-                                                <div className="bg-[#f0eada] border border-zinc-300/30 rounded-xl p-3 space-y-2 text-left">
-                                                    <span className="block text-[8px] font-mono font-bold text-neutral-500 uppercase tracking-widest">
-                                                        🗣️ {selectedLang === 'EN' ? 'USEFUL TRAVEL PHRASES (TAP TO HEAR):' : 'FRASES ÚTILES DE VIAJE (TOCA PARA ESCUCHAR):'}
-                                                    </span>
-                                                    <div className="space-y-2 pt-1">
-                                                        {selectedTripDestination.phrases.map((phrase, idx) => (
-                                                            <div 
-                                                                key={idx}
-                                                                onClick={() => speakTravelPhrase(phrase.en, 'en-US')}
-                                                                className="bg-white border border-zinc-200/50 p-2.5 rounded-lg flex items-center justify-between gap-2 group cursor-pointer hover:border-yellow-500/40 hover:shadow-sm transition-all"
-                                                            >
-                                                                <div className="text-left min-w-0">
-                                                                    <span className="text-[11px] text-yellow-800 font-bold block leading-normal">{phrase.en}</span>
-                                                                    <span className="text-[9px] text-zinc-500 block leading-tight mt-0.5">{phrase.es}</span>
-                                                                </div>
-                                                                <span className="text-[8px] font-mono text-zinc-400 font-bold uppercase tracking-wider shrink-0 select-none group-hover:text-zinc-600">
-                                                                    {selectedLang === 'EN' ? '🗣️ SPEAK' : '🗣️ ESCUCHAR'}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
+ // 2. Speak welcome explanation for the new tab section (resuming audio for the new context)
+ if (rightPanelTab === 'teachers' && lastVisitedTabRef.current !== 'teachers') {
+ resume();
+ const speech = selectedLang === 'EN'
+ ? "Welcome to the Teacher section! You have the option to hire Alejandra Francois, La Profe. She is our native bilingual Master English Immersion Coach and NYC Accent Specialist who can help you learn Spanish and English through personalized live 1-on-1 private lessons, accent correction, and direct chat support."
+ : "Bienvenido a la sección de La Profe. Tienes la opción de contratar a Alejandra Francois, La Profe. Ella es nuestra Coach Maestra de Inmersión y Especialista en Acento de Nueva York, bilingüe nativa. Te ayudará a aprender español e inglés a través de clases particulares en vivo 1-a-1, corrección de pronunciación y soporte por chat.";
 
-                                                {/* Ask Voyager Actions */}
-                                                <button
-                                                    onClick={() => {
-                                                        const q = selectedLang === 'EN'
-                                                            ? `Voyager, how do I get to ${selectedTripDestination.nameEn}? Please suggest the best way and teach me related vocabulary.`
-                                                            : `Voyager, ¿cómo llego a ${selectedTripDestination.name}? Por favor sugiéreme la mejor forma de ir y enséñame vocabulario relacionado.`;
-                                                        setRightPanelTab('chat');
-                                                        setInputText(q);
-                                                        if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                                                            wsRef.current.send(JSON.stringify({ text: q }));
-                                                            setChatMessages(prev => [
-                                                                ...prev,
-                                                                {
-                                                                    id: `msg_trip_query_${Date.now()}`,
-                                                                    sender: 'user',
-                                                                    text: q,
-                                                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                                                    timeMs: Date.now()
-                                                                }
-                                                            ]);
-                                                        } else {
-                                                            setChatMessages(prev => [
-                                                                ...prev,
-                                                                {
-                                                                    id: `msg_trip_query_${Date.now()}`,
-                                                                    sender: 'user',
-                                                                    text: q,
-                                                                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                                                    timeMs: Date.now()
-                                                                }
-                                                            ]);
-                                                            connectToGemini(q, false);
-                                                        }
-                                                    }}
-                                                    className="w-full py-2.5 bg-yellow-500 hover:bg-yellow-400 text-black border-none text-xs font-mono font-bold uppercase rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-98 cursor-pointer"
-                                                >
-                                                    <span>{selectedLang === 'EN' ? 'Consult Voyager in Chat' : 'Consultar a Voyager en el Chat'}</span>
-                                                    <ArrowRight className="w-3.5 h-3.5" />
-                                                </button>
-                                            </div>
-                                        ) : null}
+ if (isConnected) {
+ sendText(`[SYSTEM INSTRUCTION: Please speak aloud the following welcome message in your natural voice. Do not write any text in the transcript or chat, just speak this message: "${speech}"]`);
+ }
+ } else if (rightPanelTab === 'roadmap' && lastVisitedTabRef.current !== 'roadmap') {
+ resume();
+ const speech = selectedLang === 'EN'
+ ? "Welcome to your Profile space! Here you can edit your fluency goals, view your Google account authentication details, monitor your grammar and pronunciation scores, track your daily learning curriculum roadmap, and check your master instructor session logs."
+ : "Bienvenido a tu sección de Perfil. Aquí puedes configurar tus metas de fluidez, revisar tu cuenta de Google, monitorear tus puntajes de gramática y pronunciación, seguir tu currículo diario de aprendizaje y ver el registro de tus clases particulares.";
 
-                                        {/* Saved Spots (Legacy List) */}
-                                        <div className="space-y-3 pt-2 border-t border-zinc-300/40">
-                                            <span className="block text-[8px] font-mono font-bold text-neutral-400 uppercase tracking-wider">
-                                                📁 {selectedLang === 'EN' ? 'SAVED LUGARES:' : 'LUGARES GUARDADOS:'}
-                                            </span>
-                                            <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[160px] md:max-h-[220px]">
-                                                {serverLeads.length === 0 ? (
-                                                    <div className="flex flex-col items-center justify-center h-full space-y-2 text-center py-6">
-                                                        <span className="text-3xl text-neutral-400">📁</span>
-                                                        <p className="text-sm text-neutral-600 font-bold">{translations[selectedLang].noLeads}</p>
-                                                        <p className="text-xs text-neutral-500 max-w-xs leading-relaxed">{translations[selectedLang].fillFormTest}</p>
-                                                    </div>
-                                                ) : (
-                                                    <div className="space-y-3">
-                                                        {serverLeads.map((lead) => (
-                                                            <div key={lead.id} className="bg-[#FAF6EE] border border-zinc-200/80 shadow-sm rounded-2xl p-4 space-y-2 text-xs">
-                                                                <div className="flex justify-between items-start">
-                                                                    <div>
-                                                                        <p className="font-extrabold text-neutral-900 text-sm leading-tight">{lead.name}</p>
-                                                                        <p className="text-neutral-500 font-mono mt-0.5">{lead.email}</p>
-                                                                    </div>
-                                                                    <span className="text-[10px] font-mono font-bold text-neutral-400 bg-zinc-200/40 px-2 py-0.5 rounded-full">
-                                                                        {new Date(lead.createdAt).toLocaleDateString()}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="grid grid-cols-2 gap-2 border-t border-zinc-300/20 pt-2 text-[11px] text-neutral-600">
-                                                                    {lead.company && <p>🏢 <strong className="text-neutral-500">{selectedLang === 'EN' ? 'Company' : 'Empresa'}:</strong> {lead.company}</p>}
-                                                                    {lead.phone && <p>📞 <strong className="text-neutral-500">{selectedLang === 'EN' ? 'Phone' : 'Teléfono'}:</strong> {lead.phone}</p>}
-                                                                </div>
-                                                                {lead.notes && (
-                                                                    <div className="bg-[#f0eada] p-2.5 rounded-xl border border-zinc-300/30 text-neutral-700 text-[11px] whitespace-pre-wrap leading-relaxed">
-                                                                        <strong className="text-neutral-500">{selectedLang === 'EN' ? 'Requirements' : 'Requisitos'}:</strong> {lead.notes}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                                
-                                {rightPanelTab === 'trips' && viajesSubTab === 'subway' && (
-                                    <div className="w-full h-full flex flex-col space-y-3">
-                                        <button 
-                                            onClick={() => setViajesSubTab('planner')}
-                                            className="flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 cursor-pointer self-start transition-colors"
-                                        >
-                                            <ArrowLeft className="w-4 h-4" />
-                                            {selectedLang === 'EN' ? 'Back to Planner' : 'Volver a Planificación'}
-                                        </button>
-                                        <div className="flex-1 min-h-[350px]">
-                                            <NycSubwayMap 
-                                                selectedLang={selectedLang}
-                                                onAskVoyager={(text) => {
-                                                    setRightPanelTab('chat');
-                                                    setInputText(text);
-                                                    if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                                                        wsRef.current.send(JSON.stringify({ text }));
-                                                        setChatMessages(prev => [
-                                                            ...prev,
-                                                            {
-                                                                id: `msg_subway_${Date.now()}`,
-                                                                sender: 'user',
-                                                                text,
-                                                                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                                                timeMs: Date.now()
-                                                            }
-                                                        ]);
-                                                    } else {
-                                                        setChatMessages(prev => [
-                                                            ...prev,
-                                                            {
-                                                                id: `msg_subway_${Date.now()}`,
-                                                                sender: 'user',
-                                                                text,
-                                                                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                                                timeMs: Date.now()
-                                                            }
-                                                        ]);
-                                                        connectToGemini(text, false);
-                                                    }
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
+ if (isConnected) {
+ sendText(`[SYSTEM INSTRUCTION: Please speak aloud the following welcome message in your natural voice. Do not write any text in the transcript or chat, just speak this message: "${speech}"]`);
+ }
+ } else if (rightPanelTab === 'settings' && lastVisitedTabRef.current !== 'settings') {
+ resume();
+ const speech = selectedLang === 'EN'
+ ? "Welcome to the Settings panel! Here you can configure the interface language, select translation and subtitle modes, toggle text-only listen-only mode, adjust voice speech rates, set your daily practice goals, and customize pedagogical feedback levels."
+ : "Bienvenido al panel de Configuración. Aquí puedes configurar el idioma de la interfaz, elegir los modos de traducción y subtítulos, activar el modo de solo escucha sin audio, ajustar la velocidad de reproducción de voz de Voyager, establecer tus metas de práctica diarias y personalizar el nivel de feedback pedagógico.";
 
-                                {rightPanelTab === 'trips' && viajesSubTab === 'google_map' && (
-                                    <div className="w-full h-full flex flex-col space-y-3">
-                                        <button 
-                                            onClick={() => setViajesSubTab('planner')}
-                                            className="flex items-center gap-1.5 text-xs font-bold text-neutral-600 hover:text-neutral-900 cursor-pointer self-start transition-colors"
-                                        >
-                                            <ArrowLeft className="w-4 h-4" />
-                                            {selectedLang === 'EN' ? 'Back to Planner' : 'Volver a Planificación'}
-                                        </button>
-                                        <div className="h-[300px] md:h-[350px] w-full rounded-2xl overflow-hidden border border-zinc-300/60 shadow-md">
-                                            <NycMap 
-                                                center={mapCenter}
-                                                zoom={mapZoom}
-                                                markers={markers}
-                                                routeInfo={routeInfo}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
+ if (isConnected) {
+ sendText(`[SYSTEM INSTRUCTION: Please speak aloud the following welcome message in your natural voice. Do not write any text in the transcript or chat, just speak this message: "${speech}"]`);
+ }
+ } else if (rightPanelTab === 'chat' && lastVisitedTabRef.current !== 'chat') {
+ resume();
+ const speech = selectedLang === 'EN'
+ ? "Welcome back to our conversation! Let's continue practicing English."
+ : "Bienvenido de vuelta a nuestra conversación. Sigamos practicando inglés.";
 
-                                {rightPanelTab === 'profile' && (
-                                    <Profile 
-                                        selectedLang={selectedLang}
-                                        travelerType={travelerType}
-                                        setTravelerType={setTravelerType}
-                                        completedMissions={completedMissions}
-                                        onStartLesson={(day, level) => {
-                                            setActiveLessonDay(day);
-                                            setActiveLessonLevel(level);
-                                            setLessonStage(1);
-                                            setShowHelpPortal(null);
-                                            setShowLessonCompletion(null);
-                                            setRightPanelTab('lessons');
-                                        }}
-                                        scores={scores}
-                                        learnedWords={learnedWords}
-                                        accentPatterns={accentPatterns}
-                                        onAskVoyager={(text) => {
-                                            setRightPanelTab('chat');
-                                            setInputText(text);
-                                            if (isConnected && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                                                wsRef.current.send(JSON.stringify({ text }));
-                                                setChatMessages(prev => [
-                                                    ...prev,
-                                                    {
-                                                        id: `msg_profile_drill_${Date.now()}`,
-                                                        sender: 'user',
-                                                        text,
-                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                                        timeMs: Date.now()
-                                                    }
-                                                ]);
-                                            } else {
-                                                setChatMessages(prev => [
-                                                    ...prev,
-                                                    {
-                                                        id: `msg_profile_drill_${Date.now()}`,
-                                                        sender: 'user',
-                                                        text,
-                                                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                                        timeMs: Date.now()
-                                                    }
-                                                ]);
-                                                connectToGemini(text, false);
-                                            }
-                                        }}
-                                    />
-                                )}
-                            </div>
-                        )}
+ if (isConnected) {
+ // Restore active conversation mode prompt
+ const activeMode = isEnglishOnlyMode ? 'AMERICAN_ENGLISH' : isSpanishOnlyMode ? 'SPANISH' : isBilingualMode ? 'BILINGUAL' : isTranslateMode ? 'LIVE_TRANSLATOR' : isListenOnly ? 'LISTEN_ONLY' : 'BILINGUAL';
+ const restorePrompt = ConversationModePolicy.getDynamicModeSwitchPrompt(activeMode);
+ if (restorePrompt) {
+ sendText(restorePrompt);
+ }
+ 
+ // Speak transition welcome
+ setTimeout(() => {
+ sendText(`[SYSTEM INSTRUCTION: Please speak aloud the following message in your natural voice. Do not write any text in the transcript or chat, just speak this message: "${speech}"]`);
+ }, 1000);
+ }
+ } else if (rightPanelTab === 'shopping' && lastVisitedTabRef.current !== 'shopping') {
+ resume();
+ 
+ const questionSpeech = selectedLang === 'EN'
+ ? "How can I help you today?"
+ : "¿En qué te puedo ayudar hoy?";
 
-                    {!showReviewScreen && (rightPanelTab === 'chat' || (rightPanelTab === 'lessons' && activeLessonDay !== null)) && hasInteracted && (
-                        <div className="px-4 pb-4 bg-transparent flex items-start gap-2.5 w-full">
-                            <div className="w-10 flex-shrink-0 bg-transparent" />
-                            <form onSubmit={handleSendMessage} className="flex-1 max-w-[78%] relative rounded-3xl transition-all bg-[#1e3a8a]/10 border border-[#1e3a8a]/20">
-                                <input
-                                    type="text"
-                                    value={inputText}
-                                    onChange={(e) => setInputText(e.target.value)}
-                                    placeholder={placeholderText}
-                                    className="w-full pl-5 pr-12 py-2.5 focus:outline-none transition-all min-h-[44px] border-none rounded-3xl bg-transparent text-[#1e3a8a] placeholder:text-[#1e3a8a]/60 font-serif text-[15px] chat-input-text"
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={!inputText.trim()}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center bg-transparent border-none outline-none text-[#1e3a8a] hover:text-[#1e3a8a]/80 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105"
-                                >
-                                    <svg className="w-4.5 h-4.5 transform rotate-90" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                                    </svg>
-                                </button>
-                            </form>
-                        </div>
-                    )}
-                </>
-            )}
-        </div>
-        </div>
+ // Add Voyager welcome bubble to chat transcript so the user sees it in the chat
+ setChatMessages(prev => {
+ // Only add if not already present to avoid duplicate welcome bubbles
+ if (prev.some(m => m.id === 'welcome_store')) return prev;
+ return [
+ ...prev,
+ {
+ id: 'welcome_store',
+ sender: 'splash',
+ text: questionSpeech,
+ timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+ timeMs: Date.now(),
+ tab: 'shopping'
+ }
+ ];
+ });
 
-        {activeFullscreenSlide !== null && (
-            <div 
-                className="fixed inset-0 bg-black/90 backdrop-blur-md z-[9999] flex flex-col items-center justify-center p-4 md:p-6"
-                onClick={() => setActiveFullscreenSlide(null)}
-            >
-                {/* Close button */}
-                <button 
-                    className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-yellow-500 hover:text-black border border-white/10 flex items-center justify-center text-white cursor-pointer z-50 transition-all hover:scale-105"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveFullscreenSlide(null);
-                    }}
-                >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+ if (isConnected) {
+ // Override system instructions for the VOYAGER TIENDA mission
+ const storeSystemInstructions = `[INSTRUCCIÓN DE SISTEMA URGENTE Y MANDATORIA: Desde este momento, entra en vigor la Misión de VOYAGER TIENDA.
+Eres VOYAGER TIENDA, el asesor conversacional de la tienda integrada de USA Voyager.
+Eres un vendedor consultivo, cálido, paciente, entusiasta y experto. Tu objetivo es ayudar al usuario a descubrir, entender y elegir productos, materiales de estudio, libros de trabajo, mercancía oficial, membresías y paquetes de coaching con La Profe. No es una clase de inglés ni un chat general.
 
-                {/* Navigation inside modal */}
-                <button 
-                    className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/60 hover:bg-yellow-500 hover:text-black border border-white/10 flex items-center justify-center text-white cursor-pointer z-50 transition-all hover:scale-105"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveFullscreenSlide((prev) => prev !== null ? (prev - 1 + slides.length) % slides.length : null);
-                    }}
-                >
-                    <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
+Reglas esenciales:
+- Pronuncia “U.S.A.” en inglés americano: “you ess ay”.
+- Habla solo en español o inglés. El español es el idioma predeterminado. Si aparece una palabra en inglés, pronúnciala con acento americano.
+- Mantén la conversación exclusivamente relacionada con la tienda: productos, beneficios, diferencias entre opciones, materiales de estudio, paquetes, La Profe, coaching, precios, carrito, cuenta y compra.
+- Haz una pregunta a la vez para entender qué necesita la persona: su meta, nivel, presupuesto, tiempo disponible, interés o situación de aprendizaje.
+- Explica valor práctico antes de recomendar: para quién sirve el producto, qué problema resuelve, cómo se usa y qué resultado puede aportar.
+- Recomienda con honestidad y sin presión. Si varias opciones encajan, compáralas brevemente y explica cuál parece la mejor según las necesidades del usuario.
+- Nunca inventes productos, precios, disponibilidad, descuentos, políticas, resultados o información de pedidos. Si no tienes la información, dilo con claridad y ofrece revisar la tienda o el carrito.
+- Si el usuario pregunta algo ajeno a TIENDA, responde brevemente que ese tema corresponde a CHARLA, LA PROFE o PERFIL, e invítalo a cambiar a la sección adecuada.
+- No continúes conversaciones de CHARLA dentro de TIENDA. La conversación de TIENDA debe tener su propio historial y contexto.
+- Responde con energía amable y clara. Usa frases breves, naturales y útiles. Evita sonar corporativo, robótico, insistente o excesivamente vendedor.
+- NO des clases de inglés, NO corrijas gramática de inglés, NO enseñes inglés. Actúa estrictamente como asesor de ventas.]`;
 
-                <button 
-                    className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/60 hover:bg-yellow-500 hover:text-black border border-white/10 flex items-center justify-center text-white cursor-pointer z-50 transition-all hover:scale-105"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveFullscreenSlide((prev) => prev !== null ? (prev + 1) % slides.length : null);
-                    }}
-                >
-                    <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                </button>
+ sendText(storeSystemInstructions);
 
-                {/* Image container */}
-                <div 
-                    className="relative max-w-[90vw] max-h-[80vh] flex items-center justify-center"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <img 
-                        src={slides[activeFullscreenSlide].src} 
-                        alt={slides[activeFullscreenSlide].alt}
-                        className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl border border-white/10"
-                    />
+ // Speak the question
+ setTimeout(() => {
+ sendText(`[SYSTEM INSTRUCTION: Please speak aloud the following welcome message in your natural voice. Do not write any text in the transcript or chat, just speak this message: "${questionSpeech}".]`);
+ }, 1000);
+ }
+ }
+ lastVisitedTabRef.current = rightPanelTab;
+ }, [rightPanelTab, selectedLang, isConnected, isEnglishOnlyMode, isSpanishOnlyMode, isBilingualMode, isTranslateMode, isListenOnly]);
+
+ const getOnboardingStepTitle = (step: number, lang: 'EN' | 'ES') => {
+ switch (step) {
+ case 1:
+ return lang === 'EN' ? 'What is your primary learning goal?' : '¿Cuál es tu objetivo de aprendizaje principal?';
+ case 11:
+ return lang === 'EN' ? 'What is your professional goal?' : '¿Cuál es tu meta profesional?';
+ case 112:
+ return lang === 'EN' ? 'What is your area of interest?' : '¿Cuál es tu área de interés?';
+ case 12:
+ return lang === 'EN' ? 'What is your school level?' : '¿Cuál es tu nivel escolar?';
+ case 122:
+ return lang === 'EN' ? 'Why do you want to study English?' : '¿Por qué quieres estudiar inglés?';
+ case 13:
+ return lang === 'EN' ? 'Reason you want to learn?' : '¿Razón por la que quieres aprender?';
+ case 14:
+ return lang === 'EN' ? 'Which best describes your profile?' : '¿Cuál describe mejor tu perfil?';
+ case 142:
+ return lang === 'EN' ? 'What is your main goal?' : '¿Cuál es tu objetivo principal?';
+ case 2:
+ return lang === 'EN' ? 'What is your estimated English level?' : '¿Cuál es tu nivel estimado de inglés?';
+ case 4:
+ return lang === 'EN' ? 'Who do I have the pleasure of speaking with?' : '¿Con quién tengo el gusto?';
+ case 3:
+ return lang === 'EN' ? 'Select your starting conversation mode:' : 'Selecciona tu modo de conversación para iniciar:';
+ default:
+ return '';
+ }
+ };
+
+ useEffect(() => {
+ if (onboardingStep > 1 && onboardingStep !== lastSpokenStepRef.current) {
+ const title = getOnboardingStepTitle(onboardingStep, selectedLang);
+ if (title && isConnected) {
+ const onboardingStepPrompt = `[INSTRUCCIÓN DE SISTEMA MANDATORIA: Estás guiando al usuario en el cuestionario de perfil. 
+Habla en tu voz natural de Voyager y lee en voz alta ÚNICAMENTE la siguiente pregunta en español: "${title}".
+REGLA CRÍTICA: NO digas nada más, NO saludes con "Hola", NO preguntes "¿Qué te trae por aquí hoy?" ni intentes iniciar una charla casual. Solo di la pregunta claramente y guarda silencio absoluto esperando la respuesta del usuario en la interfaz. 
+NO respondas a ruidos, habla o ruidos de fondo.]`;
+ sendText(onboardingStepPrompt);
+ lastSpokenStepRef.current = onboardingStep;
+ }
+ }
+ }, [onboardingStep, isConnected, selectedLang]);
+
+ // Connect Click handler
+ const handleConnectClick = () => {
+ setIsFadingMascot(true);
+ setTimeout(() => {
+ setHasClickedConnect(true);
+ setOnboardingStep(1);
+ setRightPanelTab('chat');
+ setChosenStartMode(null);
+ setExplanationCountdown(null);
+ setIsFadingMascot(false);
+ connect(undefined, true); // Voice Connection started immediately to speak mode explanations
+ resetReminderTimer();
+ }, 400);
+ };
+
+ // Mode click handler
+ const handleModeSelection = (modeId: ConversationMode) => {
+ setChosenStartMode(modeId);
+ resetReminderTimer(); // Reset reminder timer so they get a fresh 15 seconds after selecting a mode
+ 
+ // Speak explanation of the selected mode
+ let explanation = '';
+ if (selectedLang === 'EN') {
+ switch (modeId) {
+ case 'SPANISH':
+ explanation = "In Spanish mode, we will chat mostly in Spanish to answer your questions and explain idioms.";
+ break;
+ case 'BILINGUAL':
+ explanation = "In Bilingual mode, I will respond first in Spanish and then repeat in English to help you build connections.";
+ break;
+ case 'AMERICAN_ENGLISH':
+ explanation = "In English mode, we will converse and practice strictly and only in American English.";
+ break;
+ case 'LIVE_TRANSLATOR':
+ explanation = "In Translator mode, I will instantly translate whatever you say between English and Spanish.";
+ break;
+ case 'LISTEN_ONLY':
+ explanation = "In Listen mode, I will listen to your pronunciation and provide silent text corrections without speaking.";
+ break;
+ }
+ } else {
+ switch (modeId) {
+ case 'SPANISH':
+ explanation = "En el modo español, conversaremos principalmente en español para responder tus preguntas y explicarte modismos.";
+ break;
+ case 'BILINGUAL':
+ explanation = "En el modo bilingüe, te responderé primero en español y luego repetiré la idea en inglés para ayudarte a asociar ambos idiomas.";
+ break;
+ case 'AMERICAN_ENGLISH':
+ explanation = "En el modo de inglés, conversaremos y practicaremos de forma estricta y únicamente en inglés americano.";
+ break;
+ case 'LIVE_TRANSLATOR':
+ explanation = "En el modo traductor, traduciré de forma instantánea todo lo que digas entre inglés y español.";
+ break;
+ case 'LISTEN_ONLY':
+ explanation = "En el modo de escucha, escucharé tu pronunciación y te ofreceré correcciones por texto de manera silenciosa.";
+ break;
+ }
+ }
+ 
+ if (explanation) {
+ if (isConnected) {
+ sendText(`[SYSTEM INSTRUCTION: Please speak aloud the following text in your natural voice. Do not write any scores, tags, or explanations, just say this phrase clearly: "${explanation}"]`);
+ }
+ }
+ };
+
+ // Helper to apply mode to Hook state
+ const applyChosenMode = (mode: ConversationMode) => {
+ switch (mode) {
+ case 'BILINGUAL':
+ setIsBilingualMode(true);
+ break;
+ case 'AMERICAN_ENGLISH':
+ setIsEnglishOnlyMode(true);
+ break;
+ case 'LIVE_TRANSLATOR':
+ setIsTranslateMode(true);
+ break;
+ case 'LISTEN_ONLY':
+ setIsListenOnly(true);
+ break;
+ case 'SPANISH':
+ setIsSpanishOnlyMode(true);
+ break;
+ }
+ };
+
+ const handleCompleteOnboarding = () => {
+ const saved = localStorage.getItem('voyager_user_account');
+ const getGoalText = () => {
+ if (selectedGoal === 'PROFESSIONAL') {
+ const interestText = selectedProfInterest ? ` (${selectedProfInterest})` : '';
+ if (selectedProfSubGoal === 'CONSEGUIR_EMPLEO') return `Professional: Conseguir Empleo${interestText}`;
+ if (selectedProfSubGoal === 'COMUNICARME_TRABAJO') return `Professional: Comunicarme en el Trabajo${interestText}`;
+ return `Professional: Crecer Profesionalmente${interestText}`;
+ }
+ if (selectedGoal === 'ESTUDIO') {
+ const schoolText = selectedSchoolLevel ? ` (${selectedSchoolLevel})` : '';
+ if (selectedAcademicGoal === 'PASS_EXAM') return `Academic: Pasar un Examen${schoolText}`;
+ if (selectedAcademicGoal === 'ACADEMIC_SUCCESS') return `Academic: Éxito Académico${schoolText}`;
+ if (selectedAcademicGoal === 'STUDY_ABROAD') return `Academic: Estudiar en el Extranjero${schoolText}`;
+ if (selectedAcademicGoal === 'IMPROVE_CONVERSATION') return `Academic: Mejorar Conversación${schoolText}`;
+ return `Academic: Conocimiento General${schoolText}`;
+ }
+ if (selectedGoal === 'VIAJANTE') {
+ if (selectedViajanteSubGoal === 'EXPLORAR') return 'Travel: Explorar';
+ if (selectedViajanteSubGoal === 'AMISTAD') return 'Travel: Amistad';
+ return 'Travel: Cultura';
+ }
+ if (selectedGoal === 'DOCENTES') {
+ const goalText = selectedDocenteGoal ? ` (${selectedDocenteGoal})` : '';
+ if (selectedDocenteProfile === 'PROFESOR_INGLES') return `Teachers: Profesor de Inglés${goalText}`;
+ if (selectedDocenteProfile === 'TUTOR_PRIVADO') return `Teachers: Tutor Privado${goalText}`;
+ if (selectedDocenteProfile === 'ACADEMIA') return `Teachers: Academia de Idiomas${goalText}`;
+ if (selectedDocenteProfile === 'PROFESOR_UNIVERSITARIO') return `Teachers: Profesor Universitario${goalText}`;
+ if (selectedDocenteProfile === 'INSTRUCTOR_CORPORATIVO') return `Teachers: Instructor Corporativo${goalText}`;
+ if (selectedDocenteProfile === 'ORGANIZACION') return `Teachers: Organización Educativa${goalText}`;
+ if (selectedDocenteProfile === 'CREADOR_CONTENIDO') return `Teachers: Creador de Contenido${goalText}`;
+ return `Docentes${goalText}`;
+ }
+ return 'Travel & Daily Conversation';
+ };
+ const mapLevelEstimate = (lvl: typeof selectedLevel) => {
+ if (lvl === 'BEGINNER') return 'Beginner';
+ if (lvl === 'INTERMEDIATE') return 'Intermediate';
+ if (lvl === 'ADVANCED') return 'Advanced';
+ if (lvl === 'NOT_SURE') return 'Not Sure';
+ return 'Intermediate';
+ };
+ let u = {
+ name: userName.trim() || (selectedLang === 'EN' ? 'Learner' : 'Estudiante'),
+ email: userEmail.trim() || 'learner@usavoyager.com',
+ age: userAge.trim() ? parseInt(userAge.trim()) : undefined,
+ country: userCountry.trim() || (selectedLang === 'EN' ? 'Unknown' : 'Desconocido'),
+ provider: 'Guest' as const,
+ goal: getGoalText(),
+ levelEstimate: mapLevelEstimate(selectedLevel),
+ completedDays: [1],
+ plan: 'FREE' as const
+ };
+ if (saved) {
+ try {
+ const parsed = JSON.parse(saved);
+ u = {
+ ...parsed,
+ name: userName.trim() || parsed.name,
+ email: userEmail.trim() || parsed.email,
+ age: userAge.trim() ? parseInt(userAge.trim()) : parsed.age,
+ country: userCountry.trim() || parsed.country,
+ goal: getGoalText(),
+ levelEstimate: mapLevelEstimate(selectedLevel),
+ };
+ } catch (e) {}
+ }
+ localStorage.setItem('voyager_user_account', JSON.stringify(u));
+ handleContinuaClick();
+ };
+
+ // Continua Click handler
+ const handleContinuaClick = () => {
+ const modeToUse = chosenStartMode || 'SPANISH';
+ window.speechSynthesis.cancel();
+ setRightPanelTab('chat');
+ setHasInteracted(true);
+ applyChosenMode(modeToUse);
+ setExplanationCountdown(null);
+ setChatMessages([]); // Clear system option explanations from chat history
+
+ const saved = localStorage.getItem('voyager_user_account');
+ let userGoal = undefined;
+ let userLevel = undefined;
+ if (saved) {
+ try {
+ const parsed = JSON.parse(saved);
+ userGoal = parsed.goal;
+ userLevel = parsed.levelEstimate;
+ } catch (e) {}
+ }
+
+ const greetingPrompt = ConversationModePolicy.getSystemInstructionsForMode(modeToUse, {
+ selectedLang,
+ userName,
+ userAge,
+ userCountry,
+ userGoal,
+ userLevel
+ });
+ const onboardingWelcomePrompt = `[SYSTEM INSTRUCTION: Crucial Onboarding First Greeting. Speak aloud and write in the chat a warm welcome message in Spanish:
+1. Start strictly with: "¡Bienvenidos!" or "¡Bienvenidos a Voyager!".
+2. NEVER say "Bienvenidos, Estudiante!" or "Bienvenidos, Learner!" or "Bienvenido" or "Bienvenida".
+3. Remind them that you have placed them in Spanish mode ("Modo Español").
+4. Explain that you did this so you can explain to them clearly how the app works.
+5. Keep the greeting fully in Spanish.
+This message is very important to set up the user for their journey. Do not use English yet.]
+${greetingPrompt}`;
+ 
+ if (isConnected) {
+ sendText(onboardingWelcomePrompt);
+ } else {
+ connect(onboardingWelcomePrompt, true);
+ }
+ };
+
+ // Start Conversation trigger
+ const handleStartConversation = () => {
+ const modeToUse = chosenStartMode || 'SPANISH';
+ setExplanationCountdown(null);
+ setHasInteracted(true);
+ window.speechSynthesis.cancel();
+ setChatMessages([]); // Clear system option explanations from chat history
+
+ const saved = localStorage.getItem('voyager_user_account');
+ let userGoal = undefined;
+ let userLevel = undefined;
+ if (saved) {
+ try {
+ const parsed = JSON.parse(saved);
+ userGoal = parsed.goal;
+ userLevel = parsed.levelEstimate;
+ } catch (e) {}
+ }
+
+ const greetingPrompt = ConversationModePolicy.getSystemInstructionsForMode(modeToUse, {
+ selectedLang,
+ userName,
+ userAge,
+ userCountry,
+ userGoal,
+ userLevel
+ });
+ const onboardingWelcomePrompt = `[SYSTEM INSTRUCTION: Crucial Onboarding First Greeting. Speak aloud and write in the chat a warm welcome message in Spanish:
+1. Start strictly with: "¡Bienvenidos!" or "¡Bienvenidos a Voyager!".
+2. NEVER say "Bienvenidos, Estudiante!" or "Bienvenidos, Learner!" or "Bienvenido" or "Bienvenida".
+3. Remind them that you have placed them in Spanish mode ("Modo Español").
+4. Explain that you did this so you can explain to them clearly how the app works.
+5. Keep the greeting fully in Spanish.
+This message is very important to set up the user for their journey. Do not use English yet.]
+${greetingPrompt}`;
+ 
+ if (isConnected) {
+ applyChosenMode(modeToUse);
+ sendText(onboardingWelcomePrompt);
+ } else {
+ connect(onboardingWelcomePrompt, true);
+ }
+ };
+
+ // Countdown timer effect
+ useEffect(() => {
+ if (explanationCountdown === null) return;
+ if (explanationCountdown <= 0) {
+ handleStartConversation();
+ return;
+ }
+ const timer = setTimeout(() => {
+ setExplanationCountdown(prev => (prev !== null ? prev - 1 : null));
+ }, 1000);
+ return () => clearTimeout(timer);
+ }, [explanationCountdown]);
+
+ // Disconnect handler
+ const handleDisconnectClick = () => {
+ disconnect();
+ window.speechSynthesis.cancel();
+ setHasClickedConnect(false);
+ setHasInteracted(false);
+ setChosenStartMode(null);
+ setRightPanelTab('home');
+ setExplanationCountdown(null);
+ setShowReviewScreen(false);
+ };
+
+ // End Session handler
+ const handleEndSessionClick = () => {
+ disconnect();
+ window.speechSynthesis.cancel();
+ setHasClickedConnect(false);
+ setHasInteracted(false);
+ setChosenStartMode(null);
+ setRightPanelTab('home');
+ setExplanationCountdown(null);
+ setShowReviewScreen(false);
+ };
+
+ // Text message send
+ const handleSendMessage = (e: React.FormEvent) => {
+ e.preventDefault();
+ if (!inputText.trim()) return;
+ addUserMessage(inputText);
+ sendText(inputText);
+ setInputText('');
+ };
+
+ // Suggestion pill click
+ const handleSuggestionClick = (text: string) => {
+ setHasInteracted(true);
+ addUserMessage(text);
+ sendText(text);
+ };
+
+ // Lead submit
+ const handleInlineLeadSubmit = async () => {
+ setIsSubmittingInlineLead(true);
+ setInlineLeadError(null);
+ try {
+ await new Promise(resolve => setTimeout(resolve, 1000));
+ setInlineLeadSuccess(true);
+ } catch (err: any) {
+ setInlineLeadError(err.message || "Error saving practice log.");
+ } finally {
+ setIsSubmittingInlineLead(false);
+ }
+ };
+
+ // Connect to Gemini proxy
+ const connectToGemini = (prompt?: string, isVoice: boolean = false) => {
+ connect(prompt, isVoice);
+ };
+
+ // Days in month helper for calendar
+ const getDaysInMonth = (date: Date) => {
+ const year = date.getFullYear();
+ const month = date.getMonth();
+ const firstDay = new Date(year, month, 1).getDay();
+ const daysInMonth = new Date(year, month + 1, 0).getDate();
+ const adjustedFirstDay = firstDay === 0 ? 6 : firstDay - 1;
+ 
+ const days: (number | null)[] = [];
+ for (let i = 0; i < adjustedFirstDay; i++) {
+ days.push(null);
+ }
+ for (let i = 1; i <= daysInMonth; i++) {
+ days.push(i);
+ }
+ return days;
+ };
+
+ const isViajante = selectedGoal === 'VIAJANTE';
+ const totalOnboardingSteps = isViajante ? 4 : 5;
+
+ let currentStepIdx = 1;
+ if (onboardingStep === 1) {
+ currentStepIdx = 1;
+ } else if (onboardingStep === 11 || onboardingStep === 12 || onboardingStep === 13 || onboardingStep === 14) {
+ currentStepIdx = 2;
+ } else if (onboardingStep === 112 || onboardingStep === 122 || onboardingStep === 142) {
+ currentStepIdx = 3;
+ } else if (onboardingStep === 2) {
+ currentStepIdx = isViajante ? 3 : 4;
+ } else if (onboardingStep === 4) {
+ currentStepIdx = isViajante ? 4 : 5;
+ }
+
+ const stepsLeft = totalOnboardingSteps - currentStepIdx;
+
+ const handleOnboardingBack = () => {
+ if (onboardingStep === 1) {
+ setHasClickedConnect(false);
+ setOnboardingStep(0);
+ } else if (onboardingStep === 11 || onboardingStep === 13 || onboardingStep === 14) {
+ setOnboardingStep(1);
+ } else if (onboardingStep === 12) {
+ setOnboardingStep(1);
+ } else if (onboardingStep === 112) {
+ setOnboardingStep(11);
+ } else if (onboardingStep === 122) {
+ setOnboardingStep(12);
+ } else if (onboardingStep === 142) {
+ setOnboardingStep(14);
+ } else if (onboardingStep === 2) {
+ if (selectedGoal === 'PROFESSIONAL') {
+ setOnboardingStep(112);
+ } else if (selectedGoal === 'ESTUDIO') {
+ setOnboardingStep(122);
+ } else if (selectedGoal === 'VIAJANTE') {
+ setOnboardingStep(13);
+ } else if (selectedGoal === 'DOCENTES') {
+ setOnboardingStep(142);
+ }
+ } else if (onboardingStep === 4) {
+ setOnboardingStep(2);
+ }
+ };
+
+ const handleOnboardingNext = () => {
+ if (onboardingStep === 1) {
+ if (!selectedGoal) return;
+ if (selectedGoal === 'PROFESSIONAL') {
+ setOnboardingStep(11);
+ } else if (selectedGoal === 'VIAJANTE') {
+ setOnboardingStep(13);
+ } else if (selectedGoal === 'ESTUDIO') {
+ setOnboardingStep(12);
+ } else if (selectedGoal === 'DOCENTES') {
+ setOnboardingStep(14);
+ }
+ } else if (onboardingStep === 12) {
+ if (!selectedSchoolLevel) return;
+ setOnboardingStep(122);
+ } else if (onboardingStep === 11) {
+ if (!selectedProfSubGoal) return;
+ setOnboardingStep(112);
+ } else if (onboardingStep === 14) {
+ if (!selectedDocenteProfile) return;
+ setOnboardingStep(142);
+ } else if (onboardingStep === 112 || onboardingStep === 122 || onboardingStep === 13 || onboardingStep === 142) {
+ if (onboardingStep === 112 && !selectedProfInterest) return;
+ if (onboardingStep === 122 && !selectedAcademicGoal) return;
+ if (onboardingStep === 13 && !selectedViajanteSubGoal) return;
+ if (onboardingStep === 142 && !selectedDocenteGoal) return;
+ setOnboardingStep(2);
+ } else if (onboardingStep === 2) {
+ if (!selectedLevel) return;
+ setOnboardingStep(4);
+ } else if (onboardingStep === 4) {
+ if (userName.trim() === '' || userAge.trim() === '' || userCountry === '' || userEmail.trim() === '') return;
+ handleCompleteOnboarding();
+ }
+ };
+
+ const handleJumpToStep = (stepNum: number) => {
+ if (stepNum === 1) {
+ setOnboardingStep(1);
+ return;
+ }
+ if (!selectedGoal) return;
+ 
+ if (isViajante) {
+ // 4-step flow: 1 (Goal), 2 (Subgoal - 13), 3 (Level - 2), 4 (Form - 4)
+ if (stepNum === 2) {
+ setOnboardingStep(13);
+ } else if (stepNum === 3) {
+ if (!selectedViajanteSubGoal) return;
+ setOnboardingStep(2);
+ } else if (stepNum === 4) {
+ if (!selectedViajanteSubGoal || !selectedLevel) return;
+ setOnboardingStep(4);
+ }
+ } else {
+ // 5-step flow: Professional & Estudio & Docentes
+ if (stepNum === 2) {
+ if (selectedGoal === 'PROFESSIONAL') setOnboardingStep(11);
+ else if (selectedGoal === 'ESTUDIO') setOnboardingStep(12);
+ else if (selectedGoal === 'DOCENTES') setOnboardingStep(14);
+ } else if (stepNum === 3) {
+ if (selectedGoal === 'PROFESSIONAL') {
+ if (!selectedProfSubGoal) return;
+ setOnboardingStep(112);
+ } else if (selectedGoal === 'ESTUDIO') {
+ if (!selectedSchoolLevel) return;
+ setOnboardingStep(122);
+ } else if (selectedGoal === 'DOCENTES') {
+ if (!selectedDocenteProfile) return;
+ setOnboardingStep(142);
+ }
+ } else if (stepNum === 4) {
+ if (selectedGoal === 'PROFESSIONAL') {
+ if (!selectedProfSubGoal || !selectedProfInterest) return;
+ } else if (selectedGoal === 'ESTUDIO') {
+ if (!selectedSchoolLevel || !selectedAcademicGoal) return;
+ } else if (selectedGoal === 'DOCENTES') {
+ if (!selectedDocenteProfile || !selectedDocenteGoal) return;
+ }
+ setOnboardingStep(2);
+ } else if (stepNum === 5) {
+ if (selectedGoal === 'PROFESSIONAL') {
+ if (!selectedProfSubGoal || !selectedProfInterest || !selectedLevel) return;
+ } else if (selectedGoal === 'ESTUDIO') {
+ if (!selectedSchoolLevel || !selectedAcademicGoal || !selectedLevel) return;
+ } else if (selectedGoal === 'DOCENTES') {
+ if (!selectedDocenteProfile || !selectedDocenteGoal || !selectedLevel) return;
+ }
+ setOnboardingStep(4);
+ }
+ }
+ };
+
+ const isFinalStep = onboardingStep === 4 || onboardingStep === 3;
+ const nextTitle = isFinalStep 
+ ? (selectedLang === 'EN' ? 'Connect' : 'Conecta') 
+ : (selectedLang === 'EN' ? 'Next' : 'Siguiente');
+ const nextBtnClasses = isFinalStep
+ ? "w-9 h-9 rounded-full border-[3px] border-red-600 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 bg-transparent"
+ : "w-9 h-9 rounded-full border-[3px] border-black/40 text-black/40 hover:bg-red-600 hover:text-white hover:border-red-600 flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 bg-transparent";
+
+ const placeholderText = selectedLang === 'EN' 
+ ? 'Type your message or scenario...' 
+ : 'Escribe tu mensaje o escenario...';
+
+ return (
+ <div 
+ className="relative min-h-screen md:h-screen w-full bg-[#000000] flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-y-auto md:overflow-hidden select-none"
+ style={{
+ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0)',
+ backgroundSize: '24px 24px'
+ }}
+ >
+ {/* Layout Grid with 125% Passport, Adjusted Cover and Perfect Tight Gutter */}
+ <div className="grid grid-cols-1 md:grid-cols-[2fr_3fr] gap-2.5 md:gap-3 w-full max-w-7xl max-h-full items-stretch justify-center md:aspect-[1.7]">
+ 
+ {/* Left Side (Column 1): The Passport (Deep Navy Voyager Blue Console) */}
+ {/* It remains CONSTANT throughout the entire session */}
+ <div className="md:col-span-1 bg-gradient-to-b from-[#153166] to-[#0a1833] border border-[#2563eb]/20 rounded-[20px] sm:rounded-[24px] md:rounded-[32px] p-4 sm:p-6 md:p-10 flex flex-col justify-between items-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.65)] relative overflow-hidden w-full h-full min-h-[380px] sm:min-h-[420px] md:min-h-0">
+ {/* Ambient Background Glow */}
+ <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
+ 
+ {/* Header Text */}
+ <div className="space-y-2 pt-6">
+ <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.25em' }} className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest block">
+ {selectedLang === 'EN' ? 'I AM USA' : 'YO SOY USA'}
+ </span>
+ <h1 style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 4px 15px rgba(0,0,0,0.8)', letterSpacing: '0.12em' }} className="text-5xl md:text-6xl font-black text-white mt-1.5 uppercase block leading-none">
+ VOYAGER
+ </h1>
+ <span style={{ letterSpacing: '0.22em' }} className="text-[10px] md:text-xs text-yellow-400 font-mono uppercase block mt-2">
+ {selectedLang === 'EN' ? 'AMERICAN ENGLISH TUTOR' : 'TUTOR DE INGLÉS AMERICANO'}
+ </span>
+ </div>
+
+ {/* Glowing Golden Energy Sphere */}
+ <div className="relative flex-grow flex-shrink min-h-0 w-full flex items-center justify-center pt-2 pb-8 md:pt-4 md:pb-12">
+ <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-tr from-yellow-500/10 via-amber-500/15 to-orange-500/10 blur-3xl animate-pulse duration-[3000ms] pointer-events-none" />
+ 
+ <div className="relative aspect-square max-h-full max-w-full flex items-center justify-center">
+ <canvas 
+ ref={particleCanvasRef} 
+ width={720} 
+ height={720} 
+ className="z-20 transition-transform duration-75 animate-float-zero-g max-h-full max-w-full object-contain"
+ style={{ width: '100%', height: '100%' }}
+ />
+ </div>
+ </div>
+
+ {/* Bottom Button Panel */}
+ <div className="pb-8 md:pb-14 w-full z-10 flex flex-col items-center justify-center">
+ {/* Main Action Button */}
+ {!hasClickedConnect ? (
+ <button
+ onClick={handleConnectClick}
+ className="px-6 py-2.5 bg-white hover:bg-slate-50 text-black font-extrabold font-mono tracking-[0.15em] uppercase rounded-full transition-all duration-300 cursor-pointer shadow-[0_0_25px_rgba(245,158,11,0.45)] hover:shadow-[0_0_35px_rgba(245,158,11,0.6)] hover:scale-[1.02] active:scale-95 text-[10px] md:text-xs min-w-[128px]"
+ >
+ {translations[selectedLang].connect}
+ </button>
+ ) : isConnected ? (
+ <button
+ onClick={handleEndSessionClick}
+ className="px-6 py-2.5 bg-white hover:bg-slate-50 text-black font-extrabold font-mono tracking-[0.15em] uppercase rounded-full transition-all duration-300 cursor-pointer shadow-[0_0_25px_rgba(255,255,255,0.15)] hover:shadow-[0_0_35px_rgba(255,255,255,0.25)] hover:scale-[1.02] active:scale-95 text-[10px] md:text-xs min-w-[155px] flex items-center justify-center gap-1.5"
+ >
+ <span>{selectedLang === 'EN' ? 'FINISH' : 'FINALIZAR'}</span>
+ <span className="opacity-75 font-sans font-normal text-[9px] md:text-[10px]">
+ ({Math.floor(secondsElapsed / 60)}:{(secondsElapsed % 60).toString().padStart(2, '0')})
+ </span>
+ </button>
+ ) : (
+ <button
+ onClick={handleContinuaClick}
+ className="px-6 py-2.5 bg-white hover:bg-slate-50 text-black font-extrabold font-mono tracking-[0.15em] uppercase rounded-full transition-all duration-300 cursor-pointer shadow-[0_0_25px_rgba(245,158,11,0.45)] hover:shadow-[0_0_35px_rgba(245,158,11,0.6)] hover:scale-[1.02] active:scale-95 text-[10px] md:text-xs min-w-[128px]"
+ >
+ {selectedLang === 'EN' ? 'SELECT' : 'SELECCIONA'}
+ </button>
+ )}
+
+
+ </div>
+ </div>
+
+ {/* Column 2 (Right Panel): The Cover Page (White layout) */}
+ <div className="md:col-span-1 bg-white border border-black/10 rounded-[20px] sm:rounded-[24px] md:rounded-[32px] flex flex-col justify-between items-center text-center shadow-[0_15px_35px_rgba(0,0,0,0.15)] relative overflow-hidden w-full h-full min-h-[420px] sm:min-h-[480px] md:min-h-0">
+ {!hasClickedConnect ? (
+ /* Disconnected Landing Screen inside the Cover */
+ <>
+ <div className="flex-1 flex items-center justify-center pt-8 pb-4 w-full relative z-10">
+ <img 
+ src="https://lh3.googleusercontent.com/d/1uCm4fqE6Qfxg1lm1FsCbo35fVQcI_E5k" 
+ alt="Voyager USA Mascot" 
+ referrerPolicy="no-referrer"
+ onClick={handleConnectClick}
+ title={selectedLang === 'EN' ? 'Click to Connect' : 'Haz clic para conectar'}
+ className="w-[240px] h-[240px] sm:w-[300px] sm:h-[300px] md:w-[380px] md:h-[380px] max-w-[95%] max-h-[45vh] object-contain animate-float-zero-g cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300 mix-blend-multiply" 
+ />
+ </div>
+
+
+
+ {/* Footer Text */}
+ <div className="pb-8 z-10 px-4 flex flex-col items-center flex-shrink-0 w-full">
+ {/* Footer Buttons Row */}
+ <div className="flex items-center justify-center gap-4 text-xs font-mono select-none">
+ {/* Copyright Button */}
+ <button 
+ onClick={() => setActivePolicyModal('copyright')}
+ className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
+ >
+ <span style={{ fontSize: '1.65em', lineHeight: '1' }} className="font-normal">©</span>
+ <span>Copyright</span>
+ </button>
+
+ {/* Privacy Button */}
+ <button 
+ onClick={() => setActivePolicyModal('privacy')}
+ className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
+ >
+ <Shield className="w-4 h-4" />
+ <span>Privacy</span>
+ </button>
+
+ {/* Terms Button */}
+ <button 
+ onClick={() => setActivePolicyModal('terms')}
+ className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
+ >
+ <FileText className="w-4 h-4" />
+ <span>Terms</span>
+ </button>
+
+ {/* Contact Button */}
+ <button 
+ onClick={() => setActivePolicyModal('contact')}
+ className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
+ >
+ <Mail className="w-4 h-4" />
+ <span>Contact</span>
+ </button>
+ </div>
+ </div>
+ </>
+ ) : (
+ /* Connected Workspace Area inside the Cover */
+ <div className="w-full h-full flex flex-col overflow-hidden">
+ {/* Header / Tabs */}
+ {hasInteracted && (
+ <div className="w-full bg-white py-2 sm:py-2.5 px-3 sm:px-6 flex flex-col items-center justify-center gap-1.5 relative flex-shrink-0 border-b border-black/5">
+ {/* Row 1: Main Menu & Controls */}
+ <div className="w-full flex items-center justify-center relative">
+ {/* Settings Button */}
+ <div className="absolute -right-4 sm:-right-3 top-0.5">
+ <button 
+ onClick={() => {
+ setRightPanelTab('settings');
+ window.location.hash = '';
+ }}
+ title={selectedLang === 'EN' ? 'Settings' : 'Configura'}
+ aria-label={selectedLang === 'EN' ? 'Settings' : 'Configura'}
+ className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300 group hover:scale-110 active:scale-95"
+ >
+ <Settings className={`w-[31px] h-[31px] transition-all duration-500 ease-in-out ${
+ rightPanelTab === 'settings' 
+ ? 'text-red-600 rotate-90 scale-110 hover:rotate-[270deg]' 
+ : 'text-black/65 hover:text-red-600 group-hover:text-red-600 hover:rotate-180'
+ }`} />
+ </button>
+ </div>
+ <div className="grid grid-cols-5 gap-2.5 sm:gap-6.5 justify-items-center w-full md:w-auto max-w-[480px] sm:max-w-[600px]">
+ <div className="flex flex-col items-center justify-center text-center group cursor-pointer w-full" onClick={() => {
+ setRightPanelTab('home');
+ window.location.hash = '';
+ }}>
+ <button 
+ title={selectedLang === 'EN' ? 'Home' : 'Inicio'}
+ aria-label={selectedLang === 'EN' ? 'Home' : 'Inicio'}
+ className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300"
+ >
+ <Home className={`w-[27px] h-[27px] transition-all duration-300 ${
+ rightPanelTab === 'home' 
+ ? 'text-red-600 scale-110' 
+ : 'text-black/65 group-hover:text-red-600 group-hover:scale-110'
+ }`} />
+ </button>
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[9.2pt] tracking-wider uppercase mt-1 transition-colors duration-300 whitespace-nowrap ${
+ rightPanelTab === 'home' 
+ ? 'text-red-600 font-extrabold' 
+ : 'text-black/65 group-hover:text-red-600 font-bold'
+ }`}>
+ {selectedLang === 'EN' ? 'HOME' : 'INICIO'}
+ </span>
+ </div>
+ 
+ <div className="flex flex-col items-center justify-center text-center group cursor-pointer w-full" onClick={() => {
+ setRightPanelTab('chat');
+ window.location.hash = '';
+ }}>
+ <button 
+ title={selectedLang === 'EN' ? 'Chat' : 'Charla'}
+ aria-label={selectedLang === 'EN' ? 'Chat' : 'Charla'}
+ className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300"
+ >
+ <MessageSquare className={`w-[27px] h-[27px] transition-all duration-300 ${
+ rightPanelTab === 'chat' 
+ ? 'text-red-600 scale-110' 
+ : 'text-black/65 group-hover:text-red-600 group-hover:scale-110'
+ }`} />
+ </button>
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[9.2pt] tracking-wider uppercase mt-1 transition-colors duration-300 whitespace-nowrap ${
+ rightPanelTab === 'chat' 
+ ? 'text-red-600 font-extrabold' 
+ : 'text-black/65 group-hover:text-red-600 font-bold'
+ }`}>
+ {selectedLang === 'EN' ? 'CHAT' : 'CHARLA'}
+ </span>
+ </div>
+ 
+ <div className="flex flex-col items-center justify-center text-center group cursor-pointer w-full" onClick={() => {
+ setRightPanelTab('teachers');
+ window.location.hash = '';
+ }}>
+ <button 
+ title={selectedLang === 'EN' ? 'Teacher' : 'La Profe'}
+ aria-label={selectedLang === 'EN' ? 'Teacher' : 'La Profe'}
+ className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300"
+ >
+ <Apple className={`w-[27px] h-[27px] transition-all duration-300 ${
+ rightPanelTab === 'teachers' 
+ ? 'text-red-600 scale-110' 
+ : 'text-black/65 group-hover:text-red-600 group-hover:scale-110'
+ }`} />
+ </button>
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[9.2pt] tracking-wider uppercase mt-1 transition-colors duration-300 whitespace-nowrap ${
+ rightPanelTab === 'teachers' 
+ ? 'text-red-600 font-extrabold' 
+ : 'text-black/65 group-hover:text-red-600 font-bold'
+ }`}>
+ {selectedLang === 'EN' ? 'TEACHER' : 'LA PROFE'}
+ </span>
+ </div>
+ 
+ <div className="flex flex-col items-center justify-center text-center group cursor-pointer w-full" onClick={() => {
+ setRightPanelTab('roadmap');
+ window.location.hash = '';
+ }}>
+ <button 
+ title={visitorFullName ? (selectedLang === 'EN' ? `${visitorFullName}'s Profile` : `Perfil de ${visitorFullName}`) : (selectedLang === 'EN' ? 'Profile' : 'Perfil')}
+ aria-label={visitorFullName ? (selectedLang === 'EN' ? `${visitorFullName}'s Profile` : `Perfil de ${visitorFullName}`) : (selectedLang === 'EN' ? 'Profile' : 'Perfil')}
+ className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300"
+ >
+ <User className={`w-[27px] h-[27px] transition-all duration-300 ${
+ rightPanelTab === 'roadmap' 
+ ? 'text-red-600 scale-110' 
+ : 'text-black/65 group-hover:text-red-600 group-hover:scale-110'
+ }`} />
+ </button>
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[9.2pt] tracking-wider uppercase mt-1 transition-colors duration-300 whitespace-nowrap ${
+ rightPanelTab === 'roadmap' 
+ ? 'text-red-600 font-extrabold' 
+ : 'text-black/65 group-hover:text-red-600 font-bold'
+ }`}>
+ {visitorFullName ? visitorFullName.toUpperCase() : (selectedLang === 'EN' ? 'PROFILE' : 'PERFIL')}
+ </span>
+ </div>
+ 
+ <div className="flex flex-col items-center justify-center text-center group cursor-pointer w-full" onClick={() => {
+ setRightPanelTab('shopping');
+ window.location.hash = '#/shop';
+ }}>
+ <button 
+ title={selectedLang === 'EN' ? 'Store' : 'La Tienda'}
+ aria-label={selectedLang === 'EN' ? 'Store' : 'La Tienda'}
+ className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300 relative"
+ >
+ <ShoppingCart className={`w-[27px] h-[27px] transition-all duration-300 ${
+ rightPanelTab === 'shopping' 
+ ? 'text-red-600 scale-110' 
+ : 'text-black/65 group-hover:text-red-600 group-hover:scale-110'
+ }`} />
+ {cartCount > 0 && (
+ <span className="absolute -top-0.5 -right-0.5 bg-red-600 text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1 border border-white">
+ {cartCount}
+ </span>
+ )}
+ </button>
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[9.2pt] tracking-wider uppercase mt-1 transition-colors duration-300 whitespace-nowrap ${
+ rightPanelTab === 'shopping' 
+ ? 'text-red-600 font-extrabold' 
+ : 'text-black/65 group-hover:text-red-600 font-bold'
+ }`}>
+ {selectedLang === 'EN' ? 'STORE' : 'LA TIENDA'}
+ </span>
+ </div>
+ </div>
+ </div>
+
+ </div>
+ )}
+
+
+ {showReviewScreen ? (
+ <div className="flex-1 flex flex-col justify-between p-6 animate-fade-in bg-zinc-950 tab-content-area">
+ <div className="text-center mb-4">
+ <span className="text-xs tracking-widest uppercase text-yellow-500 font-mono">PROGRESO</span>
+ <h3 className="text-lg text-white font-bold uppercase tracking-wider mt-1">Estadísticas de tu Interacción</h3>
+ </div>
+ 
+ <div className="flex-1 flex justify-center items-center overflow-hidden">
+ <div className="w-full max-w-[95%] md:max-w-[75%] transform scale-95 md:scale-75 origin-center my-auto">
+ <ProgressDashboard 
+ selectedLang={selectedLang}
+ scores={scores}
+ learnedWords={learnedWords}
+ accentPatterns={accentPatterns}
+ onAskVoyager={(text) => {
+ setShowReviewScreen(false);
+ setChatMessages([
+ {
+ id: 'welcome_1',
+ sender: 'splash',
+ text: translations[selectedLang].welcomeMsg,
+ timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+ timeMs: Date.now()
+ }
+ ]);
+ connectToGemini(text, false);
+ }}
+ />
+ </div>
+ </div>
+
+ </div>
+ ) : (
+ <div className="flex-grow flex flex-col overflow-hidden pt-5 px-5 pb-1.5 md:pt-8 md:px-8 md:pb-2 min-h-0">
+ {/* Old sub-header bar has been removed */}
+ {rightPanelTab === 'home' ? (
+ <div className="flex-grow flex flex-col justify-between items-center text-center p-6 h-full animate-fade-in tab-content-area">
+ <div className="flex-1 flex items-center justify-center py-6 w-full relative z-10">
+ <img 
+ src="https://lh3.googleusercontent.com/d/1uCm4fqE6Qfxg1lm1FsCbo35fVQcI_E5k" 
+ alt="Voyager USA Mascot" 
+ referrerPolicy="no-referrer"
+ className="w-[306px] h-[306px] md:w-[374px] md:h-[374px] max-w-[95%] max-h-[60vh] object-contain animate-float-zero-g mix-blend-multiply" 
+ />
+ </div>
+ <div className="pb-8 z-10 px-4 flex flex-col items-center flex-shrink-0 w-full">
+ {/* Footer Buttons Row */}
+ <div className="flex items-center justify-center gap-4 text-xs font-mono select-none">
+ {/* Copyright Button */}
+ <button 
+ onClick={() => setActivePolicyModal('copyright')}
+ className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
+ >
+ <span style={{ fontSize: '1.65em', lineHeight: '1' }} className="font-normal">©</span>
+ <span>Copyright</span>
+ </button>
+
+ {/* Privacy Button */}
+ <button 
+ onClick={() => setActivePolicyModal('privacy')}
+ className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
+ >
+ <Shield className="w-4 h-4" />
+ <span>Privacy</span>
+ </button>
+
+ {/* Terms Button */}
+ <button 
+ onClick={() => setActivePolicyModal('terms')}
+ className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
+ >
+ <FileText className="w-4 h-4" />
+ <span>Terms</span>
+ </button>
+
+ {/* Contact Button */}
+ <button 
+ onClick={() => setActivePolicyModal('contact')}
+ className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
+ >
+ <Mail className="w-4 h-4" />
+ <span>Contact</span>
+ </button>
+ </div>
+ </div>
+ </div>
+ ) : rightPanelTab === 'chat' ? (
+ <div className="flex-grow flex flex-col overflow-hidden h-full">
+ {!hasInteracted ? (
+ <div className="flex-grow flex flex-col justify-center items-center overflow-y-auto p-4 md:p-6 tab-content-area h-full select-none">
+ <div className="w-full max-w-2xl mx-auto flex flex-col justify-start p-2 sm:p-4 animate-fade-in">
+ {/* Main grid: Mascot on Left, Steps on Right */}
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-10 items-center w-full">
+ {/* Left: Mascot */}
+ <div className="flex items-center justify-center w-full">
+ <img 
+ src="https://lh3.googleusercontent.com/d/1uCm4fqE6Qfxg1lm1FsCbo35fVQcI_E5k" 
+ alt="Voyager USA Mascot" 
+ referrerPolicy="no-referrer"
+ className="w-full max-w-[220px] md:max-w-[260px] object-contain animate-float-zero-g mix-blend-multiply" 
+ />
+ </div>
+
+ {/* Right: Steps */}
+ <div className="flex flex-col w-full text-left">
+ {/* Header */}
+ <div className="w-full mb-3 flex items-center justify-between gap-4">
+ <h2 style={{ fontFamily: "'Lato', sans-serif" }} className="text-xl md:text-2xl font-bold text-[#1A365D] leading-tight flex-1">
+ {getOnboardingStepTitle(onboardingStep, selectedLang)}
+ </h2>
+ </div>
+
+ {onboardingStep === 1 && (
+ <div className="space-y-1 w-full">
+ {[
+ { id: 'PROFESSIONAL', label: selectedLang === 'EN' ? 'Professional' : 'Professional', icon: Briefcase },
+ { id: 'ESTUDIO', label: selectedLang === 'EN' ? 'Study' : 'Estudio', icon: BookOpen },
+ { id: 'VIAJANTE', label: selectedLang === 'EN' ? 'Traveler' : 'Viajante', icon: Plane },
+ { id: 'DOCENTES', label: selectedLang === 'EN' ? 'Teachers' : 'Docentes', icon: Presentation }
+ ].map((opt) => {
+ const isSel = selectedGoal === opt.id;
+ const IconComp = opt.icon;
+ return (
+ <div 
+ key={opt.id}
+ onClick={() => {
+ if (isSel) {
+ handleOnboardingNext();
+ } else {
+ setSelectedGoal(opt.id as any);
+ }
+ }}
+ className={`group flex items-center gap-1.5 px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ isSel 
+ ? 'bg-transparent' 
+ : 'bg-transparent hover:translate-x-1'
+ }`}
+ >
+ <div className="flex items-center gap-1.5">
+ <div className={`w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+ isSel ? 'bg-red-600 text-white shadow-xs scale-105' : 'bg-transparent text-neutral-500 group-hover:bg-[#1A365D] group-hover:text-white'
+ }`}>
+ <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
+ </div>
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
+ }`}>
+ {opt.label}
+ </span>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ )}
+
+ {onboardingStep === 11 && (
+ <div className="space-y-1 w-full">
+ {[
+ { id: 'CONSEGUIR_EMPLEO', label: selectedLang === 'EN' ? 'Get a Job' : 'Conseguir Empleo', icon: UserCheck },
+ { id: 'COMUNICARME_TRABAJO', label: selectedLang === 'EN' ? 'Communicate at Work' : 'Comunicarme en el Trabajo', icon: MessageSquareText },
+ { id: 'CRECER_PROFESIONAL', label: selectedLang === 'EN' ? 'Grow Professionally' : 'Crecer Profesionalmente', icon: Presentation }
+ ].map((opt) => {
+ const isSel = selectedProfSubGoal === opt.id;
+ const IconComp = opt.icon;
+ return (
+ <div 
+ key={opt.id}
+ onClick={() => {
+ if (isSel) {
+ handleOnboardingNext();
+ } else {
+ setSelectedProfSubGoal(opt.id as any);
+ }
+ }}
+ className={`group flex items-center gap-1.5 px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ isSel 
+ ? 'bg-transparent' 
+ : 'bg-transparent hover:translate-x-1'
+ }`}
+ >
+ <div className="flex items-center gap-1.5">
+ <div className={`w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+ isSel ? 'bg-red-600 text-white shadow-xs scale-105' : 'bg-transparent text-neutral-500 group-hover:bg-[#1A365D] group-hover:text-white'
+ }`}>
+ <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
+ </div>
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
+ }`}>
+ {opt.label}
+ </span>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ )}
+
+ {onboardingStep === 112 && (
+ <div className="space-y-1 w-full">
+ {[
+ { id: 'EMPRENDEDOR', label: selectedLang === 'EN' ? 'Entrepreneur' : 'Emprendedor', icon: Rocket },
+ { id: 'GERENCIA', label: selectedLang === 'EN' ? 'Management' : 'Gerencia', icon: Briefcase },
+ { id: 'MERCADEO', label: selectedLang === 'EN' ? 'Marketing' : 'Mercadeo', icon: Presentation },
+ { id: 'VENTAS', label: selectedLang === 'EN' ? 'Sales' : 'Ventas', icon: ShoppingCart }
+ ].map((opt) => {
+ const isSel = selectedProfInterest === opt.id;
+ const IconComp = opt.icon;
+ return (
+ <div 
+ key={opt.id}
+ onClick={() => {
+ if (isSel) {
+ handleOnboardingNext();
+ } else {
+ setSelectedProfInterest(opt.id as any);
+ }
+ }}
+ className={`group flex items-center gap-1.5 px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ isSel 
+ ? 'bg-transparent' 
+ : 'bg-transparent hover:translate-x-1'
+ }`}
+ >
+ <div className={`w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+ isSel ? 'bg-red-600 text-white shadow-xs scale-105' : 'bg-transparent text-neutral-500 group-hover:bg-[#1A365D] group-hover:text-white'
+ }`}>
+ <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
+ </div>
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
+ }`}>
+ {opt.label}
+ </span>
+ </div>
+ );
+ })}
+ </div>
+ )}
+
+ {onboardingStep === 13 && (
+ <div className="space-y-1 w-full">
+ {[
+ { id: 'EXPLORAR', label: selectedLang === 'EN' ? 'Explore' : 'Explorar', icon: Plane },
+ { id: 'AMISTAD', label: selectedLang === 'EN' ? 'Friendship' : 'Amistad', icon: User },
+ { id: 'CULTURA', label: selectedLang === 'EN' ? 'Culture' : 'Cultura', icon: Languages }
+ ].map((opt) => {
+ const isSel = selectedViajanteSubGoal === opt.id;
+ const IconComp = opt.icon;
+ return (
+ <div 
+ key={opt.id}
+ onClick={() => {
+ if (isSel) {
+ handleOnboardingNext();
+ } else {
+ setSelectedViajanteSubGoal(opt.id as any);
+ }
+ }}
+ className={`group flex items-center gap-1.5 px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ isSel 
+ ? 'bg-transparent' 
+ : 'bg-transparent hover:translate-x-1'
+ }`}
+ >
+ <div className="flex items-center gap-1.5">
+ <div className={`w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+ isSel ? 'bg-red-600 text-white shadow-xs scale-105' : 'bg-transparent text-neutral-500 group-hover:bg-[#1A365D] group-hover:text-white'
+ }`}>
+ <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
+ </div>
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
+ }`}>
+ {opt.label}
+ </span>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ )}
+
+ {onboardingStep === 14 && (
+ <div className="space-y-1.5 w-full">
+ {[
+ { id: 'PROFESOR_INGLES', label: selectedLang === 'EN' ? 'English Teacher' : 'Profesor de Inglés', icon: Headphones },
+ { id: 'TUTOR_PRIVADO', label: selectedLang === 'EN' ? 'Private Tutor' : 'Tutor Privado', icon: User },
+ { id: 'ACADEMIA', label: selectedLang === 'EN' ? 'Language Academy' : 'Academia de Idiomas', icon: Home },
+ { id: 'PROFESOR_UNIVERSITARIO', label: selectedLang === 'EN' ? 'University Professor' : 'Profesor Universitario', icon: GraduationCap },
+ { id: 'INSTRUCTOR_CORPORATIVO', label: selectedLang === 'EN' ? 'Corporate Instructor' : 'Instructor Corporativo', icon: Briefcase },
+ { id: 'CREADOR_CONTENIDO', label: selectedLang === 'EN' ? 'Content Creator' : 'Creador de Contenido', icon: Eye }
+ ].map((opt) => {
+ const isSel = selectedDocenteProfile === opt.id;
+ const IconComp = opt.icon;
+ return (
+ <div 
+ key={opt.id}
+ onClick={() => {
+ if (isSel) {
+ handleOnboardingNext();
+ } else {
+ setSelectedDocenteProfile(opt.id as any);
+ }
+ }}
+ className={`group flex items-center px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ isSel 
+ ? 'bg-transparent' 
+ : 'bg-transparent hover:translate-x-1'
+ }`}
+ >
+ <div className="flex items-center gap-1.5 min-w-0 flex-1">
+ <div className={`w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+ isSel ? 'bg-red-600 text-white shadow-xs scale-105' : 'bg-transparent text-neutral-500 group-hover:bg-[#1A365D] group-hover:text-white'
+ }`}>
+ <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
+ </div>
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[13px] sm:text-[14px] tracking-tight leading-tight transition-colors ${
+ isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
+ }`}>
+ {opt.label}
+ </span>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ )}
+
+ {onboardingStep === 142 && (
+ <div className="space-y-1 w-full">
+ {[
+ { id: 'MEJORAR_CLASES', label: selectedLang === 'EN' ? 'Improve Classes' : 'Mejorar Clases', icon: BookOpen },
+ { id: 'AHORRAR_TIEMPO', label: selectedLang === 'EN' ? 'Save Time' : 'Ahorrar Tiempo', icon: Settings },
+ { id: 'PERSONALIZAR', label: selectedLang === 'EN' ? 'Customize the Platform' : 'Personalizar la Plataforma', icon: Sparkles },
+ { id: 'VENDER_CURSOS', label: selectedLang === 'EN' ? 'Sell My Courses' : 'Vender Mis Cursos', icon: ShoppingCart }
+ ].map((opt) => {
+ const isSel = selectedDocenteGoal === opt.id;
+ const IconComp = opt.icon;
+ return (
+ <div 
+ key={opt.id}
+ onClick={() => {
+ if (isSel) {
+ handleOnboardingNext();
+ } else {
+ setSelectedDocenteGoal(opt.id as any);
+ }
+ }}
+ className={`group flex items-center px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ isSel 
+ ? 'bg-transparent' 
+ : 'bg-transparent hover:translate-x-1'
+ }`}
+ >
+ <div className="flex items-center gap-1.5">
+ <div className={`w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+ isSel ? 'bg-red-600 text-white shadow-xs scale-105' : 'bg-transparent text-neutral-500 group-hover:bg-[#1A365D] group-hover:text-white'
+ }`}>
+ <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
+ </div>
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
+ }`}>
+ {opt.label}
+ </span>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ )}
+
+ {onboardingStep === 12 && (
+ <div className="space-y-1 w-full">
+ {[
+ { id: 'ELEMENTARY_SCHOOL', label: selectedLang === 'EN' ? 'Elementary School' : 'Escuela Primaria', icon: Sprout },
+ { id: 'HIGH_SCHOOL', label: selectedLang === 'EN' ? 'High School' : 'Escuela Secundaria', icon: GraduationCap },
+ { id: 'COLLEGE_UNIVERSITY', label: selectedLang === 'EN' ? 'College / University' : 'Universidad', icon: Award }
+ ].map((opt) => {
+ const isSel = selectedSchoolLevel === opt.id;
+ const IconComp = opt.icon;
+ return (
+ <div 
+ key={opt.id}
+ onClick={() => {
+ if (isSel) {
+ handleOnboardingNext();
+ } else {
+ setSelectedSchoolLevel(opt.id as any);
+ }
+ }}
+ className={`group flex items-center px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ isSel 
+ ? 'bg-transparent' 
+ : 'bg-transparent hover:translate-x-1'
+ }`}
+ >
+ <div className="flex items-center gap-1.5">
+ <div className={`w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+ isSel ? 'bg-red-600 text-white shadow-xs scale-105' : 'bg-transparent text-neutral-500 group-hover:bg-[#1A365D] group-hover:text-white'
+ }`}>
+ <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
+ </div>
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
+ }`}>
+ {opt.label}
+ </span>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ )}
+
+ {onboardingStep === 122 && (
+ <div className="space-y-1 w-full">
+ {[
+ { id: 'ACADEMIC_SUCCESS', label: selectedLang === 'EN' ? 'Academic Success' : 'Éxito Académico', icon: Check },
+ { id: 'STUDY_ABROAD', label: selectedLang === 'EN' ? 'Study Abroad' : 'Estudiar en el Extranjero', icon: Plane },
+ { id: 'IMPROVE_CONVERSATION', label: selectedLang === 'EN' ? 'Improve Conversation' : 'Mejorar Conversación', icon: MessageSquare }
+ ].map((opt) => {
+ const isSel = selectedAcademicGoal === opt.id;
+ const IconComp = opt.icon;
+ return (
+ <div 
+ key={opt.id}
+ onClick={() => {
+ if (isSel) {
+ handleOnboardingNext();
+ } else {
+ setSelectedAcademicGoal(opt.id as any);
+ }
+ }}
+ className={`group flex items-center px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ isSel 
+ ? 'bg-transparent' 
+ : 'bg-transparent hover:translate-x-1'
+ }`}
+ >
+ <div className="flex items-center gap-1.5">
+ <div className={`w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+ isSel ? 'bg-red-600 text-white shadow-xs scale-105' : 'bg-transparent text-neutral-500 group-hover:bg-[#1A365D] group-hover:text-white'
+ }`}>
+ <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
+ </div>
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
+ }`}>
+ {opt.label}
+ </span>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ )}
+
+      {onboardingStep === 2 && (
+        <div className="space-y-1 w-full">
+          {[
+            { id: "BEGINNER", label: selectedLang === "EN" ? "Beginner" : "Principiante", letter: "A" },
+            { id: "INTERMEDIATE", label: selectedLang === "EN" ? "Intermediate" : "Intermedio", letter: "B" },
+            { id: "ADVANCED", label: selectedLang === "EN" ? "Advanced" : "Avanzado", letter: "C" },
+            { id: "NOT_SURE", label: selectedLang === "EN" ? "I'm Not Sure" : "No Estoy Seguro", letter: "?" }
+          ].map((opt) => {
+            const isSel = selectedLevel === opt.id;
+            return (
+              <div 
+                key={opt.id}
+                onClick={() => {
+                  if (isSel) {
+                    handleOnboardingNext();
+                  } else {
+                    setSelectedLevel(opt.id as any);
+                  }
+                }}
+                className={`group flex items-center px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+                  isSel 
+                    ? "bg-transparent" 
+                    : "bg-transparent hover:translate-x-1"
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                    isSel ? "bg-red-600 text-white shadow-xs scale-105" : "bg-transparent text-neutral-500 group-hover:bg-[#1A365D] group-hover:text-white"
+                  }`}>
+                    <span className="text-[14px] font-bold leading-none">{opt.letter}</span>
+                  </div>
+                  <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+                    isSel ? "text-neutral-900 font-extrabold" : "text-neutral-700 font-semibold group-hover:text-[#1A365D]"
+                  }`}>
+                    {opt.label}
+                  </span>
                 </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-                {/* Fullscreen dots */}
-                <div className="flex gap-2 mt-6 z-50">
-                    {slides.map((_, idx) => (
-                        <button
-                            key={idx}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveFullscreenSlide(idx);
-                            }}
-                            className={`w-2.5 h-2.5 rounded-full transition-all cursor-pointer ${idx === activeFullscreenSlide ? 'bg-yellow-500 scale-125' : 'bg-neutral-500/50 hover:bg-neutral-400'}`}
-                        />
-                    ))}
-                </div>
-            </div>
-        )}
-    </div>
-  );
+ {onboardingStep === 4 && (
+ <div className="space-y-2.5 w-full" style={{ fontFamily: "'Lato', sans-serif" }}>
+ <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl mb-1 text-center shadow-2xs">
+ <span className="text-xs font-bold text-red-700 tracking-wide block">
+ {selectedLang === 'EN' ? '📝 Contact & Profile Form' : '📝 Formulario de Contacto y Perfil'}
+ </span>
+ <span className="text-[10px] text-neutral-600 font-medium block mt-0.5">
+ {selectedLang === 'EN' ? 'Your details dynamically populate your PERFIL section' : 'Tus datos actualizarán dinámicamente tu sección PERFIL'}
+ </span>
+ </div>
+ <div className="space-y-2">
+ <input 
+ type="text"
+ value={userName}
+ onChange={(e) => setUserName(e.target.value)}
+ placeholder={selectedLang === 'EN' ? 'Your Name' : 'Tu Nombre'}
+ className={`w-full px-3.5 py-2 rounded-xl border bg-white text-slate-800 font-semibold text-xs focus:border-red-600 focus:ring-2 focus:ring-red-600/20 focus:outline-none transition-all placeholder-neutral-400 shadow-2xs ${
+ userName.trim() !== '' ? 'border-red-600 ring-1 ring-red-600/20' : 'border-neutral-300 hover:border-neutral-400'
+ }`}
+ />
+
+ <input 
+ type="number"
+ value={userAge}
+ onChange={(e) => setUserAge(e.target.value)}
+ placeholder={selectedLang === 'EN' ? 'Your Age' : 'Tu Edad'}
+ min="1"
+ max="120"
+ className={`w-full px-3.5 py-2 rounded-xl border bg-white text-slate-800 font-semibold text-xs focus:border-red-600 focus:ring-2 focus:ring-red-600/20 focus:outline-none transition-all placeholder-neutral-400 shadow-2xs ${
+ userAge.trim() !== '' ? 'border-red-600 ring-1 ring-red-600/20' : 'border-neutral-300 hover:border-neutral-400'
+ }`}
+ />
+
+ <select
+ value={userCountry}
+ onChange={(e) => setUserCountry(e.target.value)}
+ className={`w-full px-3.5 py-2 rounded-xl border bg-white text-slate-800 font-semibold text-xs focus:border-red-600 focus:ring-2 focus:ring-red-600/20 focus:outline-none transition-all cursor-pointer shadow-2xs ${
+ userCountry !== '' ? 'border-red-600 ring-1 ring-red-600/20' : 'border-neutral-300 hover:border-neutral-400'
+ }`}
+ >
+ <option value="" disabled hidden>
+ {selectedLang === 'EN' ? 'Select Your Country' : 'Selecciona Tu País'}
+ </option>
+ {countries.map((c) => (
+ <option key={c.id} value={selectedLang === 'EN' ? c.nameEn : c.nameEs} className="bg-white text-black">
+ {selectedLang === 'EN' ? c.nameEn : c.nameEs}
+ </option>
+ ))}
+ </select>
+
+ <input 
+ type="email"
+ value={userEmail}
+ onChange={(e) => setUserEmail(e.target.value)}
+ placeholder={selectedLang === 'EN' ? 'Your Email' : 'Tu Correo Electrónico'}
+ className={`w-full px-3.5 py-2 rounded-xl border bg-white text-slate-800 font-semibold text-xs focus:border-red-600 focus:ring-2 focus:ring-red-600/20 focus:outline-none transition-all placeholder-neutral-400 shadow-2xs ${
+ userEmail.trim() !== '' ? 'border-red-600 ring-1 ring-red-600/20' : 'border-neutral-300 hover:border-neutral-400'
+ }`}
+ />
+ </div>
+
+ <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold justify-center pt-0.5">
+ <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+ <span>{selectedLang === 'EN' ? '✓ Auto-populating PERFIL section in real-time' : '✓ Poblando sección PERFIL en tiempo real'}</span>
+ </div>
+ </div>
+ )}
+
+ {onboardingStep === 3 && (
+ <div className="space-y-1 w-full">
+ {modeDetails.map((mode) => {
+ const name = selectedLang === 'EN' ? mode.nameEn : mode.nameEs;
+ const desc = selectedLang === 'EN' ? mode.descEn : mode.descEs;
+ const effectiveMode = chosenStartMode || 'SPANISH';
+ const isSel = effectiveMode === mode.id;
+
+ return (
+ <div 
+ key={mode.id}
+ onClick={() => handleModeSelection(mode.id as ConversationMode)}
+ className={`group flex items-center px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ isSel 
+ ? 'bg-transparent' 
+ : 'bg-transparent hover:translate-x-1'
+ }`}
+ >
+ <div className="flex items-start gap-3 flex-1 min-w-0">
+ <div className={`w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 mt-0.5 ${
+ isSel ? 'bg-red-600 text-white shadow-xs scale-105' : 'bg-transparent text-neutral-500 group-hover:bg-[#1A365D] group-hover:text-white'
+ }`}>
+ <MessageSquare className="w-[17px] h-[17px] flex-shrink-0" />
+ </div>
+ <div className="flex-1 min-w-0">
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-xs tracking-wide block leading-tight ${
+ isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
+ }`}>
+ {name}
+ </span>
+ <p className={`text-[10px] mt-0.5 leading-snug font-normal ${
+ isSel ? 'text-neutral-600 font-medium' : 'text-neutral-500'
+ }`}>
+ {desc}
+ </p>
+ </div>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ )}
+
+ {onboardingStep > 0 && (
+ <div className="w-full mt-6 select-none animate-fade-in flex items-center gap-4">
+ {/* Left Arrow (Back) */}
+ <button
+ onClick={handleOnboardingBack}
+ title={selectedLang === 'EN' ? 'Back' : 'Volver'}
+ className="text-black/40 hover:text-black hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer bg-transparent flex-shrink-0 flex items-center justify-center p-1.5"
+ >
+ <ArrowLeft className="w-6 h-6 stroke-[2.5]" />
+ </button>
+
+ {/* Progress bar and clickable circles */}
+ <div className="relative flex-1 py-4">
+ <div className="absolute top-1/2 left-[11px] right-[11px] h-[3px] -translate-y-1/2">
+ <div className="w-full h-full bg-[#1A365D]/15 rounded-full" />
+ <div 
+ className="absolute top-0 left-0 h-full bg-[#1A365D] rounded-full transition-all duration-300" 
+ style={{ 
+ width: `${((currentStepIdx - 1) / (totalOnboardingSteps - 1)) * 100}%` 
+ }} 
+ />
+ </div>
+ <div className="relative flex justify-between items-center w-full z-10">
+ {Array.from({ length: totalOnboardingSteps }).map((_, i) => {
+ const stepNum = i + 1;
+ const isSelected = stepNum === currentStepIdx;
+ return (
+ <div 
+ key={i} 
+ onClick={() => handleJumpToStep(stepNum)}
+ className={`w-5.5 h-5.5 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer hover:scale-110 active:scale-95 ${
+ isSelected ? 'bg-[#1A365D] scale-105 shadow-md' : 'bg-[#EAEAEA] text-black/50'
+ }`}
+ >
+ <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[10px] font-extrabold ${isSelected ? 'text-white' : 'text-black/60'}`}>
+ {stepNum}
+ </span>
+ </div>
+ );
+ })}
+ </div>
+ </div>
+
+ {/* Right Arrow (Next) */}
+ {(() => {
+ const getIsNextActive = () => {
+ switch (onboardingStep) {
+ case 1:
+ return selectedGoal !== null;
+ case 11:
+ return selectedProfSubGoal !== null;
+ case 112:
+ return selectedProfInterest !== null;
+ case 12:
+ return selectedSchoolLevel !== null;
+ case 122:
+ return selectedAcademicGoal !== null;
+ case 13:
+ return selectedViajanteSubGoal !== null;
+ case 14:
+ return selectedDocenteProfile !== null;
+ case 142:
+ return selectedDocenteGoal !== null;
+ case 2:
+ return selectedLevel !== null;
+ case 4:
+ return userName.trim() !== '' && userAge.trim() !== '' && userCountry.trim() !== '' && userEmail.trim() !== '';
+ default:
+ return true;
+ }
+ };
+ const isNextActive = getIsNextActive();
+ return (
+ <button
+ onClick={handleOnboardingNext}
+ disabled={!isNextActive}
+ title={nextTitle}
+ className={`${isNextActive ? 'text-red-600 hover:text-red-700 hover:scale-110 animate-bounce-horizontal' : 'text-black/20 cursor-not-allowed'} active:scale-95 transition-all duration-300 bg-transparent flex-shrink-0 flex items-center justify-center p-1.5`}
+ >
+ <ArrowRight className="w-6 h-6 stroke-[2.5]" />
+ </button>
+ );
+ })()}
+ </div>
+ )}
+
+ {/* Underlined SALTAR / SKIP link at the bottom of the form */}
+ <div className="w-full text-left px-3 mt-3">
+ <button
+ onClick={() => {
+ handleContinuaClick();
+ }}
+ style={{ fontFamily: "'Lato', sans-serif" }}
+ className="text-[15px] font-semibold text-neutral-700 hover:text-red-600 cursor-pointer transition-colors tracking-wide select-none inline-block py-1 px-0"
+ >
+ {selectedLang === 'EN' ? 'Skip' : 'Saltar'}
+ </button>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ ) : (
+
+ <div className="flex-1 px-3 pt-2 pb-4 tab-content-area overflow-y-auto min-h-0">
+ <div className="min-h-full flex flex-col justify-start space-y-4">
+ {chatMessages.filter(msg => !msg.tab || msg.tab === 'chat').map((msg, index) => {
+ if (msg.sender === 'system') {
+ return null;
+ }
+ if (msg.sender === 'user' && msg.text.startsWith('[')) {
+ return null;
+ }
+ if (isConnected && msg.id === 'welcome_1') {
+ return null;
+ }
+
+ const isUser = msg.sender === 'user';
+ 
+ return (
+ <div key={msg.id} className={`flex items-start ${isUser ? 'justify-end' : 'justify-start'} gap-2.5 animate-fade-in`}>
+ <div className={`max-w-[88%] flex flex-col space-y-1 ${isUser ? 'items-end' : 'items-start'}`}>
+ <div className={`
+ px-4 py-2.5 rounded-2xl text-sm leading-snug transition-all
+ ${isUser 
+ ? 'bg-white border-[5px] border-blue-600/30 backdrop-blur-md text-black rounded-tr-none font-normal' 
+ : 'bg-white border-[5px] border-red-600/30 text-black rounded-tl-none'
+ }
+ `}>
+ {isUser ? (
+ <div className="flex items-center justify-end gap-2.5 mb-1.5 select-none">
+ <button
+ type="button"
+ onClick={() => {
+ if (!isConnected) return;
+ if (isPaused) {
+ resume();
+ if (window.speechSynthesis && window.speechSynthesis.paused) {
+ window.speechSynthesis.resume();
+ }
+ } else {
+ pause();
+ if (window.speechSynthesis && window.speechSynthesis.speaking) {
+ window.speechSynthesis.pause();
+ }
+ }
+ }}
+ disabled={!isConnected}
+ className={`flex items-center gap-1 group cursor-pointer transition-all duration-300 ${
+ !isConnected ? 'opacity-30 cursor-not-allowed' : 'hover:scale-105 active:scale-95'
+ }`}
+ >
+ {!isPaused && (
+ <span 
+ style={{ fontFamily: "'Lato', sans-serif" }} 
+ className="text-[9px] font-black tracking-wider transition-all duration-300 text-[#1A365D] group-hover:text-red-600"
+ >
+ PAUSA
+ </span>
+ )}
+ {isPaused ? (
+ <Play fill="currentColor" stroke="none" className="w-3.5 h-3.5 text-red-600 transition-all animate-pulse" />
+ ) : (
+ <Pause fill="currentColor" stroke="none" className="w-3.5 h-3.5 text-[#1A365D] group-hover:text-red-600 transition-all duration-300" />
+ )}
+ </button>
+ </div>
+ ) : (
+ <div className="flex items-center gap-1.5 sm:gap-4 flex-wrap mb-2.5 select-none">
+ {/* Mascot Bot Icon */}
+ <div 
+ onClick={() => setHasInteracted(false)} 
+ title={selectedLang === 'EN' ? 'Go to Welcome Page' : 'Ir a la página de bienvenida'} 
+ className="cursor-pointer hover:scale-110 active:scale-95 transition-all flex-shrink-0"
+ >
+ <Bot strokeWidth={2.5} className="w-5 h-5 text-red-600" />
+ </div>
+
+ {/* Embedded Mode Selectors */}
+ <div className="flex items-center gap-1.5 sm:gap-4 flex-wrap">
+ {(() => {
+ const modes = [
+ {
+ id: 'spanish',
+ label: selectedLang === 'EN' ? 'SPANISH' : 'ESPAÑOL',
+ active: isSpanishOnlyMode,
+ activate: () => {
+ setIsSpanishOnlyMode(true);
+ if (isPaused) {
+ resume();
+ if (window.speechSynthesis && window.speechSynthesis.paused) {
+ window.speechSynthesis.resume();
+ }
+ }
+ }
+ },
+ {
+ id: 'bilingual',
+ label: 'BILINGÜE',
+ active: isBilingualMode,
+ activate: () => {
+ setIsBilingualMode(true);
+ if (isPaused) {
+ resume();
+ if (window.speechSynthesis && window.speechSynthesis.paused) {
+ window.speechSynthesis.resume();
+ }
+ }
+ }
+ },
+ {
+ id: 'english',
+ label: selectedLang === 'EN' ? 'ENGLISH' : 'INGLÉS',
+ active: isEnglishOnlyMode,
+ activate: () => {
+ setIsEnglishOnlyMode(true);
+ if (isPaused) {
+ resume();
+ if (window.speechSynthesis && window.speechSynthesis.paused) {
+ window.speechSynthesis.resume();
+ }
+ }
+ }
+ },
+ {
+ id: 'translate',
+ label: selectedLang === 'EN' ? 'TRANSLATOR' : 'TRADUCTOR',
+ active: isTranslateMode,
+ activate: () => {
+ setIsTranslateMode(true);
+ if (isPaused) {
+ resume();
+ if (window.speechSynthesis && window.speechSynthesis.paused) {
+ window.speechSynthesis.resume();
+ }
+ }
+ }
+ },
+ {
+ id: 'listen',
+ label: selectedLang === 'EN' ? 'LISTEN' : 'ESCUCHA',
+ active: isListenOnly,
+ activate: () => {
+ setIsListenOnly(true);
+ if (isPaused) {
+ resume();
+ if (window.speechSynthesis && window.speechSynthesis.paused) {
+ window.speechSynthesis.resume();
+ }
+ }
+ }
+ }
+ ];
+
+ // Sort so active mode is first
+ const sortedModes = [...modes].sort((a, b) => (a.active ? -1 : b.active ? 1 : 0));
+
+ return sortedModes.map((m) => (
+ <button 
+ key={m.id}
+ onClick={m.activate}
+ style={{ fontFamily: "'Lato', sans-serif" }}
+ className="flex items-center gap-1 cursor-pointer group select-none"
+ >
+ {m.active && (
+ <MessageSquare 
+ strokeWidth={3}
+ className="w-[17px] h-[17px] flex-shrink-0 transition-all duration-200 text-red-600 scale-110" 
+ />
+ )}
+ <span className={`text-[7.5pt] tracking-wider uppercase whitespace-nowrap transition-colors ${
+ m.active ? 'text-black font-extrabold' : 'text-black/45 font-bold group-hover:text-red-600'
+ }`}>
+ {m.label}
+ </span>
+ </button>
+ ));
+ })()}
+ </div>
+ </div>
+ )}
+ <div className={`chat-message-text whitespace-pre-line tracking-wider leading-snug ${isUser ? 'text-right' : 'text-left'}`}>
+ {(() => {
+ const rawText = getTranslatedMessageText(msg, selectedLang);
+ if (!isUser && rawText.includes(" / ")) {
+ const parts = rawText.split(" / ");
+ if (parts.length >= 2) {
+ return (
+ <>
+ <div style={{ fontFamily: '"American Typewriter", "Courier New", Courier, serif' }} className="text-black font-semibold leading-snug">{parseAndRenderEmojis(parts[0])}</div>
+ <div style={{ fontFamily: '"American Typewriter", "Courier New", Courier, serif' }} className="chat-message-english text-black leading-snug mt-2">
+ {parseAndRenderEmojis(parts.slice(1).join(" / "))}
+ </div>
+ </>
+ );
+ }
+ }
+ return <div style={{ fontFamily: '"American Typewriter", "Courier New", Courier, serif' }} className="text-black leading-snug">{parseAndRenderEmojis(rawText)}</div>;
+ })()}
+ </div>
+ 
+ {!isUser && msg.showForm && (
+ <div className="border-t border-white/10 pt-3 mt-3 space-y-2.5">
+ {inlineLeadSuccess ? (
+ <div className="text-center py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-xl">
+ <span className="text-xs text-emerald-400 font-bold uppercase tracking-wider">
+ {selectedLang === 'EN' ? "✓ Info Captured Successfully!" : "✓ ¡Datos Guardados Exitosamente!"}
+ </span>
+ </div>
+ ) : inlineFormStep === 'details' ? (
+ <>
+ <div className="grid grid-cols-2 gap-2.5">
+ <div>
+ <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
+ {selectedLang === 'EN' ? "Full Name *" : "Nombre Completo *"}
+ </label>
+ <input
+ type="text"
+ value={inlineLeadForm.name}
+ onChange={(e) => setInlineLeadForm({...inlineLeadForm, name: e.target.value})}
+ placeholder="e.g. Jane Doe"
+ className="w-full px-3 py-1.5 bg-black/35 border border-white/10 hover:border-yellow-500 rounded-xl text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-yellow-500 focus:bg-black/55 transition-all min-h-[36px]"
+ />
+ </div>
+
+ <div>
+ <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
+ {selectedLang === 'EN' ? "Email Address *" : "Correo Electrónico *"}
+ </label>
+ <input
+ type="email"
+ value={inlineLeadForm.email}
+ onChange={(e) => setInlineLeadForm({...inlineLeadForm, email: e.target.value})}
+ placeholder="e.g. jane@company.com"
+ className="w-full px-3 py-1.5 bg-black/35 border border-white/10 hover:border-yellow-500 rounded-xl text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-yellow-500 focus:bg-black/55 transition-all min-h-[36px]"
+ />
+ </div>
+ </div>
+
+ <div className="grid grid-cols-2 gap-2.5">
+ <div>
+ <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
+ {selectedLang === 'EN' ? "Company" : "Empresa"}
+ </label>
+ <input
+ type="text"
+ value={inlineLeadForm.company}
+ onChange={(e) => setInlineLeadForm({...inlineLeadForm, company: e.target.value})}
+ placeholder="e.g. Acme Corp"
+ className="w-full px-3 py-1.5 bg-black/35 border border-white/10 hover:border-yellow-500 rounded-xl text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-yellow-500 focus:bg-black/55 transition-all min-h-[36px]"
+ />
+ </div>
+ <div>
+ <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
+ {selectedLang === 'EN' ? "Phone Number *" : "Número Telefónico *"}
+ </label>
+ <input
+ type="tel"
+ value={inlineLeadForm.phone}
+ onChange={(e) => setInlineLeadForm({...inlineLeadForm, phone: e.target.value})}
+ placeholder="e.g. +1 555-0199"
+ className="w-full px-3 py-1.5 bg-black/35 border border-white/10 hover:border-yellow-500 rounded-xl text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-yellow-500 focus:bg-black/55 transition-all min-h-[36px]"
+ />
+ </div>
+ </div>
+
+ <div>
+ <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
+ Agendar Reunión
+ </label>
+ <div className="grid grid-cols-2 gap-2.5">
+ <div className="relative">
+ <div
+ onClick={() => setShowCalendar(!showCalendar)}
+ className="w-full px-3 py-1.5 bg-black/35 border border-white/10 hover:border-yellow-500 rounded-xl text-xs text-neutral-200 cursor-pointer focus:outline-none focus:border-yellow-500 focus:bg-black/55 transition-all min-h-[36px] flex items-center gap-2"
+ >
+ <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-yellow-500 flex-shrink-0">
+ <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
+ </svg>
+ <span className="truncate text-yellow-400 font-mono font-semibold">
+ {inlineLeadForm.meetingTime 
+ ? new Date(inlineLeadForm.meetingTime).toLocaleDateString([], { dateStyle: 'medium' }) 
+ : "Seleccione Fecha"}
+ </span>
+ </div>
+
+ {showCalendar && (
+ <div className="absolute left-0 mt-1.5 p-3 w-[240px] bg-neutral-950 border border-white/10 rounded-2xl shadow-[0_12px_30px_rgba(0,0,0,0.95)] backdrop-blur-md z-50 text-white select-none">
+ <div className="flex items-center justify-between mb-2">
+ <button
+ type="button"
+ onClick={() => {
+ const prev = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1);
+ setCalendarMonth(prev);
+ }}
+ className="p-1 rounded-lg text-yellow-400 cursor-pointer transition-all"
+ >
+ <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3">
+ <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+ </svg>
+ </button>
+ <span className="text-[10px] font-bold tracking-wider uppercase text-neutral-300">
+ {calendarMonth.toLocaleString([], { month: 'long', year: 'numeric' })}
+ </span>
+ <button
+ type="button"
+ onClick={() => {
+ const next = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1);
+ setCalendarMonth(next);
+ }}
+ className="p-1 rounded-lg text-yellow-400 cursor-pointer transition-all"
+ >
+ <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3">
+ <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+ </svg>
+ </button>
+ </div>
+
+ <div className="grid grid-cols-7 gap-1 text-center mb-1 text-[8px] font-bold text-yellow-400">
+ <span>{selectedLang === 'EN' ? "MO" : "LU"}</span>
+ <span>{selectedLang === 'EN' ? "TU" : "MA"}</span>
+ <span>{selectedLang === 'EN' ? "WE" : "MI"}</span>
+ <span>{selectedLang === 'EN' ? "TH" : "JU"}</span>
+ <span>{selectedLang === 'EN' ? "FR" : "VI"}</span>
+ <span>{selectedLang === 'EN' ? "SA" : "SÁ"}</span>
+ <span>{selectedLang === 'EN' ? "SU" : "DO"}</span>
+ </div>
+
+ <div className="grid grid-cols-7 gap-1 text-center">
+ {getDaysInMonth(calendarMonth).map((day, idx) => {
+ if (day === null) {
+ return <div key={`empty-${idx}`} />;
+ }
+ const isSelected = selectedCalendarDay === day;
+ return (
+ <button
+ key={`day-${day}`}
+ type="button"
+ onClick={() => setSelectedCalendarDay(day)}
+ className={`w-6 h-6 rounded-lg text-[10px] font-mono font-bold flex items-center justify-center cursor-pointer transition-all ${
+ isSelected 
+ ? 'bg-yellow-500 text-black shadow-[0_0_8px_rgba(234,179,8,0.6)]' 
+ : ' text-neutral-300'
+ }`}
+ >
+ {day}
+ </button>
+ );
+ })}
+ </div>
+
+ <button
+ type="button"
+ disabled={selectedCalendarDay === null}
+ onClick={() => {
+ if (selectedCalendarDay !== null) {
+ const yr = calendarMonth.getFullYear();
+ const mo = String(calendarMonth.getMonth() + 1).padStart(2, '0');
+ const dy = String(selectedCalendarDay).padStart(2, '0');
+ const formatted = `${yr}-${mo}-${dy}T${selectedCalendarTime}:00Z`;
+ setInlineLeadForm({ ...inlineLeadForm, meetingTime: formatted });
+ setShowCalendar(false);
+ }
+ }}
+ className="w-full mt-3 py-1 bg-black border border-yellow-500/40 text-yellow-400 text-[9px] font-mono font-bold tracking-widest rounded-full cursor-pointer hover:bg-yellow-500 hover:text-black transition-all uppercase text-center disabled:opacity-30 disabled:pointer-events-none"
+ >
+ CONFIRMAR
+ </button>
+ </div>
+ )}
+ </div>
+
+ <div className="relative">
+ <select
+ value={selectedCalendarTime}
+ onChange={(e) => {
+ setSelectedCalendarTime(e.target.value);
+ if (selectedCalendarDay !== null) {
+ const yr = calendarMonth.getFullYear();
+ const mo = String(calendarMonth.getMonth() + 1).padStart(2, '0');
+ const dy = String(selectedCalendarDay).padStart(2, '0');
+ const formatted = `${yr}-${mo}-${dy}T${e.target.value}:00Z`;
+ setInlineLeadForm(prev => ({ ...prev, meetingTime: formatted }));
+ }
+ }}
+ className="w-full pl-9 pr-3 py-1.5 bg-black/35 border border-white/10 hover:border-yellow-500 rounded-xl text-xs text-yellow-400 font-mono focus:outline-none focus:border-yellow-500 focus:bg-black/55 transition-all min-h-[36px] cursor-pointer appearance-none"
+ >
+ <option value="09:00">09:00 AM</option>
+ <option value="10:00">10:00 AM</option>
+ <option value="11:00">11:00 AM</option>
+ <option value="12:00">12:00 PM</option>
+ <option value="13:00">01:00 PM</option>
+ <option value="14:00">02:00 PM</option>
+ <option value="15:00">03:00 PM</option>
+ <option value="16:00">04:00 PM</option>
+ <option value="17:00">05:00 PM</option>
+ </select>
+ <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center">
+ <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-yellow-500">
+ <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+ </svg>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ {inlineLeadError && (
+ <span className="text-[10px] text-red-500 font-bold block mt-2.5 pl-1">{inlineLeadError}</span>
+ )}
+
+ <div className="flex items-center gap-4 mt-2.5 pl-1">
+ <button
+ type="button"
+ onClick={() => {
+ if (!inlineLeadForm.name.trim() || !inlineLeadForm.email.trim() || !inlineLeadForm.phone.trim()) {
+ setInlineLeadError(selectedLang === 'EN' ? "Name, email, and phone number are required." : "Se requiere nombre, correo y número telefónico.");
+ return;
+ }
+ setInlineLeadError(null);
+ setInlineFormStep('services');
+ }}
+ className="flex-shrink-0 w-auto px-4 py-1.5 bg-yellow-500 hover:bg-yellow-600 border-none text-[10px] font-mono font-bold tracking-widest rounded-full transition-all duration-300 cursor-pointer shadow-md active:scale-95 min-h-[26px] uppercase text-center inline-flex items-center justify-center text-black"
+ >
+ SIGUIENTE
+ </button>
+ <div className="flex items-center gap-2 select-none cursor-pointer">
+ <input
+ type="checkbox"
+ id="marketingConsent"
+ checked={inlineLeadForm.consent}
+ onChange={(e) => setInlineLeadForm({...inlineLeadForm, consent: e.target.checked})}
+ className="w-4 h-4 rounded border-white/20 text-yellow-500 focus:ring-yellow-500 focus:ring-opacity-25 bg-black/30 cursor-pointer"
+ />
+ <label htmlFor="marketingConsent" className="text-[9px] font-bold tracking-wider text-neutral-300 cursor-pointer leading-tight">
+ Enviarme la info
+ </label>
+ </div>
+ </div>
+ </>
+ ) : (
+ <>
+ <div className="space-y-2">
+ <label className="block text-[9px] font-bold tracking-wider text-neutral-400 mb-1">
+ Seleccione los Servicios de Interés
+ </label>
+ <div className="grid grid-cols-2 gap-2">
+ {[
+ { id: "AI Voice Agent", labelEn: "AI Voice Agent & Call Automation", labelEs: "Agente de Voz IA" },
+ { id: "CRM Integration", labelEn: "Custom CRM Integration", labelEs: "Integración CRM" },
+ { id: "Marketing Roadmap", labelEn: "Local Marketing Roadmap", labelEs: "Plan de Marketing Local" },
+ { id: "Marketing Automations", labelEn: "SMS & Email Automations", labelEs: "Automatizaciones SMS/Email" }
+ ].map(srv => {
+ const isChecked = selectedServices.includes(srv.id);
+ return (
+ <label key={srv.id} className="flex items-center gap-2 px-2.5 py-1.5 bg-black/25 border border-white/10 hover:border-yellow-500/50 rounded-xl cursor-pointer transition-all select-none min-h-[36px] hover:bg-black/40">
+ <input
+ type="checkbox"
+ checked={isChecked}
+ onChange={(e) => {
+ if (e.target.checked) {
+ setSelectedServices([...selectedServices, srv.id]);
+ } else {
+ setSelectedServices(selectedServices.filter(s => s !== srv.id));
+ }
+ }}
+ className="w-4 h-4 rounded border-white/20 text-yellow-500 focus:ring-yellow-500 focus:ring-opacity-25 bg-black/30 cursor-pointer"
+ />
+ <span className="text-[10px] text-neutral-200 font-medium leading-tight">
+ {selectedLang === 'EN' ? srv.labelEn : srv.labelEs}
+ </span>
+ </label>
+ );
+ })}
+ </div>
+ </div>
+
+ {inlineLeadError && (
+ <span className="text-[10px] text-red-500 font-bold block mt-1">{inlineLeadError}</span>
+ )}
+
+ <div className="grid grid-cols-2 gap-2.5 mt-3 pt-2 border-t border-white/10">
+ <div>
+ <button
+ type="button"
+ onClick={() => setInlineFormStep('details')}
+ className="w-full py-1 bg-transparent border border-white/20 text-neutral-300 text-[10px] font-mono font-bold tracking-widest rounded-full transition-all hover:bg-white/5 min-h-[26px] uppercase text-center inline-flex items-center justify-center cursor-pointer"
+ >
+ ATRÁS
+ </button>
+ </div>
+ <div>
+ <button
+ type="button"
+ onClick={handleInlineLeadSubmit}
+ disabled={isSubmittingInlineLead}
+ className="w-full px-3.5 py-1 bg-yellow-500 text-black border-none text-[10px] font-mono font-bold tracking-widest rounded-full transition-all duration-300 cursor-pointer shadow-md hover:bg-yellow-600 active:scale-95 disabled:opacity-50 min-h-[26px] uppercase text-center inline-flex items-center justify-center font-bold"
+ >
+ {isSubmittingInlineLead ? "ENVIANDO..." : "ENVIAR"}
+ </button>
+ </div>
+ </div>
+ </>
+ )}
+ </div>
+ )}
+ </div>
+ </div>
+ </div>
+ );
+ })}
+ <div ref={chatEndRef} />
+ </div>
+ </div>
+ )}
+ </div>
+ ) : rightPanelTab === 'roadmap' ? (
+ <RoadmapPanel
+ selectedLang={selectedLang}
+ learnedWordsCount={learnedWords.length}
+ grammarScore={scores.grammar}
+ pronunciationScore={scores.pronunciation}
+ scores={scores}
+ learnedWords={learnedWords}
+ accentPatterns={accentPatterns}
+ chatMessages={chatMessages}
+ isPaused={isPaused}
+ isConnected={isConnected}
+ pause={pause}
+ resume={resume}
+ onAskVoyager={(text) => {
+ setHasInteracted(true);
+ addUserMessage(text);
+ const profilePrompt = `[INSTRUCCIÓN DE SISTEMA CRÍTICA Y MANDATORIA: Estás respondiendo a una pregunta dentro de la pestaña de ${visitorFullName ? visitorFullName.toUpperCase() : 'PERFIL'} del usuario.
+1. Deja atrás cualquier otro tipo de conversación o tema general. Está ESTRICTAMENTE PROHIBIDO hablar de cualquier cosa que no sea el perfil específico, las metas, los reportes de progreso y los proyectos/lecciones asignados de este usuario.
+2. Tu único trabajo es explicar e informar en español qué significan sus datos específicos (ej. sus puntuaciones de Fluidez, Gramática, Fonética, Confianza, palabras aprendidas) y el avance de sus metas personales.
+3. Responde ÚNICAMENTE en español de forma clara, directa y muy precisa para que el usuario de habla hispana comprenda perfectamente su reporte.
+4. REGLA INQUEBRANTABLE: NO intentes enseñar inglés, NO invites al usuario a practicar inglés, NO inicies juegos de conversación en inglés y NO ofrezcas lecciones.
+Pregunta del usuario: "${text}"]`;
+ sendText(profilePrompt);
+ }}
+ onNavigateTab={(tab) => setRightPanelTab(tab)}
+ />
+
+ ) : rightPanelTab === 'teachers' ? (
+ <TeacherInsightsPanel
+ selectedLang={selectedLang}
+ chatMessages={chatMessages}
+ isPaused={isPaused}
+ isConnected={isConnected}
+ pause={pause}
+ resume={resume}
+ scores={scores}
+ learnedWords={learnedWords}
+ accentPatterns={accentPatterns}
+ onAskVoyager={(text) => {
+ setHasInteracted(true);
+ if (!text.startsWith('[AUTO_SYSTEM:')) {
+ addUserMessage(text);
+ }
+ const teachersPrompt = text.startsWith('[AUTO_SYSTEM:')
+ ? text
+ : `[INSTRUCCIÓN DE SISTEMA: El usuario está preguntando sobre la sección de La Profe (Alejandra Francois, acompañamiento de clases en vivo, grabaciones de acento o logs de pronunciación). Mantén estrictamente tu tono de voz original, velocidad y personalidad de VOYAGER. Responde ÚNICAMENTE en español de forma clara, directa y comprensible para que un usuario de habla hispana entienda perfectamente cómo funciona el acompañamiento docente. No uses inglés ni enseñes inglés aquí. Pregunta del usuario: "${text}"]`;
+ sendText(teachersPrompt);
+ }}
+ />
+ ) : rightPanelTab === 'progress' ? (
+ <div className="flex-1 flex flex-col bg-white overflow-hidden">
+ <div className="flex-1 p-4 overflow-y-auto tab-content-area">
+ <ProgressDashboard 
+ selectedLang={selectedLang}
+ scores={scores}
+ learnedWords={learnedWords}
+ accentPatterns={accentPatterns}
+ onAskVoyager={(text) => {
+ setRightPanelTab('chat');
+ handleSuggestionClick(text);
+ }}
+ />
+ </div>
+ <ChatInputBox
+ selectedLang={selectedLang}
+ isConnected={isConnected}
+ isPaused={isPaused}
+ pause={pause}
+ resume={resume}
+ onSubmitText={(text) => {
+ setHasInteracted(true);
+ addUserMessage(text);
+ sendText(text);
+ }}
+ />
+ </div>
+ ) : rightPanelTab === 'settings' ? (
+ <SettingsPanel
+ selectedLang={selectedLang}
+ setSelectedLang={setSelectedLang}
+ isListenOnly={isListenOnly}
+ setIsListenOnly={setIsListenOnly}
+ isTranslateMode={isTranslateMode}
+ setIsTranslateMode={setIsTranslateMode}
+ isBilingualMode={isBilingualMode}
+ setIsBilingualMode={setIsBilingualMode}
+ isSpanishOnlyMode={isSpanishOnlyMode}
+ setIsSpanishOnlyMode={setIsSpanishOnlyMode}
+ isEnglishOnlyMode={isEnglishOnlyMode}
+ setIsEnglishOnlyMode={setIsEnglishOnlyMode}
+ />
+ ) : null}
+
+ {/* Always mount ShoppingPanel to prevent script reloading & duplicate minicart widgets */}
+ <div className={rightPanelTab === 'shopping' ? 'flex-grow flex flex-col overflow-hidden h-full min-h-0' : 'hidden'}>
+ <ShoppingPanel
+ cartCount={cartCount}
+ selectedLang={selectedLang}
+ userPlan={(() => {
+ const saved = localStorage.getItem('voyager_user_account');
+ if (saved) {
+ try {
+ const u = JSON.parse(saved);
+ return u.plan || 'FREE';
+ } catch (e) {}
+ }
+ return 'FREE';
+ })()}
+ onUpgradeSuccess={() => {
+ const saved = localStorage.getItem('voyager_user_account');
+ let u = {
+ name: selectedLang === 'EN' ? 'Learner' : 'Estudiante',
+ email: 'learner@usavoyager.com',
+ provider: 'Guest' as const,
+ goal: 'Business English & Networking',
+ levelEstimate: 'Intermediate',
+ completedDays: [1],
+ plan: 'PRO' as const
+ };
+ if (saved) {
+ try {
+ u = { ...JSON.parse(saved), plan: 'PRO' };
+ } catch (e) {}
+ }
+ localStorage.setItem('voyager_user_account', JSON.stringify(u));
+ setRightPanelTab('roadmap');
+ }}
+ chatMessages={chatMessages}
+ isPaused={isPaused}
+ isConnected={isConnected}
+ pause={pause}
+ resume={resume}
+ sendText={sendText}
+ onAskVoyager={(text) => {
+ setHasInteracted(true);
+ addUserMessage(text);
+ const storePrompt = `[INSTRUCCIÓN DE SISTEMA: Misión de VOYAGER TIENDA.
+Eres VOYAGER TIENDA, el asesor conversacional de la tienda integrada de USA Voyager.
+Eres un vendedor consultivo, cálido, paciente, entusiasta y experto. Tu objetivo es ayudar al usuario a descubrir, entender y elegir productos, materiales de estudio, libros de trabajo, mercancía oficial, membresías y paquetes de coaching con La Profe. No es una clase de inglés ni un chat general.
+
+Reglas esenciales:
+- Pronuncia “U.S.A.” en inglés americano: “you ess ay”.
+- Habla solo en español o inglés. El español es el idioma predeterminado. Si aparece una palabra en inglés, pronúnciala con acento americano.
+- Mantén la conversación exclusivamente relacionada con la tienda: productos, beneficios, diferencias entre opciones, materiales de estudio, paquetes, La Profe, coaching, precios, carrito, cuenta y compra.
+- Haz una pregunta a la vez para entender qué necesita la persona: su meta, nivel, presupuesto, tiempo disponible, interés o situación de aprendizaje.
+- Explica valor práctico antes de recomendar: para quién sirve el producto, qué problema resuelve, cómo se usa y qué resultado puede aportar.
+- Recomienda con honestidad y sin presión. Si varias opciones encajan, compáralas brevemente y explica cuál parece la mejor según las necesidades del usuario.
+- Nunca inventes productos, precios, disponibilidad, descuentos, políticas, resultados o información de pedidos. Si no tienes la información, dilo con claridad y ofrece revisar la tienda o el carrito.
+- Si el usuario pregunta algo ajeno a TIENDA, responde brevemente que ese tema corresponde a CHARLA, LA PROFE o PERFIL, e invítalo a cambiar a la sección adecuada.
+- No continúes conversaciones de CHARLA dentro de TIENDA. La conversación de TIENDA debe tener su propio historial y contexto.
+- Responde con energía amable y clara. Usa frases breves, naturales y útiles. Evita sonar corporativo, robótico, insistente o excesivamente vendedor.
+- NO des clases de inglés, NO corrijas gramática de inglés, NO enseñes inglés. Actúa estrictamente como asesor de ventas.]
+
+Nuestros planes y precios reales oficiales:
+- Plan USA Voyager PRO: $9.99/mes. Desbloquea todas las lecciones del Día 2 en adelante de la ruta de aprendizaje, escenarios avanzados de conversación y feedback avanzado de acento/pronunciación.
+- Sesión Diagnóstica: $29.00 pago único. Videollamada de 30 minutos 1-a-1 en vivo con Alejandra Francois (La Profe) para evaluar nivel, acento y fluidez + reporte personalizado + soporte de chat directo por 7 días.
+- Coaching de Inmersión: $199.00/mes. 4 clases al mes 1-a-1 en vivo con La Profe + acompañamiento de audios por chat privado diario + plan PRO gratis incluido.
+- Coaching Intensivo: $349.00/mes. 8 clases al mes 1-a-1 en vivo con La Profe (2 clases semanales) + revisiones diarias prioritarias de audios + soporte directo 24/7 + plan PRO gratis incluido.
+
+Pregunta del usuario: "${text}"]`;
+ sendText(storePrompt);
+ }}
+ />
+ </div>
+
+ {!showReviewScreen && rightPanelTab === 'chat' && hasInteracted && (
+ <ChatInputBox
+ selectedLang={selectedLang}
+ isConnected={isConnected}
+ isPaused={isPaused}
+ pause={pause}
+ resume={resume}
+ onSubmitText={(text) => {
+ addUserMessage(text);
+ sendText(text);
+ }}
+ value={inputText}
+ onChangeValue={setInputText}
+ placeholderText={placeholderText}
+ />
+ )}
+ </div>
+ )}
+ </div>
+ )}
+ </div>
+ </div>
+ {/* Policy Modal Overlay */}
+ {activePolicyModal && (
+ <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+ <div className="bg-neutral-300 border border-black/15 rounded-2xl max-w-xl w-full shadow-[0_25px_50px_rgba(0,0,0,0.4)] p-6 md:p-8 flex flex-col max-h-[85vh] animate-scale-up">
+ {/* Modal Header */}
+ <div className="flex items-center justify-between border-b border-neutral-300 pb-4 mb-4">
+ <h3 style={{ fontFamily: '"Lato", sans-serif' }} className="text-lg md:text-xl font-black text-black uppercase tracking-wider">
+ {activePolicyModal === 'copyright' ? (selectedLang === 'EN' ? 'Copyright Information' : 'Derechos de Autor') : activePolicyModal === 'privacy' ? 'Privacy Policy' : activePolicyModal === 'contact' ? (selectedLang === 'EN' ? 'Contact Us' : 'Contacto') : 'Terms of Service'}
+ </h3>
+ <button 
+ onClick={() => setActivePolicyModal(null)}
+ className="text-neutral-500 hover:text-black transition-colors p-1 rounded-full hover:bg-neutral-200 cursor-pointer"
+ >
+ <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+ <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+ </svg>
+ </button>
+ </div>
+ 
+ {/* Modal Content */}
+ <div className="overflow-y-auto pr-2 space-y-4 text-xs md:text-sm text-neutral-800 leading-relaxed font-sans select-text">
+ {activePolicyModal === 'copyright' ? (
+ <div className="flex flex-col items-center justify-center py-6 text-center">
+ <span style={{ fontSize: '3em' }} className="font-bold text-amber-600 mb-4 block leading-none">©</span>
+ <p className="font-semibold text-[#231d17] text-sm md:text-base max-w-sm leading-relaxed">
+ © 2026 Yo Soy Voger USA. All rights reserved. Derechos reservados
+ </p>
+ </div>
+ ) : activePolicyModal === 'contact' ? (
+ <div className="flex flex-col space-y-4 py-1">
+ <div className="flex items-center gap-2 border-b border-black/10 pb-2">
+ <Mail className="w-5 h-5 text-red-600 flex-shrink-0" />
+ <div>
+ <h4 className="font-bold text-neutral-900 text-sm md:text-base">
+ {selectedLang === 'EN' ? 'Dynamic Contact & Profile Form' : 'Formulario Dinámico de Contacto y Perfil'}
+ </h4>
+ <p className="text-[11px] text-neutral-600">
+ {selectedLang === 'EN' 
+ ? 'Complete this form to contact USA Voyager and dynamically populate your PERFIL section.' 
+ : 'Completa este formulario para contactar a USA Voyager y poblar dinámicamente tu sección PERFIL.'}
+ </p>
+ </div>
+ </div>
+
+ {contactSubmitted ? (
+ <div className="bg-emerald-50 border border-emerald-300 text-emerald-800 p-4 rounded-xl text-center space-y-2">
+ <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto text-lg font-bold">✓</div>
+ <p className="font-bold text-sm">
+ {selectedLang === 'EN' ? 'Message Sent & Profile Updated!' : '¡Mensaje Enviado y Perfil Actualizado!'}
+ </p>
+ <p className="text-xs">
+ {selectedLang === 'EN' 
+ ? 'Your profile details have been saved to the PERFIL section and our support team has received your inquiry.' 
+ : 'Tus datos de perfil han sido guardados en la sección PERFIL y nuestro equipo de soporte ha recibido tu consulta.'}
+ </p>
+ <button
+ onClick={() => {
+ setContactSubmitted(false);
+ setActivePolicyModal(null);
+ setRightPanelTab('progress');
+ }}
+ className="mt-2 px-4 py-1.5 bg-emerald-600 text-white font-bold text-xs rounded-lg hover:bg-emerald-700 transition-all cursor-pointer shadow-sm"
+ >
+ {selectedLang === 'EN' ? 'View Profile (PERFIL)' : 'Ver Perfil (PERFIL)'}
+ </button>
+ </div>
+ ) : (
+ <form 
+ onSubmit={(e) => {
+ e.preventDefault();
+ const mapLevelEstimate = (lvl: typeof selectedLevel) => {
+ if (lvl === 'BEGINNER') return 'Beginner';
+ if (lvl === 'INTERMEDIATE') return 'Intermediate';
+ if (lvl === 'ADVANCED') return 'Advanced';
+ if (lvl === 'NOT_SURE') return 'Not Sure';
+ return 'Intermediate';
+ };
+ const getGoalText = () => {
+ if (selectedGoal === 'PROFESSIONAL') return 'Professional';
+ if (selectedGoal === 'ESTUDIO') return 'Academic / Study';
+ if (selectedGoal === 'VIAJANTE') return 'Traveler';
+ if (selectedGoal === 'DOCENTES') return 'Teachers';
+ return 'Travel & Daily Conversation';
+ };
+ const u = {
+ name: userName.trim() || (selectedLang === 'EN' ? 'Learner' : 'Estudiante'),
+ email: userEmail.trim() || 'learner@usavoyager.com',
+ age: userAge.trim() ? parseInt(userAge.trim()) : undefined,
+ country: userCountry.trim() || (selectedLang === 'EN' ? 'Not specified' : 'Desconocido'),
+ provider: 'Guest' as const,
+ goal: getGoalText(),
+ levelEstimate: mapLevelEstimate(selectedLevel),
+ completedDays: [1],
+ plan: 'FREE' as const
+ };
+ localStorage.setItem('voyager_user_account', JSON.stringify(u));
+ setContactSubmitted(true);
+ }}
+ className="space-y-3"
+ >
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+ <div>
+ <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
+ {selectedLang === 'EN' ? 'Name' : 'Nombre'}
+ </label>
+ <input 
+ type="text"
+ required
+ value={userName}
+ onChange={(e) => setUserName(e.target.value)}
+ placeholder={selectedLang === 'EN' ? 'Your full name' : 'Tu nombre completo'}
+ className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-semibold focus:border-red-600 focus:outline-none bg-white text-black"
+ />
+ </div>
+
+ <div>
+ <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
+ {selectedLang === 'EN' ? 'Email' : 'Correo'}
+ </label>
+ <input 
+ type="email"
+ required
+ value={userEmail}
+ onChange={(e) => setUserEmail(e.target.value)}
+ placeholder={selectedLang === 'EN' ? 'Your email address' : 'Tu correo electrónico'}
+ className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-semibold focus:border-red-600 focus:outline-none bg-white text-black"
+ />
+ </div>
+ </div>
+
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+ <div>
+ <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
+ {selectedLang === 'EN' ? 'Age' : 'Edad'}
+ </label>
+ <input 
+ type="number"
+ value={userAge}
+ onChange={(e) => setUserAge(e.target.value)}
+ placeholder={selectedLang === 'EN' ? 'Your age' : 'Tu edad'}
+ min="1"
+ max="120"
+ className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-semibold focus:border-red-600 focus:outline-none bg-white text-black"
+ />
+ </div>
+
+ <div>
+ <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
+ {selectedLang === 'EN' ? 'Country' : 'País'}
+ </label>
+ <select
+ value={userCountry}
+ onChange={(e) => setUserCountry(e.target.value)}
+ className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-semibold focus:border-red-600 focus:outline-none bg-white text-black cursor-pointer"
+ >
+ <option value="" disabled hidden>
+ {selectedLang === 'EN' ? 'Select Country' : 'Selecciona País'}
+ </option>
+ {countries.map((c) => (
+ <option key={c.id} value={selectedLang === 'EN' ? c.nameEn : c.nameEs}>
+ {selectedLang === 'EN' ? c.nameEn : c.nameEs}
+ </option>
+ ))}
+ </select>
+ </div>
+ </div>
+
+ <div>
+ <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
+ {selectedLang === 'EN' ? 'Message / Inquiry' : 'Mensaje o Consulta'}
+ </label>
+ <textarea
+ rows={3}
+ value={contactMessage}
+ onChange={(e) => setContactMessage(e.target.value)}
+ placeholder={selectedLang === 'EN' ? 'How can we help you on your Voyager journey?' : '¿Cómo podemos ayudarte en tu camino con Voyager?'}
+ className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-medium focus:border-red-600 focus:outline-none bg-white text-black resize-none"
+ />
+ </div>
+
+ <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-[11px] text-blue-900 font-medium">
+ <span className="flex items-center gap-1.5">
+ <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+ {selectedLang === 'EN' ? 'Dynamically populates PERFIL' : 'Poblando PERFIL dinámicamente'}
+ </span>
+ <a href="mailto:support@usavoyager.com" className="text-blue-700 font-mono font-bold hover:underline">
+ support@usavoyager.com
+ </a>
+ </div>
+
+ <div className="flex justify-end gap-2 pt-1">
+ <button
+ type="button"
+ onClick={() => setActivePolicyModal(null)}
+ className="px-4 py-2 border border-neutral-300 hover:bg-neutral-100 text-neutral-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+ >
+ {selectedLang === 'EN' ? 'Cancel' : 'Cancelar'}
+ </button>
+ <button
+ type="submit"
+ className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md active:scale-95"
+ >
+ {selectedLang === 'EN' ? 'Send & Update Profile' : 'Enviar y Actualizar Perfil'}
+ </button>
+ </div>
+ </form>
+ )}
+ </div>
+ ) : activePolicyModal === 'privacy' ? (
+ <>
+ <p className="font-semibold text-neutral-900">
+ This policy applies exclusively to data collected through the M&K Customer Feedback Portal and does not govern any other data practices of M&K or its affiliated businesses.
+ </p>
+ <p>
+ We collect your name, Google account email, star rating, review text, and submission timestamp via Google OAuth (no password stored) solely to process feedback, generate AI-enriched review suggestions for your approval, notify managers of low ratings, and log interactions in a secure Google Sheet for internal improvement. Your data is never sold or shared with third parties, is accessible only to authorized M&K team members, and is retained only as long as needed to support service improvement and accountability. You have the right to access, correct, or request deletion of your personal data at any time by contacting your designated M&K representative.
+ </p>
+ </>
+ ) : (
+ <>
+ <p className="font-semibold text-neutral-900">
+ This policy applies exclusively to data collected through the M&K Customer Feedback Portal and does not govern any other data practices of M&K or its affiliated businesses.
+ </p>
+ <p>
+ By accessing the M&K Customer Feedback Portal, you agree to use the service solely for its intended purpose of submitting genuine customer feedback — including optional AI-assisted enrichment and automated routing to M&K team members — and to provide accurate, truthful information at all times. M&K makes no guarantees, express or implied, regarding SEO outcomes, business results, or third-party platform visibility, and is not responsible for how submitted reviews are indexed or displayed. M&K reserves the right to modify, suspend, or discontinue the portal at any time without notice and, to the fullest extent permitted by law, shall not be liable for any indirect, incidental, or consequential damages arising from your use of or inability to use the service.
+ </p>
+ </>
+ )}
+ </div>
+ 
+ {/* Modal Footer */}
+ <div className="mt-6 flex justify-end border-t border-neutral-300 pt-4 flex-shrink-0">
+ <button 
+ onClick={() => setActivePolicyModal(null)}
+ style={{ fontFamily: "'Lato', sans-serif" }}
+ className="px-5 py-2 bg-neutral-800 hover:bg-black text-white font-bold text-xs uppercase tracking-widest rounded-full transition-all cursor-pointer select-none"
+ >
+ Close
+ </button>
+ </div>
+ </div>
+ </div>
+ )}
+ </div>
+ );
 };
 
 export default LiveAgent;

@@ -44,49 +44,49 @@ const MISSION_CARDS: MissionCard[] = [
     id: 'diner',
     level: 'PRINCIPIANTE',
     levelEn: 'BEGINNER',
-    title: 'Café en un Classic Diner',
-    titleEn: 'Coffee in a Classic Diner',
-    description: 'Aprende a ordenar café, huevos, panqueques y a entender la jerga de los meseros neoyorquinos.',
-    descriptionEn: 'Learn to order coffee, eggs, pancakes and understand the slang of New York servers.',
-    vocab: ['Sunny-side up', 'To go', 'Refill', 'Pastrami on rye', 'Drizzle'],
+    title: 'Café en un Diner Americano',
+    titleEn: 'Coffee in a Classic American Diner',
+    description: 'Aprende a ordenar café, huevos, panqueques y a entender la jerga en un típico diner estadounidense.',
+    descriptionEn: 'Learn to order coffee, eggs, pancakes and understand typical American diner lingo.',
+    vocab: ['Sunny-side up', 'To go', 'Refill', 'Over-easy', 'On the side'],
     iconType: 'coffee',
-    prompt: "Let's start the 'Coffee in a Classic Diner' scenario. Practice ordering breakfast at an authentic diner! Talk to me as the server, using local diner slang."
+    prompt: "Let's start the 'Coffee in a Classic American Diner' scenario. Practice ordering breakfast at an authentic diner! Talk to me as the server, using local diner terms."
   },
   {
     id: 'subway',
     level: 'INTERMEDIO',
     levelEn: 'INTERMEDIATE',
-    title: 'Aventuras en el Metro de NYC',
-    titleEn: 'NYC Subway Adventures',
-    description: 'Aprende cómo preguntar por líneas de metro (subway lines), comprar boletos y entender direcciones norte/sur.',
-    descriptionEn: 'Learn how to ask for subway lines, buy tickets, and understand north/south directions.',
-    vocab: ['MetroCard', 'Uptown / Downtown', 'Transfer', 'Platform', 'Express train'],
+    title: 'Pago en el Supermercado',
+    titleEn: 'Supermarket Checkout',
+    description: 'Domina el momento de pagar: entiende la pregunta sobre bolsas, usa cupones de descuento y solicita cash back.',
+    descriptionEn: 'Master checkout interactions: answer paper or plastic, use coupons, and handle cashback options.',
+    vocab: ['Paper or plastic', 'Rewards card', 'Cash back', 'Coupons', 'Self-checkout'],
     iconType: 'train',
-    prompt: "Let's start the 'NYC Subway Adventures' scenario. Practice navigating the subway, asking for route directions, and dealing with station gates. Treat me as a local station agent."
+    prompt: "Let's start the 'Supermarket Checkout' scenario. Let's practice checking out at an American grocery store. Act as the friendly cashier, and ask me about bags, loyalty cards, and cashback."
   },
   {
     id: 'bridge',
     level: 'PRINCIPIANTE',
     levelEn: 'BEGINNER',
-    title: 'Fotógrafo en Brooklyn Bridge',
-    titleEn: 'Photographer on Brooklyn Bridge',
-    description: 'Frases útiles para pedirle cortésmente a un turista que te tome una foto y darle instrucciones de encuadre.',
-    descriptionEn: 'Useful phrases to politely ask a tourist to take a photo of you and give framing instructions.',
-    vocab: ['Take a photo', 'Horizontal / Landscape', 'Frame', 'Backlight', 'Press the button'],
+    title: 'Viaje en Rideshare (Uber/Lyft)',
+    titleEn: 'Rideshare & Directions',
+    description: 'Frases clave para confirmar tu conductor, dar direcciones simples del vecindario y pedir que te dejen en la esquina.',
+    descriptionEn: 'Key phrases to confirm your ride, explain simple neighborhood route adjustments, and ask to be dropped off.',
+    vocab: ['Pick up', 'Drop off', 'Pull over', 'Address', 'Keep the change'],
     iconType: 'camera',
-    prompt: "Let's start the 'Photographer on Brooklyn Bridge' scenario. Practice politely asking a nearby tourist to take your picture. Give specific styling/framing instructions!"
+    prompt: "Let's start the 'Rideshare & Directions' scenario. Practice taking an Uber/Lyft in the US. Talk to me as the driver, check my name, ask for directions, and drop me off at the correct spot."
   },
   {
     id: 'broadway',
     level: 'AVANZADO',
     levelEn: 'ADVANCED',
-    title: 'Hustling en Broadway',
-    titleEn: 'Hustling on Broadway',
-    description: 'Negocia boletos de última hora (TKTS booth) y aprende a preguntar por los mejores asientos en el teatro.',
-    descriptionEn: 'Negotiate last-minute tickets (TKTS booth) and learn to ask for the best seats in the theater.',
-    vocab: ['Matinee', 'Orchestra seats', 'Mezzanine', 'Sold out', 'Standing room only'],
+    title: 'Check-in en el Hotel y Charla',
+    titleEn: 'Hotel Check-In & Small Talk',
+    description: 'Domina el check-in en la recepción del hotel, solicita toallas adicionales y entabla charlas amigables con el personal.',
+    descriptionEn: 'Navigate a hotel front desk check-in, request extra room amenities, and practice polite American small talk.',
+    vocab: ['Reservation', 'Valet parking', 'Late check-out', 'Amenities', 'Have a good one'],
     iconType: 'sparkles',
-    prompt: "Let's start the 'Hustling on Broadway' scenario. Practice purchasing same-day rush tickets at the TKTS booth. Ask about seating sections, views, and discounts."
+    prompt: "Let's start the 'Hotel Check-In & Small Talk' scenario. Let's practice checking in at an American hotel. Act as the receptionist, confirm my reservation, explain the amenities, and let's have some casual friendly chatter."
   }
 ];
 
@@ -144,14 +144,14 @@ export const Missions: React.FC<MissionsProps> = ({
     setError(null);
 
     try {
-      // 1. Fetch user's task lists to check if "VOYAGER NYC Immersion" exists
+      // 1. Fetch user's task lists to check if "VOYAGER US Immersion" exists
       const listsRes = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
       if (!listsRes.ok) throw new Error('Failed to fetch lists');
       const listsData = await listsRes.json();
       
-      let voyagerList = (listsData.items || []).find((l: GoogleTaskList) => l.title === 'VOYAGER NYC Immersion');
+      let voyagerList = (listsData.items || []).find((l: GoogleTaskList) => l.title === 'VOYAGER US Immersion');
       let listId = voyagerList?.id;
 
       // 2. If it does not exist, create it
@@ -162,7 +162,7 @@ export const Missions: React.FC<MissionsProps> = ({
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`
           },
-          body: JSON.stringify({ title: 'VOYAGER NYC Immersion' })
+          body: JSON.stringify({ title: 'VOYAGER US Immersion' })
         });
         if (!createRes.ok) throw new Error('Failed to create task list');
         const createdList = await createRes.json();
@@ -206,7 +206,7 @@ export const Missions: React.FC<MissionsProps> = ({
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#F4F3EF] text-zinc-900 rounded-2xl p-4 font-sans overflow-hidden max-h-[380px] md:max-h-[440px] tab-content-area">
+    <div className="w-full h-full flex flex-col bg-white text-zinc-900 rounded-2xl p-4 font-sans overflow-hidden max-h-[380px] md:max-h-[440px] tab-content-area">
       
       {/* Title Header */}
       <div className="flex justify-between items-center border-b border-zinc-200 pb-2.5 mb-3 flex-shrink-0">
