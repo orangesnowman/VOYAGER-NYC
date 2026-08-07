@@ -58,9 +58,9 @@ Be extremely brief, ask only one question, and focus on starting immediately in 
           break;
         case 'SPANISH':
           baseGreeting = displayName
-            ? `Por favor, preséntate de forma muy breve y cálida en español como "USA Voyager". Saluda al usuario por su nombre. Di: "¡Hola, ${displayName}! Soy USA Voyager, tu compañero de conversación. He activado el Modo Solo Español para que hablemos cómodamente en español. ¿De qué te gustaría hablar hoy?"
+            ? `Por favor, preséntate de forma muy breve y cálida en español como "USA Voyager". Saluda al usuario por su nombre. Di: "¡Hola, ${displayName}! Soy USA Voyager, tu compañero de conversación. He activado el Modo Solo Español para que hablemos cómodamente. ¿De qué te gustaría hablar hoy?"
 Sé extremadamente breve, haz una sola pregunta y mantén el foco en iniciar la conversación de inmediato. No expliques el botón de pausa o el área de texto.`
-            : `Por favor, preséntate de forma muy breve y cálida en español como "USA Voyager". Di: "¡Hola! Soy USA Voyager, tu compañero de conversación. He activado el Modo Solo Español para que hablemos cómodamente en español. ¿De qué te gustaría hablar hoy?"
+            : `Por favor, preséntate de forma muy breve y cálida en español como "USA Voyager". Di: "¡Hola! Soy USA Voyager, tu compañero de conversación. He activado el Modo Solo Español para que hablemos cómodamente. ¿De qué te gustaría hablar hoy?"
 Sé extremadamente breve, haz una sola pregunta y mantén el foco en iniciar la conversación de inmediato. No expliques el botón de pausa o el área de texto.`;
           break;
         case 'LIVE_TRANSLATOR':
@@ -97,9 +97,9 @@ Be extremely brief, ask only one question, and start immediately.`;
           break;
         case 'SPANISH':
           baseGreeting = displayName
-            ? `Please introduce yourself warmly and briefly in Spanish as "USA Voyager". Greet the user by their name. Say: "¡Hola, ${displayName}! Soy USA Voyager, tu compañero de conversación. He activado el Modo Solo Español para que hablemos cómodamente en español. ¿De qué te gustaría hablar hoy?"
+            ? `Please introduce yourself warmly and briefly in Spanish as "USA Voyager". Greet the user by their name. Say: "¡Hola, ${displayName}! Soy USA Voyager, tu compañero de conversación. He activado el Modo Solo Español para que hablemos cómodamente. ¿De qué te gustaría hablar hoy?"
 Be extremely brief, ask only one question, and start immediately.`
-            : `Please introduce yourself warmly and briefly in Spanish as "USA Voyager". Say: "¡Hola! Soy USA Voyager, tu compañero de conversación. He activado el Modo Solo Español para que hablemos cómodamente en español. ¿De qué te gustaría hablar hoy?"
+            : `Please introduce yourself warmly and briefly in Spanish as "USA Voyager". Say: "¡Hola! Soy USA Voyager, tu compañero de conversación. He activado el Modo Solo Español para que hablemos cómodamente. ¿De qué te gustaría hablar hoy?"
 Be extremely brief, ask only one question, and start immediately.`;
           break;
         case 'LIVE_TRANSLATOR':

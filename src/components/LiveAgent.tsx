@@ -13,7 +13,7 @@ import { ShoppingPanel } from './ShoppingPanel';
 import { ChatInputBox } from './ChatInputBox';
 import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
 import chatAvatarIcon from '../assets/images/voyager_pixel_avatar_1784465509169.jpg';
-import { Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight, Headphones, MessageSquare, User, Settings, Sliders, ShoppingBag, Globe, Apple, Home, Pause, Play, Info, Shield, FileText, Bot, Eye, EyeOff, ShoppingCart, Briefcase, BookOpen, Luggage, Rocket, Check, UserCheck, Presentation, MessageSquareText, Plane, Sprout, Flower, TreeDeciduous, GraduationCap, Award, Mail } from 'lucide-react';
+import { Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight, Headphones, MessageSquare, User, Settings, Sliders, ShoppingBag, Globe, Apple, Home, Pause, Play, Info, Shield, FileText, Bot, Eye, EyeOff, ShoppingCart, Briefcase, BookOpen, Luggage, Rocket, Check, UserCheck, Presentation, MessageSquareText, Plane, Sprout, Flower, TreeDeciduous, GraduationCap, Award, Mail, Menu, X, Power } from 'lucide-react';
 
 import { ChatMessage, Lead, TravelDestination, PronunciationFeedbackEvent, ConversationEvent } from './LiveAgentTypes';
 import { TRAVEL_PRESETS } from './TravelPresets';
@@ -218,6 +218,7 @@ const playPinSound = () => {
 
 const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) => {
  const [rightPanelTab, setRightPanelTab] = useState<'home' | 'chat' | 'roadmap' | 'teachers' | 'progress' | 'settings' | 'shopping'>('home');
+ const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
 
  const {
  isConnected,
@@ -1396,18 +1397,18 @@ ${greetingPrompt}`;
 
  return (
  <div 
- className="relative min-h-screen md:h-screen w-full bg-[#000000] flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-y-auto md:overflow-hidden select-none"
+ className="relative min-h-screen md:h-screen w-full bg-[#000000] flex items-center justify-center px-1.5 sm:px-3 md:px-4 py-1 overflow-y-auto md:overflow-hidden select-none"
  style={{
  backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0)',
  backgroundSize: '24px 24px'
  }}
  >
  {/* Layout Grid with 125% Passport, Adjusted Cover and Perfect Tight Gutter */}
- <div className="grid grid-cols-1 md:grid-cols-[2fr_3fr] gap-2.5 md:gap-3 w-full max-w-7xl max-h-full items-stretch justify-center md:aspect-[1.7]">
+ <div className="grid grid-cols-1 md:grid-cols-[2fr_3fr] gap-1.5 sm:gap-2.5 md:gap-3 w-full max-w-7xl max-h-full items-stretch justify-center mx-auto md:aspect-[1.7]">
  
  {/* Left Side (Column 1): The Passport (Deep Navy Voyager Blue Console) */}
  {/* It remains CONSTANT throughout the entire session */}
- <div className="md:col-span-1 bg-gradient-to-b from-[#153166] to-[#0a1833] border border-[#2563eb]/20 rounded-[20px] sm:rounded-[24px] md:rounded-[32px] p-4 sm:p-6 md:p-10 flex flex-col justify-between items-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.65)] relative overflow-hidden w-full h-full min-h-[380px] sm:min-h-[420px] md:min-h-0">
+ <div className="md:col-span-1 bg-gradient-to-b from-[#153166] to-[#0a1833] border border-[#2563eb]/20 rounded-[16px] sm:rounded-[24px] md:rounded-[32px] px-3 py-4 sm:p-6 md:p-10 flex flex-col justify-between items-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.65)] relative overflow-hidden w-full h-full min-h-[380px] sm:min-h-[420px] md:min-h-0">
  {/* Ambient Background Glow */}
  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
  
@@ -1450,15 +1451,33 @@ ${greetingPrompt}`;
  {translations[selectedLang].connect}
  </button>
  ) : isConnected ? (
+ <div className="flex flex-col items-center gap-2">
  <button
  onClick={handleEndSessionClick}
- style={{ fontFamily: "'Raleway', sans-serif" }} className="px-6 py-2.5 bg-transparent border-[1.5pt] border-white text-white hover:text-[#FFD700] hover:border-[#FFD700] font-medium tracking-[0.12em] uppercase rounded-full transition-all duration-300 cursor-pointer hover:scale-[1.02] active:scale-95 text-[10px] md:text-xs min-w-[155px] flex items-center justify-center gap-1.5"
+ style={{ fontFamily: "'Raleway', sans-serif" }} className="px-6 py-2.5 bg-transparent border-[1.5pt] border-white text-white hover:text-[#FFD700] hover:border-[#FFD700] font-medium tracking-[0.12em] uppercase rounded-full transition-all duration-300 cursor-pointer hover:scale-[1.02] active:scale-95 text-[10px] md:text-xs min-w-[128px] flex items-center justify-center"
  >
  <span>{selectedLang === 'EN' ? 'FINISH' : 'FINALIZAR'}</span>
- <span className="opacity-75 font-sans font-normal text-[9px] md:text-[10px]">
- ({Math.floor(secondsElapsed / 60)}:{(secondsElapsed % 60).toString().padStart(2, '0')})
- </span>
  </button>
+ <button
+ type="button"
+ onClick={() => {
+   if (isPaused) {
+     resume();
+   } else {
+     pause();
+   }
+ }}
+ title={isPaused ? (selectedLang === 'EN' ? 'Resume' : 'Reanudar') : (selectedLang === 'EN' ? 'Pause' : 'Pausar')}
+ className="text-white/80 hover:text-white font-mono text-[11px] md:text-xs tracking-wider flex items-center gap-1.5 bg-white/10 hover:bg-white/20 active:scale-95 px-3 py-1 rounded-full backdrop-blur-xs cursor-pointer transition-all border border-white/10 shadow-xs"
+ >
+ {isPaused ? (
+   <Play className="w-3 h-3 fill-current stroke-none text-[#FFD700] animate-pulse" />
+ ) : (
+   <Pause className="w-3 h-3 fill-current stroke-none text-white/90" />
+ )}
+ <span>{Math.floor(secondsElapsed / 60)}:{(secondsElapsed % 60).toString().padStart(2, '0')}</span>
+ </button>
+ </div>
  ) : (
  <button
  onClick={handleContinuaClick}
@@ -1473,7 +1492,7 @@ ${greetingPrompt}`;
  </div>
 
  {/* Column 2 (Right Panel): The Cover Page (White layout) */}
- <div className="md:col-span-1 bg-white border border-black/10 rounded-[20px] sm:rounded-[24px] md:rounded-[32px] flex flex-col justify-between items-center text-center shadow-[0_15px_35px_rgba(0,0,0,0.15)] relative overflow-hidden w-full h-[80vh] sm:h-[85vh] md:h-full min-h-[480px] md:min-h-0">
+ <div className="md:col-span-1 bg-white border border-black/10 rounded-[16px] sm:rounded-[24px] md:rounded-[32px] flex flex-col justify-between items-center text-center shadow-[0_15px_35px_rgba(0,0,0,0.15)] relative overflow-hidden w-full h-[80vh] sm:h-[85vh] md:h-full min-h-[480px] md:min-h-0">
  {!hasClickedConnect ? (
  /* Disconnected Landing Screen inside the Cover */
  <>
@@ -1536,156 +1555,157 @@ ${greetingPrompt}`;
  /* Connected Workspace Area inside the Cover */
  <div className="w-full h-full flex flex-col overflow-hidden">
  {/* Header / Tabs */}
- <div className="w-full bg-[#0D224A] py-2 sm:py-2.5 px-2 sm:px-6 flex flex-col items-center justify-center gap-1 sticky top-0 z-50 flex-shrink-0 border-b border-white/20 shadow-md">
- {/* Row 1: Main Menu & Controls */}
- <div className="w-full flex items-center justify-center relative">
- {/* Settings Button */}
- <div className="hidden sm:block absolute sm:-right-3 top-1 z-10">
- <button 
- onClick={() => {
- setRightPanelTab('settings');
- window.location.hash = '';
- }}
- title={selectedLang === 'EN' ? 'Settings' : 'Configura'}
- aria-label={selectedLang === 'EN' ? 'Settings' : 'Configura'}
- className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300 group hover:scale-110 active:scale-95"
+ {/* Top Header with Hamburger Button */}
+ <div className="w-full bg-[#0D224A] py-1.5 px-3 sm:px-6 flex items-center justify-between sticky top-0 z-50 flex-shrink-0 border-b border-white/20 shadow-md relative">
+ {/* Left: Hamburger Toggle Button & Current Section Indicator */}
+ <div className="flex items-center gap-2.5 z-10">
+ <button
+ onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
+ title={selectedLang === 'EN' ? 'Menu' : 'Menú'}
+ aria-label={selectedLang === 'EN' ? 'Menu' : 'Menú'}
+ className="relative p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer flex items-center justify-center active:scale-95 border border-white/10"
  >
- <Settings className={`w-[11px] h-[11px] sm:w-[13px] sm:h-[13px] transition-all duration-500 ease-in-out ${
- rightPanelTab === 'settings' 
- ? 'text-[#FFD700] rotate-90 scale-110 hover:rotate-[270deg]' 
- : 'text-white/70 hover:text-[#FFD700] group-hover:text-[#FFD700] hover:rotate-180'
- }`} />
- </button>
- </div>
- <div className="grid grid-cols-5 gap-1 sm:gap-6 justify-items-center w-full max-w-full sm:max-w-[600px] px-0 scale-90 sm:scale-100 origin-center transition-transform">
- <div className="flex flex-col items-center justify-center text-center group cursor-pointer w-full" onClick={() => {
- setRightPanelTab('home');
- window.location.hash = '';
- }}>
- <button 
- title={selectedLang === 'EN' ? 'Home' : 'Inicio'}
- aria-label={selectedLang === 'EN' ? 'Home' : 'Inicio'}
- className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300"
- >
- <Home className={`w-[25px] h-[25px] sm:w-[27px] sm:h-[27px] transition-all duration-300 ${
- rightPanelTab === 'home' 
- ? 'text-[#FFD700] scale-110' 
- : 'text-white/70 group-hover:text-[#FFD700] group-hover:scale-110'
- }`} />
- </button>
- <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[7pt] min-[360px]:text-[8pt] sm:text-[9.2pt] tracking-tight sm:tracking-wider uppercase mt-1 transition-colors duration-300 text-center whitespace-nowrap max-w-full px-0.5 ${
- rightPanelTab === 'home' 
- ? 'text-[#FFD700] font-medium' 
- : 'text-white/70 group-hover:text-[#FFD700] font-medium'
- }`}>
- {selectedLang === 'EN' ? 'HOME' : 'INICIO'}
- </span>
- </div>
- 
- <div className="flex flex-col items-center justify-center text-center group cursor-pointer w-full" onClick={() => {
- setRightPanelTab('chat');
- window.location.hash = '';
- }}>
- <button 
- title={selectedLang === 'EN' ? 'Chat' : 'Charla'}
- aria-label={selectedLang === 'EN' ? 'Chat' : 'Charla'}
- className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300"
- >
- <Bot className={`w-[25px] h-[25px] sm:w-[27px] sm:h-[27px] transition-all duration-300 ${
- rightPanelTab === 'chat' 
- ? 'text-[#FFD700] scale-110' 
- : 'text-white/70 group-hover:text-[#FFD700] group-hover:scale-110'
- }`} />
- </button>
- <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[7pt] min-[360px]:text-[8pt] sm:text-[9.2pt] tracking-tight sm:tracking-wider uppercase mt-1 transition-colors duration-300 text-center whitespace-nowrap max-w-full px-0.5 ${
- rightPanelTab === 'chat' 
- ? 'text-[#FFD700] font-medium' 
- : 'text-white/70 group-hover:text-[#FFD700] font-medium'
- }`}>
- {selectedLang === 'EN' ? 'CHAT' : 'CHARLA'}
- </span>
- </div>
- 
- <div className="flex flex-col items-center justify-center text-center group cursor-pointer w-full" onClick={() => {
- setRightPanelTab('teachers');
- window.location.hash = '';
- }}>
- <button 
- title={selectedLang === 'EN' ? 'Teacher' : 'La Profe'}
- aria-label={selectedLang === 'EN' ? 'Teacher' : 'La Profe'}
- className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300"
- >
- <Apple className={`w-[25px] h-[25px] sm:w-[27px] sm:h-[27px] transition-all duration-300 ${
- rightPanelTab === 'teachers' 
- ? 'text-[#FFD700] scale-110' 
- : 'text-white/70 group-hover:text-[#FFD700] group-hover:scale-110'
- }`} />
- </button>
- <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[7pt] min-[360px]:text-[8pt] sm:text-[9.2pt] tracking-tight sm:tracking-wider uppercase mt-1 transition-colors duration-300 text-center whitespace-nowrap max-w-full px-0.5 ${
- rightPanelTab === 'teachers' 
- ? 'text-[#FFD700] font-medium' 
- : 'text-white/70 group-hover:text-[#FFD700] font-medium'
- }`}>
- {selectedLang === 'EN' ? 'TEACHER' : 'LA PROFE'}
- </span>
- </div>
- 
- <div className="flex flex-col items-center justify-center text-center group cursor-pointer w-full" onClick={() => {
- setRightPanelTab('roadmap');
- window.location.hash = '';
- }}>
- <button 
- title={visitorFullName ? (selectedLang === 'EN' ? `${visitorFullName}'s Profile` : `Perfil de ${visitorFullName}`) : (selectedLang === 'EN' ? 'Profile' : 'Perfil')}
- aria-label={visitorFullName ? (selectedLang === 'EN' ? `${visitorFullName}'s Profile` : `Perfil de ${visitorFullName}`) : (selectedLang === 'EN' ? 'Profile' : 'Perfil')}
- className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300"
- >
- <User className={`w-[25px] h-[25px] sm:w-[27px] sm:h-[27px] transition-all duration-300 ${
- rightPanelTab === 'roadmap' 
- ? 'text-[#FFD700] scale-110' 
- : 'text-white/70 group-hover:text-[#FFD700] group-hover:scale-110'
- }`} />
- </button>
- <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[7pt] min-[360px]:text-[8pt] sm:text-[9.2pt] tracking-tight sm:tracking-wider uppercase mt-1 transition-colors duration-300 text-center whitespace-nowrap max-w-full px-0.5 ${
- rightPanelTab === 'roadmap' 
- ? 'text-[#FFD700] font-medium' 
- : 'text-white/70 group-hover:text-[#FFD700] font-medium'
- }`}>
- {visitorFullName ? (visitorFullName.length > 8 ? visitorFullName.slice(0, 10) : visitorFullName).toUpperCase() : (selectedLang === 'EN' ? 'PROFILE' : 'PERFIL')}
- </span>
- </div>
- 
- <div className="flex flex-col items-center justify-center text-center group cursor-pointer w-full" onClick={() => {
- setRightPanelTab('shopping');
- window.location.hash = '#/shop';
- }}>
- <button 
- title={selectedLang === 'EN' ? 'Store' : 'La Tienda'}
- aria-label={selectedLang === 'EN' ? 'Store' : 'La Tienda'}
- className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300 relative"
- >
- <ShoppingCart className={`w-[25px] h-[25px] sm:w-[27px] sm:h-[27px] transition-all duration-300 ${
- rightPanelTab === 'shopping' 
- ? 'text-[#FFD700] scale-110' 
- : 'text-white/70 group-hover:text-[#FFD700] group-hover:scale-110'
- }`} />
- {cartCount > 0 && (
- <span className="absolute -top-0.5 -right-0.5 bg-red-600 text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">
+ {isNavMenuOpen ? <X className="w-6 h-6 text-[#FFD700]" /> : <Menu className="w-6 h-6 text-white" />}
+ {cartCount > 0 && !isNavMenuOpen && (
+ <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1 border border-white">
  {cartCount}
  </span>
  )}
  </button>
- <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[7pt] min-[360px]:text-[8pt] sm:text-[9.2pt] tracking-tight sm:tracking-wider uppercase mt-1 transition-colors duration-300 text-center whitespace-nowrap max-w-full px-0.5 ${
- rightPanelTab === 'shopping' 
- ? 'text-[#FFD700] font-medium' 
- : 'text-white/70 group-hover:text-[#FFD700] font-medium'
- }`}>
- {selectedLang === 'EN' ? 'STORE' : 'LA TIENDA'}
+
+ {/* Current Section Indicator */}
+ <div className="flex items-center gap-2 text-[#FFD700]">
+ {rightPanelTab === 'home' && <Home className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFD700]" />}
+ {rightPanelTab === 'chat' && <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFD700]" />}
+ {rightPanelTab === 'teachers' && <Apple className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFD700]" />}
+ {rightPanelTab === 'roadmap' && <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFD700]" />}
+ {rightPanelTab === 'shopping' && <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFD700]" />}
+ {rightPanelTab === 'settings' && <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFD700]" />}
+ 
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className="text-xs sm:text-sm font-bold uppercase tracking-wider text-white hidden min-[400px]:inline-block">
+ {rightPanelTab === 'home' && (selectedLang === 'EN' ? 'HOME' : 'INICIO')}
+ {rightPanelTab === 'chat' && (selectedLang === 'EN' ? 'CHAT' : 'CHARLA')}
+ {rightPanelTab === 'teachers' && (selectedLang === 'EN' ? 'TEACHER' : 'LA PROFE')}
+ {rightPanelTab === 'roadmap' && (visitorFullName ? visitorFullName.toUpperCase() : (selectedLang === 'EN' ? 'PROFILE' : 'FEDERICO'))}
+ {rightPanelTab === 'shopping' && (selectedLang === 'EN' ? 'STORE' : 'LA TIENDA')}
+ {rightPanelTab === 'settings' && (selectedLang === 'EN' ? 'SETTINGS' : 'CONFIGURA')}
  </span>
  </div>
  </div>
+
+ {/* Center: USA VOYAGER Logo Copy (Reduced 50%) */}
+ <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center justify-center text-center pointer-events-none select-none">
+ <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.22em' }} className="text-[7.5px] sm:text-[9.5px] font-bold text-white/90 uppercase block leading-none">
+ {selectedLang === 'EN' ? 'I AM USA' : 'YO SOY USA'}
+ </span>
+ <span style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 2px 10px rgba(0,0,0,0.8)', letterSpacing: '0.12em' }} className="text-lg sm:text-2xl font-black text-white uppercase block leading-tight mt-0.5">
+ VOYAGER
+ </span>
  </div>
 
+ {/* Right: ON/OFF Toggle Button & Chronometer */}
+ <div className="flex items-center gap-1.5 sm:gap-2 z-10">
+ {/* ON/OFF Button */}
+ <button
+ onClick={() => {
+ if (isConnected) {
+ handleEndSessionClick();
+ } else {
+ handleConnectClick();
+ }
+ }}
+ title={isConnected ? (selectedLang === 'EN' ? 'Turn OFF Session' : 'Apagar Sesión') : (selectedLang === 'EN' ? 'Turn ON Session' : 'Encender Sesión')}
+ aria-label={isConnected ? (selectedLang === 'EN' ? 'Turn OFF Session' : 'Apagar Sesión') : (selectedLang === 'EN' ? 'Turn ON Session' : 'Encender Sesión')}
+ className={`px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold tracking-wider flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer border active:scale-95 shadow-xs ${
+ isConnected
+ ? 'bg-emerald-500/25 text-emerald-300 border-emerald-400/60 hover:bg-emerald-500/40'
+ : 'bg-rose-500/25 text-rose-300 border-rose-400/50 hover:bg-rose-500/40'
+ }`}
+ >
+ <Power className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${isConnected ? 'text-emerald-400' : 'text-rose-400'}`} />
+ <span className="text-[9px] sm:text-[10px] uppercase font-bold">{isConnected ? 'ON' : 'OFF'}</span>
+ </button>
+
+ {/* Chronometer */}
+ <button
+ type="button"
+ onClick={() => {
+ if (!isConnected) return;
+ if (isPaused) {
+ resume();
+ } else {
+ pause();
+ }
+ }}
+ title={isPaused ? (selectedLang === 'EN' ? 'Resume' : 'Reanudar') : (selectedLang === 'EN' ? 'Pause' : 'Pausar')}
+ className={`text-white/90 font-mono text-[10px] sm:text-xs tracking-wider flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full backdrop-blur-xs transition-all border shadow-xs ${
+ isConnected
+ ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white cursor-pointer active:scale-95'
+ : 'bg-white/5 border-white/10 text-white/40 cursor-not-allowed opacity-60'
+ }`}
+ >
+ {isPaused ? (
+ <Play className="w-3 h-3 fill-current stroke-none text-[#FFD700] animate-pulse" />
+ ) : (
+ <Pause className="w-3 h-3 fill-current stroke-none text-white/90" />
+ )}
+ <span>{Math.floor(secondsElapsed / 60)}:{(secondsElapsed % 60).toString().padStart(2, '0')}</span>
+ </button>
  </div>
+ </div>
+
+ {/* Vertical Column Bar Dropdown Menu */}
+ {isNavMenuOpen && (
+ <>
+ {/* Backdrop Overlay */}
+ <div 
+ className="absolute inset-0 z-40 bg-black/50 backdrop-blur-xs transition-opacity" 
+ onClick={() => setIsNavMenuOpen(false)} 
+ />
+
+ {/* Column Menu Drawer */}
+ <div className="absolute top-[48px] sm:top-[52px] left-0 right-0 z-50 bg-[#0D224A] border-b border-white/20 shadow-2xl py-2 px-3 flex flex-col gap-1.5 animate-slide-down">
+ {[
+ { id: 'home', icon: Home, label: selectedLang === 'EN' ? 'HOME' : 'INICIO', hash: '' },
+ { id: 'chat', icon: Bot, label: selectedLang === 'EN' ? 'CHAT' : 'CHARLA', hash: '' },
+ { id: 'teachers', icon: Apple, label: selectedLang === 'EN' ? 'TEACHER' : 'LA PROFE', hash: '' },
+ { id: 'roadmap', icon: User, label: visitorFullName ? visitorFullName.toUpperCase() : (selectedLang === 'EN' ? 'PROFILE' : 'FEDERICO'), hash: '' },
+ { id: 'shopping', icon: ShoppingCart, label: selectedLang === 'EN' ? 'STORE' : 'LA TIENDA', badge: cartCount > 0 ? cartCount : undefined, hash: '#/shop' },
+ { id: 'settings', icon: Settings, label: selectedLang === 'EN' ? 'SETTINGS' : 'CONFIGURA', hash: '' },
+ ].map((item) => {
+ const IconComponent = item.icon;
+ const isActive = rightPanelTab === item.id;
+ return (
+ <button
+ key={item.id}
+ onClick={() => {
+ setRightPanelTab(item.id as any);
+ setIsNavMenuOpen(false);
+ window.location.hash = item.hash;
+ }}
+ className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${
+ isActive 
+ ? 'bg-white/20 text-[#FFD700] font-bold border-l-4 border-[#FFD700] shadow-sm' 
+ : 'text-white/85 hover:bg-white/10 hover:text-white'
+ }`}
+ >
+ <div className="flex items-center gap-3">
+ <IconComponent className={`w-5 h-5 ${isActive ? 'text-[#FFD700]' : 'text-white/70'}`} />
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className="text-xs sm:text-sm font-semibold tracking-wider uppercase">
+ {item.label}
+ </span>
+ </div>
+ {item.badge && (
+ <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/20">
+ {item.badge}
+ </span>
+ )}
+ </button>
+ );
+ })}
+ </div>
+ </>
+ )}
 
 
  {showReviewScreen ? (
@@ -1801,7 +1821,7 @@ ${greetingPrompt}`;
  </div>
 
  {onboardingStep === 1 && (
- <div className="space-y-1 w-full">
+ <div className="space-y-0.5 w-full">
  {[
  { id: 'PROFESSIONAL', label: selectedLang === 'EN' ? 'Professional' : 'Professional', icon: Briefcase },
  { id: 'ESTUDIO', label: selectedLang === 'EN' ? 'Study' : 'Estudio', icon: BookOpen },
@@ -1820,7 +1840,7 @@ ${greetingPrompt}`;
  setSelectedGoal(opt.id as any);
  }
  }}
- className={`group flex items-center gap-1.5 px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ className={`group flex items-center gap-1.5 px-0 py-0.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
  isSel 
  ? 'bg-transparent' 
  : 'bg-transparent hover:translate-x-1'
@@ -1845,7 +1865,7 @@ ${greetingPrompt}`;
  )}
 
  {onboardingStep === 11 && (
- <div className="space-y-1 w-full">
+ <div className="space-y-0.5 w-full">
  {[
  { id: 'CONSEGUIR_EMPLEO', label: selectedLang === 'EN' ? 'Get a Job' : 'Conseguir Empleo', icon: UserCheck },
  { id: 'COMUNICARME_TRABAJO', label: selectedLang === 'EN' ? 'Communicate at Work' : 'Comunicarme en el Trabajo', icon: MessageSquareText },
@@ -1863,7 +1883,7 @@ ${greetingPrompt}`;
  setSelectedProfSubGoal(opt.id as any);
  }
  }}
- className={`group flex items-center gap-1.5 px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ className={`group flex items-center gap-1.5 px-0 py-0.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
  isSel 
  ? 'bg-transparent' 
  : 'bg-transparent hover:translate-x-1'
@@ -1888,7 +1908,7 @@ ${greetingPrompt}`;
  )}
 
  {onboardingStep === 112 && (
- <div className="space-y-1 w-full">
+ <div className="space-y-0.5 w-full">
  {[
  { id: 'EMPRENDEDOR', label: selectedLang === 'EN' ? 'Entrepreneur' : 'Emprendedor', icon: Rocket },
  { id: 'GERENCIA', label: selectedLang === 'EN' ? 'Management' : 'Gerencia', icon: Briefcase },
@@ -1907,7 +1927,7 @@ ${greetingPrompt}`;
  setSelectedProfInterest(opt.id as any);
  }
  }}
- className={`group flex items-center gap-1.5 px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ className={`group flex items-center gap-1.5 px-0 py-0.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
  isSel 
  ? 'bg-transparent' 
  : 'bg-transparent hover:translate-x-1'
@@ -1930,7 +1950,7 @@ ${greetingPrompt}`;
  )}
 
  {onboardingStep === 13 && (
- <div className="space-y-1 w-full">
+ <div className="space-y-0.5 w-full">
  {[
  { id: 'EXPLORAR', label: selectedLang === 'EN' ? 'Explore' : 'Explorar', icon: Plane },
  { id: 'AMISTAD', label: selectedLang === 'EN' ? 'Friendship' : 'Amistad', icon: User },
@@ -1948,7 +1968,7 @@ ${greetingPrompt}`;
  setSelectedViajanteSubGoal(opt.id as any);
  }
  }}
- className={`group flex items-center gap-1.5 px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ className={`group flex items-center gap-1.5 px-0 py-0.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
  isSel 
  ? 'bg-transparent' 
  : 'bg-transparent hover:translate-x-1'
@@ -1973,7 +1993,7 @@ ${greetingPrompt}`;
  )}
 
  {onboardingStep === 14 && (
- <div className="space-y-1.5 w-full">
+ <div className="space-y-0.5 w-full">
  {[
  { id: 'INDEPENDIENTE', label: selectedLang === 'EN' ? 'Independent' : 'Independiente', icon: User },
  { id: 'ACADEMIA', label: selectedLang === 'EN' ? 'Language Academy' : 'Academia de Idiomas', icon: Compass },
@@ -1992,7 +2012,7 @@ ${greetingPrompt}`;
  setSelectedDocenteProfile(opt.id as any);
  }
  }}
- className={`group flex items-center px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ className={`group flex items-center px-0 py-0.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
  isSel 
  ? 'bg-transparent' 
  : 'bg-transparent hover:translate-x-1'
@@ -2017,7 +2037,7 @@ ${greetingPrompt}`;
  )}
 
   {onboardingStep === 142 && (
-    <div className="space-y-1 w-full">
+    <div className="space-y-0.5 w-full">
       {[
         { id: 'PERSONALMENTE', label: selectedLang === 'EN' ? 'In Person' : 'Personalmente', icon: User },
         { id: 'EN_LINEA', label: selectedLang === 'EN' ? 'Online' : 'En línea', icon: Globe },
@@ -2035,7 +2055,7 @@ ${greetingPrompt}`;
  setSelectedDocenteGoal(opt.id as any);
  }
  }}
- className={`group flex items-center px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ className={`group flex items-center px-0 py-0.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
  isSel 
  ? 'bg-transparent' 
  : 'bg-transparent hover:translate-x-1'
@@ -2060,7 +2080,7 @@ ${greetingPrompt}`;
  )}
 
  {onboardingStep === 12 && (
- <div className="space-y-1 w-full">
+ <div className="space-y-0.5 w-full">
  {[
  { id: 'ELEMENTARY_SCHOOL', label: selectedLang === 'EN' ? 'Elementary School' : 'Escuela Primaria', icon: Sprout },
  { id: 'HIGH_SCHOOL', label: selectedLang === 'EN' ? 'High School' : 'Escuela Secundaria', icon: GraduationCap },
@@ -2078,7 +2098,7 @@ ${greetingPrompt}`;
  setSelectedSchoolLevel(opt.id as any);
  }
  }}
- className={`group flex items-center px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ className={`group flex items-center px-0 py-0.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
  isSel 
  ? 'bg-transparent' 
  : 'bg-transparent hover:translate-x-1'
@@ -2103,7 +2123,7 @@ ${greetingPrompt}`;
  )}
 
  {onboardingStep === 122 && (
- <div className="space-y-1 w-full">
+ <div className="space-y-0.5 w-full">
  {[
  { id: 'ACADEMIC_SUCCESS', label: selectedLang === 'EN' ? 'Academic Success' : 'Éxito Académico', icon: Check },
  { id: 'STUDY_ABROAD', label: selectedLang === 'EN' ? 'Study Abroad' : 'Estudiar en el Extranjero', icon: Plane },
@@ -2121,7 +2141,7 @@ ${greetingPrompt}`;
  setSelectedAcademicGoal(opt.id as any);
  }
  }}
- className={`group flex items-center px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+ className={`group flex items-center px-0 py-0.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
  isSel 
  ? 'bg-transparent' 
  : 'bg-transparent hover:translate-x-1'
@@ -2146,7 +2166,7 @@ ${greetingPrompt}`;
  )}
 
       {onboardingStep === 2 && (
-        <div className="space-y-1 w-full">
+        <div className="space-y-0.5 w-full">
           {[
             { id: "BEGINNER", label: selectedLang === "EN" ? "Beginner" : "Principiante", letter: "A" },
             { id: "INTERMEDIATE", label: selectedLang === "EN" ? "Intermediate" : "Intermedio", letter: "B" },
@@ -2164,7 +2184,7 @@ ${greetingPrompt}`;
                     setSelectedLevel(opt.id as any);
                   }
                 }}
-                className={`group flex items-center px-0 py-1.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
+                className={`group flex items-center px-0 py-0.5 rounded-xl transition-all duration-200 cursor-pointer select-none w-full ${
                   isSel 
                     ? "bg-transparent" 
                     : "bg-transparent hover:translate-x-1"

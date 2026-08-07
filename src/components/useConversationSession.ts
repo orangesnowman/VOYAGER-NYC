@@ -134,11 +134,14 @@ export function useConversationSession(config: UseConversationSessionConfig) {
       setSecondsElapsed(0);
       return;
     }
+    if (isPaused) {
+      return;
+    }
     const interval = setInterval(() => {
       setSecondsElapsed(prev => prev + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [isConnected]);
+  }, [isConnected, isPaused]);
 
   // Clean WebSocket and media resources using domain abstractions
   const disconnect = useCallback(() => {
@@ -336,12 +339,24 @@ REGLA CRÍTICA: NO digas nada más, NO saludes con "Hola", NO preguntes "¿Qué 
     setIsPaused(true);
     isPausedRef.current = true;
     setVolume(0);
+    if (playbackRef.current) {
+      playbackRef.current.stop();
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.pause();
+    }
   }, []);
 
   const resume = useCallback(() => {
     setIsPaused(false);
     isPausedRef.current = false;
+    if (playbackRef.current) {
+      playbackRef.current.init();
+    }
     vadRef.current.recordActivity();
+    if (typeof window !== 'undefined' && window.speechSynthesis && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
   }, []);
 
   // Inactivity auto-pause
