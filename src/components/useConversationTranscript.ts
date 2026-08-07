@@ -44,6 +44,9 @@ export function useConversationTranscript(activeTab: string = 'chat') {
       cleaned = cleaned.replace(missionMatch[0], "");
     }
 
+    // 5. Strip non-Spanish/non-English foreign script characters (CJK ideographs, Katakana, Hiragana, Hangul)
+    cleaned = cleaned.replace(/[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff\uac00-\ud7af\uff00-\uffef]+/g, '');
+
     return { cleaned, newScores, newLearnedWords, newAccentPattern, newCompletedMission };
   }, []);
 
@@ -95,11 +98,12 @@ export function useConversationTranscript(activeTab: string = 'chat') {
   const updateUserVoiceTranscription = useCallback((transcriptionText: string) => {
     setChatMessages(prev => {
       const last = prev[prev.length - 1];
-      if (last && last.sender === 'user' && last.id.startsWith('msg_voice_trans_') && (Date.now() - last.timeMs < 6000)) {
+      if (last && last.sender === 'user' && (Date.now() - last.timeMs < 8000)) {
          const updated = [...prev];
+         const separator = last.text && !last.text.endsWith(' ') && !transcriptionText.startsWith(' ') ? ' ' : '';
          updated[updated.length - 1] = {
             ...last,
-            text: last.text + transcriptionText,
+            text: last.text + separator + transcriptionText,
             timeMs: Date.now()
          };
          return updated;
@@ -132,9 +136,23 @@ export function useConversationTranscript(activeTab: string = 'chat') {
 
       const last = prev[prev.length - 1];
       const formPattern = /\[SHOW[-_ ]FORM\]|\(SHOW[-_ ]FORM\)/gi;
-      if (last && last.sender === 'splash' && !last.id.startsWith('welcome_') && (Date.now() - last.timeMs < 10000)) {
+      if (last && last.sender === 'splash' && (Date.now() - last.timeMs < 10000)) {
          const updated = [...prev];
-         const combinedText = last.text + text;
+         const isInitialWelcome = last.id.startsWith('welcome_');
+         
+         const separator = (!isInitialWelcome && last.text && 
+           !last.text.endsWith(' ') && 
+           !last.text.endsWith('\n') && 
+           !text.startsWith(' ') && 
+           !text.startsWith('.') && 
+           !text.startsWith(',') && 
+           !text.startsWith('!') && 
+           !text.startsWith('?') &&
+           !text.startsWith(':') &&
+           !text.startsWith(';')
+         ) ? ' ' : '';
+
+         const combinedText = isInitialWelcome ? text : (last.text + separator + text);
          
          const parsed = parseImmersionTags(combinedText);
          onParsedTags(parsed);
@@ -143,6 +161,7 @@ export function useConversationTranscript(activeTab: string = 'chat') {
          const cleanedText = parsed.cleaned.replace(formPattern, "");
          updated[updated.length - 1] = {
             ...last,
+            id: isInitialWelcome ? `msg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}` : last.id,
             text: cleanedText,
             showForm: hasFormTag,
             timeMs: Date.now()

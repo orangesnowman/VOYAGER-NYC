@@ -259,7 +259,7 @@ export function useConversationSession(config: UseConversationSessionConfig) {
                 wsRef.current.send(JSON.stringify({ text: greetingPrompt }));
               }
             } else {
-              const welcomeSpeech = "¡Bienvenido! Yo soy Voyager, tutor de Inglés Americano. Necesito saber más de ti para servirte mejor. Dime, ¿cuál es tu objetivo de aprendizaje principal?";
+              const welcomeSpeech = "¡Bienvenido! Yo soy Voyager, tutor de Inglés Americano. Necesito saber más de ti para servirte mejor. Dime, ¿a qué te dedicas?";
               const welcomePrompt = `[INSTRUCCIÓN DE SISTEMA MANDATORIA: Estás guiando al usuario en el cuestionario de perfil inicial. 
 Habla en tu voz natural de Voyager y lee en voz alta ÚNICAMENTE el siguiente mensaje en español: "${welcomeSpeech}".
 REGLA CRÍTICA: NO digas nada más, NO saludes con "Hola", NO preguntes "¿Qué te trae por aquí hoy?" ni intentes iniciar una charla casual. Solo di este mensaje claramente y guarda silencio absoluto esperando la respuesta del usuario en la interfaz.]`;

@@ -13,7 +13,7 @@ import { ShoppingPanel } from './ShoppingPanel';
 import { ChatInputBox } from './ChatInputBox';
 import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
 import chatAvatarIcon from '../assets/images/voyager_pixel_avatar_1784465509169.jpg';
-import { Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight, Headphones, MessageSquare, User, Settings, Apple, Home, Pause, Play, Info, Shield, FileText, Bot, Eye, EyeOff, ShoppingCart, Briefcase, BookOpen, Luggage, Rocket, Check, UserCheck, Presentation, MessageSquareText, Plane, Sprout, Flower, TreeDeciduous, GraduationCap, Award, Mail } from 'lucide-react';
+import { Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight, Headphones, MessageSquare, User, Settings, Sliders, ShoppingBag, Globe, Apple, Home, Pause, Play, Info, Shield, FileText, Bot, Eye, EyeOff, ShoppingCart, Briefcase, BookOpen, Luggage, Rocket, Check, UserCheck, Presentation, MessageSquareText, Plane, Sprout, Flower, TreeDeciduous, GraduationCap, Award, Mail } from 'lucide-react';
 
 import { ChatMessage, Lead, TravelDestination, PronunciationFeedbackEvent, ConversationEvent } from './LiveAgentTypes';
 import { TRAVEL_PRESETS } from './TravelPresets';
@@ -256,7 +256,12 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  resume,
  hasInteracted,
  setHasInteracted,
- } = useConversationEngine(rightPanelTab);
+ } = useConversationEngine(rightPanelTab, (text) => {
+    setInputText(prev => {
+      const separator = prev && !prev.endsWith(' ') && !text.startsWith(' ') ? ' ' : '';
+      return prev + separator + text;
+    });
+  });
  const [hasClickedConnect, setHasClickedConnect] = useState<boolean>(false);
  const [chosenStartMode, setChosenStartMode] = useState<ConversationMode | null>('SPANISH');
  const [onboardingStep, setOnboardingStep] = useState<number>(0);
@@ -267,8 +272,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const [selectedSchoolLevel, setSelectedSchoolLevel] = useState<'ELEMENTARY_SCHOOL' | 'MIDDLE_SCHOOL' | 'HIGH_SCHOOL' | 'COLLEGE_UNIVERSITY' | 'GRADUATE_SCHOOL' | null>(null);
  const [selectedAcademicGoal, setSelectedAcademicGoal] = useState<'PASS_EXAM' | 'ACADEMIC_SUCCESS' | 'STUDY_ABROAD' | 'IMPROVE_CONVERSATION' | 'GENERAL_KNOWLEDGE' | null>(null);
  const [selectedViajanteSubGoal, setSelectedViajanteSubGoal] = useState<'EXPLORAR' | 'AMISTAD' | 'CULTURA' | null>(null);
- const [selectedDocenteProfile, setSelectedDocenteProfile] = useState<'PROFESOR_INGLES' | 'TUTOR_PRIVADO' | 'ACADEMIA' | 'PROFESOR_UNIVERSITARIO' | 'INSTRUCTOR_CORPORATIVO' | 'ORGANIZACION' | 'CREADOR_CONTENIDO' | null>(null);
- const [selectedDocenteGoal, setSelectedDocenteGoal] = useState<'MEJORAR_CLASES' | 'AHORRAR_TIEMPO' | 'PERSONALIZAR' | 'VENDER_CURSOS' | null>(null);
+ const [selectedDocenteProfile, setSelectedDocenteProfile] = useState<'INDEPENDIENTE' | 'ACADEMIA' | 'ESCUELA' | 'EMPRESA' | null>(null);
+ const [selectedDocenteGoal, setSelectedDocenteGoal] = useState<'PERSONALMENTE' | 'EN_LINEA' | 'HIBRIDO' | null>(null);
  const [userName, setUserName] = useState<string>(() => {
  try {
  const saved = localStorage.getItem('voyager_user_account');
@@ -309,6 +314,28 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  } catch (e) {}
  return '';
  });
+  const [userLastName, setUserLastName] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('voyager_user_account');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.lastName) return parsed.lastName;
+      }
+    } catch (e) {}
+    return '';
+  });
+  const [userPassword, setUserPassword] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('voyager_user_account');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.password) return parsed.password;
+      }
+    } catch (e) {}
+    return '';
+  });
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showPasswordInfo, setShowPasswordInfo] = useState<boolean>(false);
  const [contactMessage, setContactMessage] = useState<string>('');
  const [contactSubmitted, setContactSubmitted] = useState<boolean>(false);
  const [explanationCountdown, setExplanationCountdown] = useState<number | null>(null);
@@ -375,7 +402,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const saved = localStorage.getItem('voyager_user_account');
  let u = {
  name: userName.trim() || (selectedLang === 'EN' ? 'Learner' : 'Estudiante'),
+ lastName: userLastName.trim() || undefined,
  email: userEmail.trim() || 'learner@usavoyager.com',
+ password: userPassword.trim() || undefined,
  age: userAge.trim() ? parseInt(userAge.trim()) : undefined,
  country: userCountry.trim() || (selectedLang === 'EN' ? 'Not specified' : 'Desconocido'),
  provider: 'Guest' as const,
@@ -622,7 +651,12 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  // Auto-scroll chat
  useEffect(() => {
  if (chatEndRef.current) {
- chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+ if (chatEndRef.current.parentElement) {
+        chatEndRef.current.parentElement.scrollTo({
+          top: chatEndRef.current.parentElement.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
  }
  }, [chatMessages]);
 
@@ -828,7 +862,7 @@ Reglas esenciales:
  const getOnboardingStepTitle = (step: number, lang: 'EN' | 'ES') => {
  switch (step) {
  case 1:
- return lang === 'EN' ? 'What is your primary learning goal?' : '¿Cuál es tu objetivo de aprendizaje principal?';
+ return lang === 'EN' ? 'What do you do?' : '¿A qué te dedicas?';
  case 11:
  return lang === 'EN' ? 'What is your professional goal?' : '¿Cuál es tu meta profesional?';
  case 112:
@@ -840,13 +874,13 @@ Reglas esenciales:
  case 13:
  return lang === 'EN' ? 'Reason you want to learn?' : '¿Razón por la que quieres aprender?';
  case 14:
- return lang === 'EN' ? 'Which best describes your profile?' : '¿Cuál describe mejor tu perfil?';
+ return lang === 'EN' ? 'What type of organization do you belong to?' : '¿A qué tipo de organización perteneces?';
  case 142:
- return lang === 'EN' ? 'What is your main goal?' : '¿Cuál es tu objetivo principal?';
+ return lang === 'EN' ? 'How and where do you teach your classes?' : '¿Cómo y de dónde das tus clases?';
  case 2:
  return lang === 'EN' ? 'What is your estimated English level?' : '¿Cuál es tu nivel estimado de inglés?';
  case 4:
- return lang === 'EN' ? 'Who do I have the pleasure of speaking with?' : '¿Con quién tengo el gusto?';
+ return lang === 'EN' ? 'Account registration:' : 'Registro de cuenta:';
  case 3:
  return lang === 'EN' ? 'Select your starting conversation mode:' : 'Selecciona tu modo de conversación para iniciar:';
  default:
@@ -1000,7 +1034,9 @@ NO respondas a ruidos, habla o ruidos de fondo.]`;
  };
  let u = {
  name: userName.trim() || (selectedLang === 'EN' ? 'Learner' : 'Estudiante'),
+ lastName: userLastName.trim() || undefined,
  email: userEmail.trim() || 'learner@usavoyager.com',
+ password: userPassword.trim() || undefined,
  age: userAge.trim() ? parseInt(userAge.trim()) : undefined,
  country: userCountry.trim() || (selectedLang === 'EN' ? 'Unknown' : 'Desconocido'),
  provider: 'Guest' as const,
@@ -1284,7 +1320,7 @@ ${greetingPrompt}`;
  if (!selectedLevel) return;
  setOnboardingStep(4);
  } else if (onboardingStep === 4) {
- if (userName.trim() === '' || userAge.trim() === '' || userCountry === '' || userEmail.trim() === '') return;
+ if (userName.trim() === '' || userLastName.trim() === '' || userEmail.trim() === '' || userPassword.trim() === '') return;
  handleCompleteOnboarding();
  }
  };
@@ -1351,12 +1387,12 @@ ${greetingPrompt}`;
  ? (selectedLang === 'EN' ? 'Connect' : 'Conecta') 
  : (selectedLang === 'EN' ? 'Next' : 'Siguiente');
  const nextBtnClasses = isFinalStep
- ? "w-9 h-9 rounded-full border-[3px] border-red-600 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 bg-transparent"
- : "w-9 h-9 rounded-full border-[3px] border-black/40 text-black/40 hover:bg-red-600 hover:text-white hover:border-red-600 flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 bg-transparent";
+ ? "w-9 h-9 rounded-full border-[1.5pt] border-red-600 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 bg-transparent"
+ : "w-9 h-9 rounded-full border-[1.5pt] border-black/40 text-black/40 hover:bg-red-600 hover:text-white hover:border-red-600 flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 bg-transparent";
 
  const placeholderText = selectedLang === 'EN' 
- ? 'Type your message or scenario...' 
- : 'Escribe tu mensaje o escenario...';
+ ? 'Write or dictate...' 
+ : 'Escribe o dicta...';
 
  return (
  <div 
@@ -1383,7 +1419,7 @@ ${greetingPrompt}`;
  <h1 style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 4px 15px rgba(0,0,0,0.8)', letterSpacing: '0.12em' }} className="text-5xl md:text-6xl font-black text-white mt-1.5 uppercase block leading-none">
  VOYAGER
  </h1>
- <span style={{ letterSpacing: '0.22em' }} className="text-[10px] md:text-xs text-yellow-400 font-mono uppercase block mt-2">
+ <span style={{ letterSpacing: '0.18em', fontFamily: "'Raleway', sans-serif" }} className="text-[10px] md:text-xs text-yellow-400 font-semibold uppercase block mt-2">
  {selectedLang === 'EN' ? 'AMERICAN ENGLISH TUTOR' : 'TUTOR DE INGLÉS AMERICANO'}
  </span>
  </div>
@@ -1409,14 +1445,14 @@ ${greetingPrompt}`;
  {!hasClickedConnect ? (
  <button
  onClick={handleConnectClick}
- className="px-6 py-2.5 bg-white hover:bg-slate-50 text-black font-extrabold font-mono tracking-[0.15em] uppercase rounded-full transition-all duration-300 cursor-pointer shadow-[0_0_25px_rgba(245,158,11,0.45)] hover:shadow-[0_0_35px_rgba(245,158,11,0.6)] hover:scale-[1.02] active:scale-95 text-[10px] md:text-xs min-w-[128px]"
+ style={{ fontFamily: "'Raleway', sans-serif" }} className="px-6 py-2.5 bg-transparent border-[1.5pt] border-white text-white hover:text-[#FFD700] hover:border-[#FFD700] font-medium tracking-[0.12em] uppercase rounded-full transition-all duration-300 cursor-pointer hover:scale-[1.02] active:scale-95 text-[10px] md:text-xs min-w-[128px]"
  >
  {translations[selectedLang].connect}
  </button>
  ) : isConnected ? (
  <button
  onClick={handleEndSessionClick}
- className="px-6 py-2.5 bg-white hover:bg-slate-50 text-black font-extrabold font-mono tracking-[0.15em] uppercase rounded-full transition-all duration-300 cursor-pointer shadow-[0_0_25px_rgba(255,255,255,0.15)] hover:shadow-[0_0_35px_rgba(255,255,255,0.25)] hover:scale-[1.02] active:scale-95 text-[10px] md:text-xs min-w-[155px] flex items-center justify-center gap-1.5"
+ style={{ fontFamily: "'Raleway', sans-serif" }} className="px-6 py-2.5 bg-transparent border-[1.5pt] border-white text-white hover:text-[#FFD700] hover:border-[#FFD700] font-medium tracking-[0.12em] uppercase rounded-full transition-all duration-300 cursor-pointer hover:scale-[1.02] active:scale-95 text-[10px] md:text-xs min-w-[155px] flex items-center justify-center gap-1.5"
  >
  <span>{selectedLang === 'EN' ? 'FINISH' : 'FINALIZAR'}</span>
  <span className="opacity-75 font-sans font-normal text-[9px] md:text-[10px]">
@@ -1426,7 +1462,7 @@ ${greetingPrompt}`;
  ) : (
  <button
  onClick={handleContinuaClick}
- className="px-6 py-2.5 bg-white hover:bg-slate-50 text-black font-extrabold font-mono tracking-[0.15em] uppercase rounded-full transition-all duration-300 cursor-pointer shadow-[0_0_25px_rgba(245,158,11,0.45)] hover:shadow-[0_0_35px_rgba(245,158,11,0.6)] hover:scale-[1.02] active:scale-95 text-[10px] md:text-xs min-w-[128px]"
+ style={{ fontFamily: "'Raleway', sans-serif" }} className="px-6 py-2.5 bg-transparent border-[1.5pt] border-white text-white hover:text-[#FFD700] hover:border-[#FFD700] font-medium tracking-[0.12em] uppercase rounded-full transition-all duration-300 cursor-pointer hover:scale-[1.02] active:scale-95 text-[10px] md:text-xs min-w-[128px]"
  >
  {selectedLang === 'EN' ? 'SELECT' : 'SELECCIONA'}
  </button>
@@ -1437,7 +1473,7 @@ ${greetingPrompt}`;
  </div>
 
  {/* Column 2 (Right Panel): The Cover Page (White layout) */}
- <div className="md:col-span-1 bg-white border border-black/10 rounded-[20px] sm:rounded-[24px] md:rounded-[32px] flex flex-col justify-between items-center text-center shadow-[0_15px_35px_rgba(0,0,0,0.15)] relative overflow-hidden w-full h-full min-h-[420px] sm:min-h-[480px] md:min-h-0">
+ <div className="md:col-span-1 bg-white border border-black/10 rounded-[20px] sm:rounded-[24px] md:rounded-[32px] flex flex-col justify-between items-center text-center shadow-[0_15px_35px_rgba(0,0,0,0.15)] relative overflow-hidden w-full h-[80vh] sm:h-[85vh] md:h-full min-h-[480px] md:min-h-0">
  {!hasClickedConnect ? (
  /* Disconnected Landing Screen inside the Cover */
  <>
@@ -1500,12 +1536,11 @@ ${greetingPrompt}`;
  /* Connected Workspace Area inside the Cover */
  <div className="w-full h-full flex flex-col overflow-hidden">
  {/* Header / Tabs */}
- {hasInteracted && (
- <div className="w-full bg-white py-2 sm:py-2.5 px-3 sm:px-6 flex flex-col items-center justify-center gap-1.5 relative flex-shrink-0 border-b border-black/5">
+ <div className="w-full bg-[#0D224A] py-2 sm:py-2.5 px-2 sm:px-6 flex flex-col items-center justify-center gap-1 sticky top-0 z-50 flex-shrink-0 border-b border-white/20 shadow-md">
  {/* Row 1: Main Menu & Controls */}
  <div className="w-full flex items-center justify-center relative">
  {/* Settings Button */}
- <div className="absolute -right-4 sm:-right-3 top-0.5">
+ <div className="hidden sm:block absolute sm:-right-3 top-1 z-10">
  <button 
  onClick={() => {
  setRightPanelTab('settings');
@@ -1515,14 +1550,14 @@ ${greetingPrompt}`;
  aria-label={selectedLang === 'EN' ? 'Settings' : 'Configura'}
  className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300 group hover:scale-110 active:scale-95"
  >
- <Settings className={`w-[31px] h-[31px] transition-all duration-500 ease-in-out ${
+ <Settings className={`w-[11px] h-[11px] sm:w-[13px] sm:h-[13px] transition-all duration-500 ease-in-out ${
  rightPanelTab === 'settings' 
- ? 'text-red-600 rotate-90 scale-110 hover:rotate-[270deg]' 
- : 'text-black/65 hover:text-red-600 group-hover:text-red-600 hover:rotate-180'
+ ? 'text-[#FFD700] rotate-90 scale-110 hover:rotate-[270deg]' 
+ : 'text-white/70 hover:text-[#FFD700] group-hover:text-[#FFD700] hover:rotate-180'
  }`} />
  </button>
  </div>
- <div className="grid grid-cols-5 gap-2.5 sm:gap-6.5 justify-items-center w-full md:w-auto max-w-[480px] sm:max-w-[600px]">
+ <div className="grid grid-cols-5 gap-1 sm:gap-6 justify-items-center w-full max-w-full sm:max-w-[600px] px-0 scale-90 sm:scale-100 origin-center transition-transform">
  <div className="flex flex-col items-center justify-center text-center group cursor-pointer w-full" onClick={() => {
  setRightPanelTab('home');
  window.location.hash = '';
@@ -1532,16 +1567,16 @@ ${greetingPrompt}`;
  aria-label={selectedLang === 'EN' ? 'Home' : 'Inicio'}
  className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300"
  >
- <Home className={`w-[27px] h-[27px] transition-all duration-300 ${
+ <Home className={`w-[25px] h-[25px] sm:w-[27px] sm:h-[27px] transition-all duration-300 ${
  rightPanelTab === 'home' 
- ? 'text-red-600 scale-110' 
- : 'text-black/65 group-hover:text-red-600 group-hover:scale-110'
+ ? 'text-[#FFD700] scale-110' 
+ : 'text-white/70 group-hover:text-[#FFD700] group-hover:scale-110'
  }`} />
  </button>
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[9.2pt] tracking-wider uppercase mt-1 transition-colors duration-300 whitespace-nowrap ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[7pt] min-[360px]:text-[8pt] sm:text-[9.2pt] tracking-tight sm:tracking-wider uppercase mt-1 transition-colors duration-300 text-center whitespace-nowrap max-w-full px-0.5 ${
  rightPanelTab === 'home' 
- ? 'text-red-600 font-extrabold' 
- : 'text-black/65 group-hover:text-red-600 font-bold'
+ ? 'text-[#FFD700] font-medium' 
+ : 'text-white/70 group-hover:text-[#FFD700] font-medium'
  }`}>
  {selectedLang === 'EN' ? 'HOME' : 'INICIO'}
  </span>
@@ -1556,16 +1591,16 @@ ${greetingPrompt}`;
  aria-label={selectedLang === 'EN' ? 'Chat' : 'Charla'}
  className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300"
  >
- <MessageSquare className={`w-[27px] h-[27px] transition-all duration-300 ${
+ <Bot className={`w-[25px] h-[25px] sm:w-[27px] sm:h-[27px] transition-all duration-300 ${
  rightPanelTab === 'chat' 
- ? 'text-red-600 scale-110' 
- : 'text-black/65 group-hover:text-red-600 group-hover:scale-110'
+ ? 'text-[#FFD700] scale-110' 
+ : 'text-white/70 group-hover:text-[#FFD700] group-hover:scale-110'
  }`} />
  </button>
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[9.2pt] tracking-wider uppercase mt-1 transition-colors duration-300 whitespace-nowrap ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[7pt] min-[360px]:text-[8pt] sm:text-[9.2pt] tracking-tight sm:tracking-wider uppercase mt-1 transition-colors duration-300 text-center whitespace-nowrap max-w-full px-0.5 ${
  rightPanelTab === 'chat' 
- ? 'text-red-600 font-extrabold' 
- : 'text-black/65 group-hover:text-red-600 font-bold'
+ ? 'text-[#FFD700] font-medium' 
+ : 'text-white/70 group-hover:text-[#FFD700] font-medium'
  }`}>
  {selectedLang === 'EN' ? 'CHAT' : 'CHARLA'}
  </span>
@@ -1580,16 +1615,16 @@ ${greetingPrompt}`;
  aria-label={selectedLang === 'EN' ? 'Teacher' : 'La Profe'}
  className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300"
  >
- <Apple className={`w-[27px] h-[27px] transition-all duration-300 ${
+ <Apple className={`w-[25px] h-[25px] sm:w-[27px] sm:h-[27px] transition-all duration-300 ${
  rightPanelTab === 'teachers' 
- ? 'text-red-600 scale-110' 
- : 'text-black/65 group-hover:text-red-600 group-hover:scale-110'
+ ? 'text-[#FFD700] scale-110' 
+ : 'text-white/70 group-hover:text-[#FFD700] group-hover:scale-110'
  }`} />
  </button>
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[9.2pt] tracking-wider uppercase mt-1 transition-colors duration-300 whitespace-nowrap ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[7pt] min-[360px]:text-[8pt] sm:text-[9.2pt] tracking-tight sm:tracking-wider uppercase mt-1 transition-colors duration-300 text-center whitespace-nowrap max-w-full px-0.5 ${
  rightPanelTab === 'teachers' 
- ? 'text-red-600 font-extrabold' 
- : 'text-black/65 group-hover:text-red-600 font-bold'
+ ? 'text-[#FFD700] font-medium' 
+ : 'text-white/70 group-hover:text-[#FFD700] font-medium'
  }`}>
  {selectedLang === 'EN' ? 'TEACHER' : 'LA PROFE'}
  </span>
@@ -1604,18 +1639,18 @@ ${greetingPrompt}`;
  aria-label={visitorFullName ? (selectedLang === 'EN' ? `${visitorFullName}'s Profile` : `Perfil de ${visitorFullName}`) : (selectedLang === 'EN' ? 'Profile' : 'Perfil')}
  className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300"
  >
- <User className={`w-[27px] h-[27px] transition-all duration-300 ${
+ <User className={`w-[25px] h-[25px] sm:w-[27px] sm:h-[27px] transition-all duration-300 ${
  rightPanelTab === 'roadmap' 
- ? 'text-red-600 scale-110' 
- : 'text-black/65 group-hover:text-red-600 group-hover:scale-110'
+ ? 'text-[#FFD700] scale-110' 
+ : 'text-white/70 group-hover:text-[#FFD700] group-hover:scale-110'
  }`} />
  </button>
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[9.2pt] tracking-wider uppercase mt-1 transition-colors duration-300 whitespace-nowrap ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[7pt] min-[360px]:text-[8pt] sm:text-[9.2pt] tracking-tight sm:tracking-wider uppercase mt-1 transition-colors duration-300 text-center whitespace-nowrap max-w-full px-0.5 ${
  rightPanelTab === 'roadmap' 
- ? 'text-red-600 font-extrabold' 
- : 'text-black/65 group-hover:text-red-600 font-bold'
+ ? 'text-[#FFD700] font-medium' 
+ : 'text-white/70 group-hover:text-[#FFD700] font-medium'
  }`}>
- {visitorFullName ? visitorFullName.toUpperCase() : (selectedLang === 'EN' ? 'PROFILE' : 'PERFIL')}
+ {visitorFullName ? (visitorFullName.length > 8 ? visitorFullName.slice(0, 10) : visitorFullName).toUpperCase() : (selectedLang === 'EN' ? 'PROFILE' : 'PERFIL')}
  </span>
  </div>
  
@@ -1628,21 +1663,21 @@ ${greetingPrompt}`;
  aria-label={selectedLang === 'EN' ? 'Store' : 'La Tienda'}
  className="p-1 cursor-pointer flex items-center justify-center transition-all duration-300 relative"
  >
- <ShoppingCart className={`w-[27px] h-[27px] transition-all duration-300 ${
+ <ShoppingCart className={`w-[25px] h-[25px] sm:w-[27px] sm:h-[27px] transition-all duration-300 ${
  rightPanelTab === 'shopping' 
- ? 'text-red-600 scale-110' 
- : 'text-black/65 group-hover:text-red-600 group-hover:scale-110'
+ ? 'text-[#FFD700] scale-110' 
+ : 'text-white/70 group-hover:text-[#FFD700] group-hover:scale-110'
  }`} />
  {cartCount > 0 && (
- <span className="absolute -top-0.5 -right-0.5 bg-red-600 text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1 border border-white">
+ <span className="absolute -top-0.5 -right-0.5 bg-red-600 text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">
  {cartCount}
  </span>
  )}
  </button>
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[9.2pt] tracking-wider uppercase mt-1 transition-colors duration-300 whitespace-nowrap ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[7pt] min-[360px]:text-[8pt] sm:text-[9.2pt] tracking-tight sm:tracking-wider uppercase mt-1 transition-colors duration-300 text-center whitespace-nowrap max-w-full px-0.5 ${
  rightPanelTab === 'shopping' 
- ? 'text-red-600 font-extrabold' 
- : 'text-black/65 group-hover:text-red-600 font-bold'
+ ? 'text-[#FFD700] font-medium' 
+ : 'text-white/70 group-hover:text-[#FFD700] font-medium'
  }`}>
  {selectedLang === 'EN' ? 'STORE' : 'LA TIENDA'}
  </span>
@@ -1651,7 +1686,6 @@ ${greetingPrompt}`;
  </div>
 
  </div>
- )}
 
 
  {showReviewScreen ? (
@@ -1761,7 +1795,7 @@ ${greetingPrompt}`;
  <div className="flex flex-col w-full text-left">
  {/* Header */}
  <div className="w-full mb-3 flex items-center justify-between gap-4">
- <h2 style={{ fontFamily: "'Lato', sans-serif" }} className="text-xl md:text-2xl font-bold text-[#1A365D] leading-tight flex-1">
+ <h2 style={{ fontFamily: "'Raleway', sans-serif" }} className="text-xl md:text-2xl font-bold text-[#1A365D] leading-tight flex-1">
  {getOnboardingStepTitle(onboardingStep, selectedLang)}
  </h2>
  </div>
@@ -1798,7 +1832,7 @@ ${greetingPrompt}`;
  }`}>
  <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
  </div>
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
  isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
  }`}>
  {opt.label}
@@ -1841,7 +1875,7 @@ ${greetingPrompt}`;
  }`}>
  <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
  </div>
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
  isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
  }`}>
  {opt.label}
@@ -1884,7 +1918,7 @@ ${greetingPrompt}`;
  }`}>
  <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
  </div>
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
  isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
  }`}>
  {opt.label}
@@ -1926,7 +1960,7 @@ ${greetingPrompt}`;
  }`}>
  <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
  </div>
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
  isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
  }`}>
  {opt.label}
@@ -1941,12 +1975,10 @@ ${greetingPrompt}`;
  {onboardingStep === 14 && (
  <div className="space-y-1.5 w-full">
  {[
- { id: 'PROFESOR_INGLES', label: selectedLang === 'EN' ? 'English Teacher' : 'Profesor de Inglés', icon: Headphones },
- { id: 'TUTOR_PRIVADO', label: selectedLang === 'EN' ? 'Private Tutor' : 'Tutor Privado', icon: User },
- { id: 'ACADEMIA', label: selectedLang === 'EN' ? 'Language Academy' : 'Academia de Idiomas', icon: Home },
- { id: 'PROFESOR_UNIVERSITARIO', label: selectedLang === 'EN' ? 'University Professor' : 'Profesor Universitario', icon: GraduationCap },
- { id: 'INSTRUCTOR_CORPORATIVO', label: selectedLang === 'EN' ? 'Corporate Instructor' : 'Instructor Corporativo', icon: Briefcase },
- { id: 'CREADOR_CONTENIDO', label: selectedLang === 'EN' ? 'Content Creator' : 'Creador de Contenido', icon: Eye }
+ { id: 'INDEPENDIENTE', label: selectedLang === 'EN' ? 'Independent' : 'Independiente', icon: User },
+ { id: 'ACADEMIA', label: selectedLang === 'EN' ? 'Language Academy' : 'Academia de Idiomas', icon: Compass },
+ { id: 'ESCUELA', label: selectedLang === 'EN' ? 'School, college, university' : 'Escuela, colegio, universidad', icon: Shield },
+ { id: 'EMPRESA', label: selectedLang === 'EN' ? 'Company' : 'Empresa', icon: Briefcase }
  ].map((opt) => {
  const isSel = selectedDocenteProfile === opt.id;
  const IconComp = opt.icon;
@@ -1972,7 +2004,7 @@ ${greetingPrompt}`;
  }`}>
  <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
  </div>
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[13px] sm:text-[14px] tracking-tight leading-tight transition-colors ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[13px] sm:text-[14px] tracking-tight leading-tight transition-colors ${
  isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
  }`}>
  {opt.label}
@@ -1984,14 +2016,13 @@ ${greetingPrompt}`;
  </div>
  )}
 
- {onboardingStep === 142 && (
- <div className="space-y-1 w-full">
- {[
- { id: 'MEJORAR_CLASES', label: selectedLang === 'EN' ? 'Improve Classes' : 'Mejorar Clases', icon: BookOpen },
- { id: 'AHORRAR_TIEMPO', label: selectedLang === 'EN' ? 'Save Time' : 'Ahorrar Tiempo', icon: Settings },
- { id: 'PERSONALIZAR', label: selectedLang === 'EN' ? 'Customize the Platform' : 'Personalizar la Plataforma', icon: Sparkles },
- { id: 'VENDER_CURSOS', label: selectedLang === 'EN' ? 'Sell My Courses' : 'Vender Mis Cursos', icon: ShoppingCart }
- ].map((opt) => {
+  {onboardingStep === 142 && (
+    <div className="space-y-1 w-full">
+      {[
+        { id: 'PERSONALMENTE', label: selectedLang === 'EN' ? 'In Person' : 'Personalmente', icon: User },
+        { id: 'EN_LINEA', label: selectedLang === 'EN' ? 'Online' : 'En línea', icon: Globe },
+        { id: 'HIBRIDO', label: selectedLang === 'EN' ? 'Hybrid System' : 'Sistema híbrido', icon: Sliders }
+      ].map((opt) => {
  const isSel = selectedDocenteGoal === opt.id;
  const IconComp = opt.icon;
  return (
@@ -2016,7 +2047,7 @@ ${greetingPrompt}`;
  }`}>
  <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
  </div>
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
  isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
  }`}>
  {opt.label}
@@ -2059,7 +2090,7 @@ ${greetingPrompt}`;
  }`}>
  <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
  </div>
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
  isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
  }`}>
  {opt.label}
@@ -2102,7 +2133,7 @@ ${greetingPrompt}`;
  }`}>
  <IconComp className="w-[17px] h-[17px] flex-shrink-0" />
  </div>
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
  isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
  }`}>
  {opt.label}
@@ -2145,7 +2176,7 @@ ${greetingPrompt}`;
                   }`}>
                     <span className="text-[14px] font-bold leading-none">{opt.letter}</span>
                   </div>
-                  <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
+                  <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[15px] tracking-wide transition-colors ${
                     isSel ? "text-neutral-900 font-extrabold" : "text-neutral-700 font-semibold group-hover:text-[#1A365D]"
                   }`}>
                     {opt.label}
@@ -2157,74 +2188,153 @@ ${greetingPrompt}`;
         </div>
       )}
 
- {onboardingStep === 4 && (
- <div className="space-y-2.5 w-full" style={{ fontFamily: "'Lato', sans-serif" }}>
- <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl mb-1 text-center shadow-2xs">
- <span className="text-xs font-bold text-red-700 tracking-wide block">
- {selectedLang === 'EN' ? '📝 Contact & Profile Form' : '📝 Formulario de Contacto y Perfil'}
- </span>
- <span className="text-[10px] text-neutral-600 font-medium block mt-0.5">
- {selectedLang === 'EN' ? 'Your details dynamically populate your PERFIL section' : 'Tus datos actualizarán dinámicamente tu sección PERFIL'}
- </span>
- </div>
- <div className="space-y-2">
- <input 
- type="text"
- value={userName}
- onChange={(e) => setUserName(e.target.value)}
- placeholder={selectedLang === 'EN' ? 'Your Name' : 'Tu Nombre'}
- className={`w-full px-3.5 py-2 rounded-xl border bg-white text-slate-800 font-semibold text-xs focus:border-red-600 focus:ring-2 focus:ring-red-600/20 focus:outline-none transition-all placeholder-neutral-400 shadow-2xs ${
- userName.trim() !== '' ? 'border-red-600 ring-1 ring-red-600/20' : 'border-neutral-300 hover:border-neutral-400'
- }`}
- />
+  {onboardingStep === 4 && (
+    <div className="space-y-3 w-full pt-1" style={{ fontFamily: "'Raleway', sans-serif" }}>
+      {/* Field 1: PRIMER NOMBRE */}
+      <div>
+        <input 
+          type="text"
+          value={userName}
+          onChange={(e) => setUserName(e.target.value)}
+          placeholder={selectedLang === 'EN' ? 'First Name' : 'Primer Nombre'}
+          className={`w-full px-4 py-2.5 rounded-full border bg-white text-slate-800 font-bold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
+            userName.trim() !== '' ? 'border-red-600 border-[1.5px]' : 'border-gray-300'
+          }`}
+        />
+      </div>
 
- <input 
- type="number"
- value={userAge}
- onChange={(e) => setUserAge(e.target.value)}
- placeholder={selectedLang === 'EN' ? 'Your Age' : 'Tu Edad'}
- min="1"
- max="120"
- className={`w-full px-3.5 py-2 rounded-xl border bg-white text-slate-800 font-semibold text-xs focus:border-red-600 focus:ring-2 focus:ring-red-600/20 focus:outline-none transition-all placeholder-neutral-400 shadow-2xs ${
- userAge.trim() !== '' ? 'border-red-600 ring-1 ring-red-600/20' : 'border-neutral-300 hover:border-neutral-400'
- }`}
- />
+      {/* Field 2: APELLIDO */}
+      <div>
+        <input 
+          type="text"
+          value={userLastName}
+          onChange={(e) => setUserLastName(e.target.value)}
+          placeholder={selectedLang === 'EN' ? 'Last Name' : 'Apellido'}
+          className={`w-full px-4 py-2.5 rounded-full border bg-white text-slate-800 font-bold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
+            userLastName.trim() !== '' ? 'border-red-600 border-[1.5px]' : 'border-gray-300'
+          }`}
+        />
+      </div>
 
- <select
- value={userCountry}
- onChange={(e) => setUserCountry(e.target.value)}
- className={`w-full px-3.5 py-2 rounded-xl border bg-white text-slate-800 font-semibold text-xs focus:border-red-600 focus:ring-2 focus:ring-red-600/20 focus:outline-none transition-all cursor-pointer shadow-2xs ${
- userCountry !== '' ? 'border-red-600 ring-1 ring-red-600/20' : 'border-neutral-300 hover:border-neutral-400'
- }`}
- >
- <option value="" disabled hidden>
- {selectedLang === 'EN' ? 'Select Your Country' : 'Selecciona Tu País'}
- </option>
- {countries.map((c) => (
- <option key={c.id} value={selectedLang === 'EN' ? c.nameEn : c.nameEs} className="bg-white text-black">
- {selectedLang === 'EN' ? c.nameEn : c.nameEs}
- </option>
- ))}
- </select>
+      {/* Field 3: E-MAIL */}
+      <div>
+        <input 
+          type="email"
+          value={userEmail}
+          onChange={(e) => setUserEmail(e.target.value)}
+          placeholder={selectedLang === 'EN' ? 'Your Email' : 'Tu Correo Electrónico'}
+          className={`w-full px-4 py-2.5 rounded-full border bg-white text-slate-800 font-bold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
+            userEmail.trim() !== '' ? 'border-red-600 border-[1.5px]' : 'border-gray-300'
+          }`}
+        />
+      </div>
 
- <input 
- type="email"
- value={userEmail}
- onChange={(e) => setUserEmail(e.target.value)}
- placeholder={selectedLang === 'EN' ? 'Your Email' : 'Tu Correo Electrónico'}
- className={`w-full px-3.5 py-2 rounded-xl border bg-white text-slate-800 font-semibold text-xs focus:border-red-600 focus:ring-2 focus:ring-red-600/20 focus:outline-none transition-all placeholder-neutral-400 shadow-2xs ${
- userEmail.trim() !== '' ? 'border-red-600 ring-1 ring-red-600/20' : 'border-neutral-300 hover:border-neutral-400'
- }`}
- />
- </div>
+      {/* Field 4: CREAR CLAVE */}
+      <div>
+        <div className="relative flex items-center">
+          <input 
+            type={showPassword ? 'text' : 'password'}
+            value={userPassword}
+            onChange={(e) => setUserPassword(e.target.value)}
+            placeholder={selectedLang === 'EN' ? 'Create your password' : 'Crea tu clave'}
+            className={`w-full px-4 py-2.5 rounded-full border bg-white text-slate-800 font-bold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
+              userPassword.trim() !== '' ? 'border-red-600 border-[1.5px]' : 'border-gray-300'
+            }`}
+          />
+        </div>
 
- <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold justify-center pt-0.5">
- <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
- <span>{selectedLang === 'EN' ? '✓ Auto-populating PERFIL section in real-time' : '✓ Poblando sección PERFIL en tiempo real'}</span>
- </div>
- </div>
- )}
+        {/* Info Icon, Requisitos de la clave & Ver / Show Toggle Button */}
+        <div className="mt-1.5 px-1 text-left">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setShowPasswordInfo(!showPasswordInfo)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-[#1A365D] transition-colors cursor-pointer select-none"
+            >
+              <Info className="w-4 h-4 text-neutral-500" />
+              <span className="text-[12px]">{selectedLang === 'EN' ? 'Password requirements' : 'Requisitos de la clave'}</span>
+            </button>
 
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="text-xs font-bold text-gray-500 hover:text-gray-800 transition-colors select-none cursor-pointer"
+            >
+              {showPassword ? (selectedLang === 'EN' ? 'Hide' : 'Ocultar') : (selectedLang === 'EN' ? 'Show' : 'Ver')}
+            </button>
+          </div>
+
+          {showPasswordInfo && (
+            <div className="mt-2 p-3.5 bg-neutral-50 border border-neutral-200/90 rounded-2xl animate-fade-in text-left shadow-2xs">
+              <p className="text-[13px] font-bold text-neutral-800 mb-2">
+                {selectedLang === 'EN' ? 'Password requirements:' : 'Requisitos de la clave:'}
+              </p>
+              <ul className="space-y-2 text-[12px] sm:text-[13px] text-neutral-600 font-medium">
+                <li className="flex items-center gap-2.5">
+                  <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                    userPassword.length >= 8 ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-200'
+                  }`}>
+                    {userPassword.length >= 8 ? (
+                      <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    ) : (
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
+                    )}
+                  </span>
+                  <span>{selectedLang === 'EN' ? 'At least 8 characters' : 'Mínimo 8 caracteres'}</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                    /\d/.test(userPassword) ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-200'
+                  }`}>
+                    {/\d/.test(userPassword) ? (
+                      <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    ) : (
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
+                    )}
+                  </span>
+                  <span>{selectedLang === 'EN' ? 'At least one number' : 'Al menos un número'}</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                    /[A-Z]/.test(userPassword) ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-200'
+                  }`}>
+                    {/[A-Z]/.test(userPassword) ? (
+                      <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    ) : (
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
+                    )}
+                  </span>
+                  <span>{selectedLang === 'EN' ? 'At least one uppercase letter' : 'Al menos una letra mayúscula'}</span>
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Button: Crear */}
+      <div className="pt-2">
+        {(() => {
+          const isFormFilled = userName.trim() !== '' && userLastName.trim() !== '' && userEmail.trim() !== '' && userPassword.trim() !== '';
+          return (
+            <button
+              type="button"
+              onClick={handleOnboardingNext}
+              disabled={!isFormFilled}
+              className={`w-full py-3.5 px-6 rounded-full font-extrabold text-base flex items-center justify-center gap-2.5 transition-all duration-300 ${
+                isFormFilled
+                  ? 'bg-[#1A365D] hover:bg-[#152e50] text-white shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer border border-[#1A365D]'
+                  : 'bg-transparent border border-[#1A365D] text-[#1A365D] cursor-not-allowed opacity-90'
+              }`}
+            >
+              <span>{selectedLang === 'EN' ? 'Create' : 'Crear'}</span>
+              <ArrowRight className={`w-5 h-5 stroke-[2.5] transition-colors ${isFormFilled ? 'text-white' : 'text-[#1A365D]'}`} />
+            </button>
+          );
+        })()}
+      </div>
+    </div>
+  )}
  {onboardingStep === 3 && (
  <div className="space-y-1 w-full">
  {modeDetails.map((mode) => {
@@ -2250,7 +2360,7 @@ ${greetingPrompt}`;
  <MessageSquare className="w-[17px] h-[17px] flex-shrink-0" />
  </div>
  <div className="flex-1 min-w-0">
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-xs tracking-wide block leading-tight ${
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-xs tracking-wide block leading-tight ${
  isSel ? 'text-neutral-900 font-extrabold' : 'text-neutral-700 font-semibold group-hover:text-[#1A365D]'
  }`}>
  {name}
@@ -2268,7 +2378,7 @@ ${greetingPrompt}`;
  </div>
  )}
 
- {onboardingStep > 0 && (
+  {onboardingStep > 0 && onboardingStep !== 4 && (
  <div className="w-full mt-6 select-none animate-fade-in flex items-center gap-4">
  {/* Left Arrow (Back) */}
  <button
@@ -2302,7 +2412,7 @@ ${greetingPrompt}`;
  isSelected ? 'bg-[#1A365D] scale-105 shadow-md' : 'bg-[#EAEAEA] text-black/50'
  }`}
  >
- <span style={{ fontFamily: "'Lato', sans-serif" }} className={`text-[10px] font-extrabold ${isSelected ? 'text-white' : 'text-black/60'}`}>
+ <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-[10px] font-extrabold ${isSelected ? 'text-white' : 'text-black/60'}`}>
  {stepNum}
  </span>
  </div>
@@ -2334,7 +2444,7 @@ ${greetingPrompt}`;
  case 2:
  return selectedLevel !== null;
  case 4:
- return userName.trim() !== '' && userAge.trim() !== '' && userCountry.trim() !== '' && userEmail.trim() !== '';
+ return userName.trim() !== '' && userLastName.trim() !== '' && userEmail.trim() !== '' && userPassword.trim() !== '';
  default:
  return true;
  }
@@ -2354,25 +2464,27 @@ ${greetingPrompt}`;
  </div>
  )}
 
- {/* Underlined SALTAR / SKIP link at the bottom of the form */}
+  {/* Underlined SALTAR / SKIP link at the bottom of the form */}
+  {onboardingStep !== 4 && (
  <div className="w-full text-left px-3 mt-3">
  <button
  onClick={() => {
  handleContinuaClick();
  }}
- style={{ fontFamily: "'Lato', sans-serif" }}
+ style={{ fontFamily: "'Raleway', sans-serif" }}
  className="text-[15px] font-semibold text-neutral-700 hover:text-red-600 cursor-pointer transition-colors tracking-wide select-none inline-block py-1 px-0"
  >
  {selectedLang === 'EN' ? 'Skip' : 'Saltar'}
  </button>
  </div>
+  )}
  </div>
  </div>
  </div>
  </div>
  ) : (
 
- <div className="flex-1 px-3 pt-2 pb-4 tab-content-area overflow-y-auto min-h-0">
+ <div className="flex-1 px-1 sm:px-3 pt-2 pb-4 tab-content-area overflow-y-auto min-h-0">
  <div className="min-h-full flex flex-col justify-start space-y-4">
  {chatMessages.filter(msg => !msg.tab || msg.tab === 'chat').map((msg, index) => {
  if (msg.sender === 'system') {
@@ -2381,20 +2493,18 @@ ${greetingPrompt}`;
  if (msg.sender === 'user' && msg.text.startsWith('[')) {
  return null;
  }
- if (isConnected && msg.id === 'welcome_1') {
- return null;
- }
+ 
 
  const isUser = msg.sender === 'user';
  
  return (
  <div key={msg.id} className={`flex items-start ${isUser ? 'justify-end' : 'justify-start'} gap-2.5 animate-fade-in`}>
- <div className={`max-w-[88%] flex flex-col space-y-1 ${isUser ? 'items-end' : 'items-start'}`}>
+ <div className={`w-full max-w-[98%] sm:max-w-[88%] flex flex-col space-y-1 ${isUser ? 'items-end' : 'items-start'}`}>
  <div className={`
- px-4 py-2.5 rounded-2xl text-sm leading-snug transition-all
+ px-3.5 sm:px-4 py-2.5 rounded-2xl text-sm leading-snug transition-all
  ${isUser 
  ? 'bg-white border-[5px] border-blue-600/30 backdrop-blur-md text-black rounded-tr-none font-normal' 
- : 'bg-white border-[5px] border-red-600/30 text-black rounded-tl-none'
+ : 'bg-white border-[5px] border-[#FFD700] text-black rounded-tl-none'
  }
  `}>
  {isUser ? (
@@ -2422,8 +2532,8 @@ ${greetingPrompt}`;
  >
  {!isPaused && (
  <span 
- style={{ fontFamily: "'Lato', sans-serif" }} 
- className="text-[9px] font-black tracking-wider transition-all duration-300 text-[#1A365D] group-hover:text-red-600"
+ style={{ fontFamily: "'Raleway', sans-serif" }} 
+ className="text-[9px] font-black tracking-wider transition-all duration-300 text-[#5382eb] group-hover:text-red-600"
  >
  PAUSA
  </span>
@@ -2431,21 +2541,22 @@ ${greetingPrompt}`;
  {isPaused ? (
  <Play fill="currentColor" stroke="none" className="w-3.5 h-3.5 text-red-600 transition-all animate-pulse" />
  ) : (
- <Pause fill="currentColor" stroke="none" className="w-3.5 h-3.5 text-[#1A365D] group-hover:text-red-600 transition-all duration-300" />
+ <Pause fill="currentColor" stroke="none" className="w-3.5 h-3.5 text-[#5382eb] group-hover:text-red-600 transition-all duration-300" />
  )}
+ </button>
+ <button
+ type="button"
+ onClick={() => {
+ setRightPanelTab("roadmap");
+ }}
+ title={visitorFullName ? (selectedLang === "EN" ? `${visitorFullName}'s Profile` : `Perfil de ${visitorFullName}`) : (selectedLang === "EN" ? "Profile" : "Perfil")}
+ className="flex items-center justify-center p-0.5 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer"
+ >
+ <User strokeWidth={2.5} className="w-4 h-4 text-[#5382eb] hover:text-red-600 transition-all duration-300" />
  </button>
  </div>
  ) : (
  <div className="flex items-center gap-1.5 sm:gap-4 flex-wrap mb-2.5 select-none">
- {/* Mascot Bot Icon */}
- <div 
- onClick={() => setHasInteracted(false)} 
- title={selectedLang === 'EN' ? 'Go to Welcome Page' : 'Ir a la página de bienvenida'} 
- className="cursor-pointer hover:scale-110 active:scale-95 transition-all flex-shrink-0"
- >
- <Bot strokeWidth={2.5} className="w-5 h-5 text-red-600" />
- </div>
-
  {/* Embedded Mode Selectors */}
  <div className="flex items-center gap-1.5 sm:gap-4 flex-wrap">
  {(() => {
@@ -2529,13 +2640,13 @@ ${greetingPrompt}`;
  <button 
  key={m.id}
  onClick={m.activate}
- style={{ fontFamily: "'Lato', sans-serif" }}
+ style={{ fontFamily: "'Raleway', sans-serif" }}
  className="flex items-center gap-1 cursor-pointer group select-none"
  >
  {m.active && (
- <MessageSquare 
- strokeWidth={3}
- className="w-[17px] h-[17px] flex-shrink-0 transition-all duration-200 text-red-600 scale-110" 
+ <Bot 
+ strokeWidth={2.5}
+ className="w-[18px] h-[18px] flex-shrink-0 transition-all duration-200 text-red-600 scale-110" 
  />
  )}
  <span className={`text-[7.5pt] tracking-wider uppercase whitespace-nowrap transition-colors ${
@@ -2557,15 +2668,15 @@ ${greetingPrompt}`;
  if (parts.length >= 2) {
  return (
  <>
- <div style={{ fontFamily: '"American Typewriter", "Courier New", Courier, serif' }} className="text-black font-semibold leading-snug">{parseAndRenderEmojis(parts[0])}</div>
- <div style={{ fontFamily: '"American Typewriter", "Courier New", Courier, serif' }} className="chat-message-english text-black leading-snug mt-2">
+ <div style={{ fontFamily: '"Raleway", sans-serif', fontWeight: 600 }} className="text-black font-semibold leading-snug">{parseAndRenderEmojis(parts[0])}</div>
+ <div style={{ fontFamily: '"Raleway", sans-serif', fontWeight: 600 }} className="chat-message-english text-black font-semibold leading-snug mt-2">
  {parseAndRenderEmojis(parts.slice(1).join(" / "))}
  </div>
  </>
  );
  }
  }
- return <div style={{ fontFamily: '"American Typewriter", "Courier New", Courier, serif' }} className="text-black leading-snug">{parseAndRenderEmojis(rawText)}</div>;
+ return <div style={{ fontFamily: '"Raleway", sans-serif', fontWeight: 600 }} className="text-black font-semibold leading-snug">{parseAndRenderEmojis(rawText)}</div>;
  })()}
  </div>
  
@@ -2878,6 +2989,24 @@ ${greetingPrompt}`;
  </div>
  );
  })}
+  {!showReviewScreen && hasInteracted && (
+  <div className="flex justify-end w-full animate-fade-in my-1">
+  <ChatInputBox
+  selectedLang={selectedLang}
+  isConnected={isConnected}
+  isPaused={isPaused}
+  pause={pause}
+  resume={resume}
+  onSubmitText={(text) => {
+  addUserMessage(text);
+  sendText(text);
+  }}
+  value={inputText}
+  onChangeValue={setInputText}
+  placeholderText={placeholderText}
+  />
+  </div>
+  )}
  <div ref={chatEndRef} />
  </div>
  </div>
@@ -2900,7 +3029,7 @@ ${greetingPrompt}`;
  onAskVoyager={(text) => {
  setHasInteracted(true);
  addUserMessage(text);
- const profilePrompt = `[INSTRUCCIÓN DE SISTEMA CRÍTICA Y MANDATORIA: Estás respondiendo a una pregunta dentro de la pestaña de ${visitorFullName ? visitorFullName.toUpperCase() : 'PERFIL'} del usuario.
+ const profilePrompt = `[INSTRUCCIÓN DE SISTEMA CRÍTICA Y MANDATORIA: Estás respondiendo a una pregunta dentro de la pestaña de ${visitorFullName ? (visitorFullName.length > 8 ? visitorFullName.slice(0, 10) : visitorFullName).toUpperCase() : 'PERFIL'} del usuario.
 1. Deja atrás cualquier otro tipo de conversación o tema general. Está ESTRICTAMENTE PROHIBIDO hablar de cualquier cosa que no sea el perfil específico, las metas, los reportes de progreso y los proyectos/lecciones asignados de este usuario.
 2. Tu único trabajo es explicar e informar en español qué significan sus datos específicos (ej. sus puntuaciones de Fluidez, Gramática, Fonética, Confianza, palabras aprendidas) y el avance de sus metas personales.
 3. Responde ÚNICAMENTE en español de forma clara, directa y muy precisa para que el usuario de habla hispana comprenda perfectamente su reporte.
@@ -2958,6 +3087,8 @@ Pregunta del usuario: "${text}"]`;
  addUserMessage(text);
  sendText(text);
  }}
+ value={inputText}
+ onChangeValue={setInputText}
  />
  </div>
  ) : rightPanelTab === 'settings' ? (
@@ -3049,22 +3180,6 @@ Pregunta del usuario: "${text}"]`;
  />
  </div>
 
- {!showReviewScreen && rightPanelTab === 'chat' && hasInteracted && (
- <ChatInputBox
- selectedLang={selectedLang}
- isConnected={isConnected}
- isPaused={isPaused}
- pause={pause}
- resume={resume}
- onSubmitText={(text) => {
- addUserMessage(text);
- sendText(text);
- }}
- value={inputText}
- onChangeValue={setInputText}
- placeholderText={placeholderText}
- />
- )}
  </div>
  )}
  </div>
@@ -3077,7 +3192,7 @@ Pregunta del usuario: "${text}"]`;
  <div className="bg-neutral-300 border border-black/15 rounded-2xl max-w-xl w-full shadow-[0_25px_50px_rgba(0,0,0,0.4)] p-6 md:p-8 flex flex-col max-h-[85vh] animate-scale-up">
  {/* Modal Header */}
  <div className="flex items-center justify-between border-b border-neutral-300 pb-4 mb-4">
- <h3 style={{ fontFamily: '"Lato", sans-serif' }} className="text-lg md:text-xl font-black text-black uppercase tracking-wider">
+ <h3 style={{ fontFamily: '"Raleway", sans-serif' }} className="text-lg md:text-xl font-black text-black uppercase tracking-wider">
  {activePolicyModal === 'copyright' ? (selectedLang === 'EN' ? 'Copyright Information' : 'Derechos de Autor') : activePolicyModal === 'privacy' ? 'Privacy Policy' : activePolicyModal === 'contact' ? (selectedLang === 'EN' ? 'Contact Us' : 'Contacto') : 'Terms of Service'}
  </h3>
  <button 
@@ -3304,7 +3419,7 @@ Pregunta del usuario: "${text}"]`;
  <div className="mt-6 flex justify-end border-t border-neutral-300 pt-4 flex-shrink-0">
  <button 
  onClick={() => setActivePolicyModal(null)}
- style={{ fontFamily: "'Lato', sans-serif" }}
+ style={{ fontFamily: "'Raleway', sans-serif" }}
  className="px-5 py-2 bg-neutral-800 hover:bg-black text-white font-bold text-xs uppercase tracking-widest rounded-full transition-all cursor-pointer select-none"
  >
  Close

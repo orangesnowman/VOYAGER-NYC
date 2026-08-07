@@ -1,13 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Allerta+Stencil&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-tech: 'Lato', sans-serif;
-  --font-serif: "American Typewriter", "Courier New", Courier, serif;
-  --font-sans: 'Lato', sans-serif;
-  --font-mono: "American Typewriter", "Courier New", Courier, monospace;
-  
+  --font-tech: 'Raleway', sans-serif;
+  --font-serif: 'Raleway', sans-serif;
+  --font-sans: 'Raleway', sans-serif;
+  --font-mono: 'Raleway', sans-serif;
+
   --animate-spin-slow: spin 8s linear infinite;
   --animate-pulse-fast: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-marquee: marquee 120s linear infinite;
@@ -62,9 +63,35 @@ body {
   margin: 0;
   background-color: #000;
   color: #fff;
+  font-family: 'Raleway', sans-serif;
+  font-weight: 600;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Lato', sans-serif;
+h1, h2, h3, h4, h5, h6, p, span, div, button, input {
+  font-family: 'Raleway', sans-serif;
 }
 
+
+/* Hide all native/floating Ecwid minicart widgets and orphan cart links outside app */
+[id*="ecwid-minicart"],
+[class*="ecwid-minicart"],
+.ecwid-minicart-mini,
+.ecwid-minicart-mini-floating,
+.ecwid-minicart,
+.ecwid-minicart-caption,
+.ecwid-minicart-label,
+.ecwid-minicart-link,
+.ecwid-float-minicart,
+div[class*="minicart"],
+a[href*="#!/~/cart"]:not(.custom-cart-link),
+a[href*="/cart"]:not(.custom-cart-link) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  left: -9999px !important;
+}

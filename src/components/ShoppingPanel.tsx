@@ -61,7 +61,12 @@ export const ShoppingPanel: React.FC<ShoppingPanelProps> = ({
   // Auto scroll to latest chat messages
   useEffect(() => {
     if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      if (chatEndRef.current.parentElement) {
+        chatEndRef.current.parentElement.scrollTo({
+          top: chatEndRef.current.parentElement.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
     }
   }, [chatMessages]);
 
@@ -89,9 +94,7 @@ export const ShoppingPanel: React.FC<ShoppingPanelProps> = ({
           "id=my-store-108143"
         );
       }
-      if (win.xMinicart) {
-        win.xMinicart("style=", "layout=Mini");
-      }
+      // win.xMinicart disabled to prevent floating widget
     };
 
     if (script.getAttribute('data-loaded') === 'true') {
@@ -106,7 +109,7 @@ export const ShoppingPanel: React.FC<ShoppingPanelProps> = ({
     // Run DOM sweep to hide native headers, sorting and breadcrumbs
     const sweep = () => {
       const elements = document.querySelectorAll(
-        '.ec-breadcrumbs, .ec-store__category-name, .grid-product__sorting, .ec-store__sorting, [class*="sort-by"]'
+        '.ec-breadcrumbs, .ec-store__category-name, .grid-product__sorting, .ec-store__sorting, [class*="sort-by"], [id*="ecwid-minicart"], [class*="ecwid-minicart"], .ecwid-minicart-mini-floating, .ec-cart-widget'
       );
       elements.forEach((el) => {
         const htmlEl = el as HTMLElement;
@@ -115,6 +118,11 @@ export const ShoppingPanel: React.FC<ShoppingPanelProps> = ({
           htmlEl.style.visibility = 'hidden';
         }
       });
+      // Remove any floating Ecwid elements appended directly to body
+      document.querySelectorAll('body > div[class*="ecwid"], body > div[id*="ecwid"], body > a[href*="cart"]').forEach(node => {
+        node.remove();
+      });
+
     };
     const interval = setInterval(sweep, 500);
 
@@ -400,7 +408,7 @@ export const ShoppingPanel: React.FC<ShoppingPanelProps> = ({
                   px-4 py-2.5 rounded-2xl text-sm leading-snug transition-all bg-white border-[5px]
                   ${isUser 
                     ? 'border-blue-600/30 text-black rounded-tr-none' 
-                    : 'border-red-600/30 text-black rounded-tl-none font-serif'
+                    : 'border-[#FFD700] text-black rounded-tl-none font-serif'
                   }
                 `}>
                   {isUser ? (
@@ -477,18 +485,18 @@ export const ShoppingPanel: React.FC<ShoppingPanelProps> = ({
           </div>
         </div>
 
+        <div className="flex justify-end w-full animate-fade-in my-1">
+          <ChatInputBox
+            selectedLang={selectedLang}
+            isConnected={isConnected}
+            isPaused={isPaused}
+            pause={pause}
+            resume={resume}
+            onSubmitText={onAskVoyager}
+          />
+        </div>
         <div ref={chatEndRef} />
       </div>
-
-      {/* Row 2: User's Input Box (Identical ChatInputBox across all sections) */}
-      <ChatInputBox
-        selectedLang={selectedLang}
-        isConnected={isConnected}
-        isPaused={isPaused}
-        pause={pause}
-        resume={resume}
-        onSubmitText={onAskVoyager}
-      />
 
     </div>
   );

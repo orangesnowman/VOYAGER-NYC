@@ -7,7 +7,10 @@ import { useConversationModes } from './useConversationModes';
 import { ConversationMode } from './ConversationModes';
 import { ConversationModePolicy } from '../domain/ConversationModePolicy';
 
-export function useConversationEngine(activeTab: string = 'chat') {
+export function useConversationEngine(
+  activeTab: string = 'chat',
+  onUserVoiceTranscription?: (text: string) => void
+) {
   const [selectedLang, setSelectedLang] = useState<'EN' | 'ES'>('ES');
 
   // Use the extracted conversation mode manager
@@ -77,6 +80,9 @@ export function useConversationEngine(activeTab: string = 'chat') {
     userLevel: profile?.levelEstimate,
     onUserTranscription: (text) => {
       updateUserVoiceTranscription(text);
+      if (onUserVoiceTranscription) {
+        onUserVoiceTranscription(text);
+      }
       memory.extractLearnerContext(text);
     },
     onTextResponse: (text, showForm) => {

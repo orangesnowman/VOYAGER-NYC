@@ -187,7 +187,12 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
   const chatEndRef = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
     if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      if (chatEndRef.current.parentElement) {
+        chatEndRef.current.parentElement.scrollTo({
+          top: chatEndRef.current.parentElement.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
     }
   }, [chatMessages]);
 
@@ -1096,7 +1101,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
                     px-4 py-2.5 rounded-2xl text-sm leading-snug transition-all bg-white border-[5px]
                     ${isUser 
                       ? 'border-blue-600/30 text-black rounded-tr-none' 
-                      : 'border-red-600/30 text-black rounded-tl-none font-serif'
+                      : 'border-[#FFD700] text-black rounded-tl-none font-serif'
                     }
                   `}>
                     {isUser ? (
@@ -1166,18 +1171,18 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
             );
           });
         })()}
+        <div className="flex justify-end w-full animate-fade-in my-1">
+          <ChatInputBox
+            selectedLang={selectedLang}
+            isConnected={isConnected}
+            isPaused={isPaused}
+            pause={pause}
+            resume={resume}
+            onSubmitText={onAskVoyager}
+          />
+        </div>
         <div ref={chatEndRef} />
       </div>
-
-      {/* Row 2: User's Input Box (Identical ChatInputBox across all sections) */}
-      <ChatInputBox
-        selectedLang={selectedLang}
-        isConnected={isConnected}
-        isPaused={isPaused}
-        pause={pause}
-        resume={resume}
-        onSubmitText={onAskVoyager}
-      />
 
       {/* Hidden File Input for Avatar Upload */}
       <input 
