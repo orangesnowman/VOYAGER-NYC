@@ -40,36 +40,41 @@ export class AudioCapture {
 
   async start(onAudioData: (base64Pcm: string) => void): Promise<MediaStream> {
     this.onAudioDataCallback = onAudioData;
-    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    // Initialize AudioContext at 16000 Hz for input
-    this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-    this.analyserNode = this.audioContext.createAnalyser();
-    this.analyserNode.fftSize = 64;
+      // Initialize AudioContext at 16000 Hz for input
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+      this.analyserNode = this.audioContext.createAnalyser();
+      this.analyserNode.fftSize = 64;
 
-    this.sourceNode = this.audioContext.createMediaStreamSource(this.stream);
-    this.processorNode = this.audioContext.createScriptProcessor(4096, 1, 1);
+      this.sourceNode = this.audioContext.createMediaStreamSource(this.stream);
+      this.processorNode = this.audioContext.createScriptProcessor(4096, 1, 1);
 
-    this.processorNode.onaudioprocess = (e) => {
-      if (!this.onAudioDataCallback) return;
+      this.processorNode.onaudioprocess = (e) => {
+        if (!this.onAudioDataCallback) return;
 
-      const resampled = PCMConverter.resample(e.inputBuffer, 16000);
-      const pcm16 = PCMConverter.float32ToPcm16(resampled);
-      const pcmBytes = new Uint8Array(pcm16.buffer);
-      const base64Data = PCMConverter.bytesToBase64(pcmBytes);
+        const resampled = PCMConverter.resample(e.inputBuffer, 16000);
+        const pcm16 = PCMConverter.float32ToPcm16(resampled);
+        const pcmBytes = new Uint8Array(pcm16.buffer);
+        const base64Data = PCMConverter.bytesToBase64(pcmBytes);
 
-      this.onAudioDataCallback(base64Data);
-    };
+        this.onAudioDataCallback(base64Data);
+      };
 
-    this.sourceNode.connect(this.processorNode);
-    this.sourceNode.connect(this.analyserNode);
-    this.processorNode.connect(this.audioContext.destination);
+      this.sourceNode.connect(this.processorNode);
+      this.sourceNode.connect(this.analyserNode);
+      this.processorNode.connect(this.audioContext.destination);
 
-    if (this.audioContext.state === 'suspended') {
-      await this.audioContext.resume();
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+
+      return this.stream;
+    } catch (err) {
+      this.stop();
+      throw err;
     }
-
-    return this.stream;
   }
 
   stop(): void {

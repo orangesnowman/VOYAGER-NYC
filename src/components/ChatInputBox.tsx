@@ -343,7 +343,7 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
           recognitionRef.current.start();
           setIsListening(true);
         } catch (e) {
-          console.error('Failed to start speech recognition:', e);
+          console.warn('Failed to start speech recognition:', e);
           setIsListening(false);
         }
       }

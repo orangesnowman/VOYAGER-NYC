@@ -219,7 +219,10 @@ export function useConversationSession(config: UseConversationSessionConfig) {
             ws.send(JSON.stringify({ audio: base64Data }));
           });
         } catch (captureErr: any) {
-          console.error('Audio capture failed to start:', captureErr);
+          console.warn('Audio capture failed to start:', captureErr);
+          if (captureRef.current) {
+            captureRef.current.stop();
+          }
           const errStr = String(captureErr?.message || captureErr || '').toLowerCase();
           const errName = String(captureErr?.name || '');
           const isPermissionDenied = errName === 'NotAllowedError' || 

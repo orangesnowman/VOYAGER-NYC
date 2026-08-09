@@ -29,7 +29,11 @@ if (typeof window !== 'undefined') {
         msg.includes('ResizeObserver') ||
         msg.includes('calculateTotalQuantity') ||
         msg.includes('OnPageLoaded') ||
-        msg.includes('Ecwid')
+        msg.includes('Ecwid') ||
+        msg.includes('Audio capture failed to start') ||
+        msg.includes('Permission denied') ||
+        msg.includes('NotAllowedError') ||
+        msg.includes('PermissionDeniedError')
       );
     }
     return false;

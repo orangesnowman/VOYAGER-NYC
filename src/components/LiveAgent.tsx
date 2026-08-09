@@ -1484,23 +1484,23 @@ ${greetingPrompt}`;
 
  return (
  <div 
- className="relative min-h-screen md:h-screen w-full bg-[#000000] flex items-center justify-center px-1.5 sm:px-3 md:px-4 py-1 overflow-y-auto md:overflow-hidden select-none"
+ className="relative min-h-screen md:h-screen w-full bg-[#000000] flex items-center justify-center px-1 sm:px-1.5 md:px-2 py-0.5 overflow-y-auto md:overflow-hidden select-none"
  style={{
  backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0)',
  backgroundSize: '24px 24px'
  }}
  >
  {/* Layout Grid with 125% Passport, Adjusted Cover and Perfect Tight Gutter */}
- <div className="grid grid-cols-1 md:grid-cols-[2fr_3fr] gap-1.5 sm:gap-2.5 md:gap-3 w-full max-w-7xl max-h-full items-stretch justify-center mx-auto md:aspect-[1.7]">
+ <div className="grid grid-cols-1 md:grid-cols-[2fr_3fr] gap-0 w-full max-w-7xl max-h-full items-stretch justify-center mx-auto md:aspect-[1.7]">
  
  {/* Left Side (Column 1): The Passport (Deep Navy Voyager Blue Console) */}
  {/* It remains CONSTANT throughout the entire session */}
- <div className="md:col-span-1 bg-gradient-to-b from-[#153166] to-[#0a1833] border border-[#2563eb]/20 rounded-[16px] sm:rounded-[24px] md:rounded-[32px] px-3 py-4 sm:p-6 md:p-10 flex flex-col justify-between items-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.65)] relative overflow-hidden w-full h-full min-h-[380px] sm:min-h-[420px] md:min-h-0">
+ <div className="md:col-span-1 bg-gradient-to-b from-[#153166] to-[#0a1833] border border-[#2563eb]/20 rounded-[16px] sm:rounded-[24px] md:rounded-[32px] px-1.5 py-2 sm:p-3 md:p-5 flex flex-col justify-between items-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.65)] relative overflow-hidden w-full h-full min-h-[380px] sm:min-h-[420px] md:min-h-0">
  {/* Ambient Background Glow */}
  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
  
  {/* Header Text */}
- <div className="space-y-2 pt-6">
+ <div className="space-y-2 pt-3">
  <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.25em' }} className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest block">
  {selectedLang === 'EN' ? 'I AM USA' : 'YO SOY USA'}
  </span>
@@ -1513,7 +1513,7 @@ ${greetingPrompt}`;
  </div>
 
  {/* Glowing Golden Energy Sphere */}
- <div className="relative flex-grow flex-shrink min-h-0 w-full flex items-center justify-center pt-2 pb-8 md:pt-4 md:pb-12">
+ <div className="relative flex-grow flex-shrink min-h-0 w-full flex items-center justify-center pt-1 pb-4 md:pt-2 md:pb-6">
  <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-tr from-yellow-500/10 via-amber-500/15 to-orange-500/10 blur-3xl animate-pulse duration-[3000ms] pointer-events-none" />
  
  <div className="relative aspect-square max-h-full max-w-full flex items-center justify-center">
@@ -1528,7 +1528,7 @@ ${greetingPrompt}`;
  </div>
 
  {/* Bottom Button Panel */}
- <div className="pb-8 md:pb-14 w-full z-10 flex flex-col items-center justify-center">
+ <div className="pb-4 md:pb-7 w-full z-10 flex flex-col items-center justify-center">
  {/* Main Action Button */}
  {!hasClickedConnect ? (
  <button
@@ -1562,7 +1562,7 @@ ${greetingPrompt}`;
  {!hasClickedConnect ? (
  /* Disconnected Landing Screen inside the Cover */
  <>
- <div className="flex-1 flex items-center justify-center pt-8 pb-4 w-full relative z-10">
+ <div className="flex-1 flex items-center justify-center pt-4 pb-2 w-full relative z-10">
  <img 
  src="https://lh3.googleusercontent.com/d/1uCm4fqE6Qfxg1lm1FsCbo35fVQcI_E5k" 
  alt="Voyager USA Mascot" 
@@ -1576,7 +1576,7 @@ ${greetingPrompt}`;
 
 
  {/* Footer Text */}
- <div className="pb-8 z-10 px-4 flex flex-col items-center flex-shrink-0 w-full">
+ <div className="pb-4 z-10 px-2 flex flex-col items-center flex-shrink-0 w-full">
  {/* Footer Buttons Row */}
  <div className="flex items-center justify-center gap-4 text-xs font-mono select-none">
  {/* Copyright Button */}
@@ -1622,7 +1622,7 @@ ${greetingPrompt}`;
  <div className="w-full h-full flex flex-col overflow-hidden bg-transparent">
  {/* Header / Tabs */}
  {/* Top Header with Hamburger Button */}
- <div className="w-full bg-white py-8 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-50 flex-shrink-0 relative border-b border-slate-100/60">
+ <div className="w-full bg-white py-4 px-2 sm:px-3 flex items-center justify-between sticky top-0 z-50 flex-shrink-0 relative border-b border-slate-100/60">
  {/* Left: Hamburger Toggle Button, Section Indicator, ON/OFF & Timer */}
  <div className="flex items-center gap-2.5 sm:gap-3.5 z-10 translate-y-2 sm:translate-y-2.5">
             {rightPanelTab !== 'home' && (
