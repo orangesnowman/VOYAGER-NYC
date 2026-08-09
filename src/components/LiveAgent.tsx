@@ -11,6 +11,7 @@ import { TeacherInsightsPanel } from './TeacherInsightsPanel';
 import { SettingsPanel } from './SettingsPanel';
 import { ShoppingPanel } from './ShoppingPanel';
 import { ChatInputBox } from './ChatInputBox';
+import { AuthModal } from './AuthModal';
 import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
 import chatAvatarIcon from '../assets/images/voyager_pixel_avatar_1784465509169.jpg';
 import { Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight, Headphones, MessageSquare, User, Settings, Sliders, ShoppingBag, Globe, Apple, Home, Pause, Play, Info, Shield, FileText, Bot, Eye, EyeOff, ShoppingCart, Briefcase, BookOpen, Luggage, Rocket, Check, UserCheck, Presentation, MessageSquareText, Plane, Sprout, Flower, TreeDeciduous, GraduationCap, Award, Mail, Menu, X, Power } from 'lucide-react';
@@ -280,7 +281,11 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const saved = localStorage.getItem('voyager_user_account');
  if (saved) {
  const parsed = JSON.parse(saved);
- if (parsed.name && parsed.name !== 'Estudiante' && parsed.name !== 'Learner') return parsed.name;
+ if (parsed.name && parsed.name !== 'Estudiante' && parsed.name !== 'Learner') {
+          if (parsed.name === 'Invitado Voyager') return 'Invitado';
+          if (parsed.name === 'Guest Voyager') return 'Guest';
+          return parsed.name;
+        }
  }
  } catch (e) {}
  return '';
@@ -344,6 +349,81 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const [inputText, setInputText] = useState<string>('');
  const [isFadingMascot, setIsFadingMascot] = useState<boolean>(false);
  const [activePolicyModal, setActivePolicyModal] = useState<'privacy' | 'terms' | 'copyright' | 'contact' | null>(null);
+ const [authModalMode, setAuthModalMode] = useState<'email' | 'google' | null>(null);
+ const [authEmail, setAuthEmail] = useState<string>('');
+ const [authPassword, setAuthPassword] = useState<string>('');
+ const [authName, setAuthName] = useState<string>('');
+ const [authIsRegister, setAuthIsRegister] = useState<boolean>(true);
+ const [authNotification, setAuthNotification] = useState<string | null>(null);
+
+ const handleGuestLogin = () => {
+ const guestName = selectedLang === 'EN' ? 'Guest' : 'Invitado';
+ setUserName(guestName);
+ setUserEmail('');
+ try {
+ localStorage.setItem('voyager_user_account', JSON.stringify({
+ name: guestName,
+ email: '',
+ provider: 'guest',
+ loginTime: new Date().toISOString()
+ }));
+ } catch (e) {}
+ setAuthModalMode(null);
+ setAuthNotification(selectedLang === 'EN' ? 'Entered as Guest!' : '¡Entrando como invitado!');
+ setTimeout(() => {
+ setAuthNotification(null);
+ }, 4000);
+ if (typeof executeConnectFlow === 'function') {
+ executeConnectFlow();
+ }
+ };
+
+ const handleGoogleLogin = () => {
+   const gName = userName || 'Google User';
+   const gEmail = userEmail || 'user@gmail.com';
+   setUserName(gName);
+   setUserEmail(gEmail);
+   try {
+     localStorage.setItem('voyager_user_account', JSON.stringify({
+       name: gName,
+       email: gEmail,
+       provider: 'google',
+       loginTime: new Date().toISOString()
+     }));
+   } catch (e) {}
+   setAuthNotification(selectedLang === 'EN' ? 'Logged in with Google!' : '¡Sesión iniciada con Google!');
+   setTimeout(() => {
+     setAuthNotification(null);
+   }, 4000);
+   if (typeof executeConnectFlow === 'function') {
+     executeConnectFlow();
+   }
+ };
+
+ const handleEmailAuthSubmit = (e: React.FormEvent) => {
+   e.preventDefault();
+   if (!authEmail) return;
+   const finalName = authName.trim() || userName || (selectedLang === 'EN' ? 'Guest' : 'Invitado');
+   setUserName(finalName);
+   setUserEmail(authEmail);
+   try {
+     localStorage.setItem('voyager_user_account', JSON.stringify({
+       name: finalName,
+       email: authEmail,
+       password: authPassword,
+       provider: 'email',
+       loginTime: new Date().toISOString()
+     }));
+   } catch (e) {}
+   setAuthModalMode(null);
+   setAuthNotification(selectedLang === 'EN' ? `Welcome, ${finalName}!` : `¡Bienvenido, ${finalName}!`);
+   setTimeout(() => {
+     setAuthNotification(null);
+   }, 4000);
+   if (typeof executeConnectFlow === 'function') {
+     executeConnectFlow();
+   }
+ };
  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
  const [cartCount, setCartCount] = useState<number>(0);
 
@@ -756,7 +836,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  // 1. Play pin sound and pause conversation whenever we switch page sections (from any tab to any other tab)
  if (lastVisitedTabRef.current && lastVisitedTabRef.current !== rightPanelTab) {
  playPinSound();
+ if (isConnected) {
  pause();
+ }
  }
 
  // 2. Speak welcome explanation for the new tab section (resuming audio for the new context)
@@ -881,7 +963,7 @@ Reglas esenciales:
  case 2:
  return lang === 'EN' ? 'What is your estimated English level?' : '¿Cuál es tu nivel estimado de inglés?';
  case 4:
- return lang === 'EN' ? 'Account registration:' : 'Registro de cuenta:';
+ return lang === 'EN' ? 'Sign In to USA Voyager' : 'Iniciar Sesión en USA Voyager';
  case 3:
  return lang === 'EN' ? 'Select your starting conversation mode:' : 'Selecciona tu modo de conversación para iniciar:';
  default:
@@ -903,19 +985,24 @@ NO respondas a ruidos, habla o ruidos de fondo.]`;
  }
  }, [onboardingStep, isConnected, selectedLang]);
 
+ // Connect Flow Execution
+ const executeConnectFlow = () => {
+   setIsFadingMascot(true);
+   setTimeout(() => {
+     setHasClickedConnect(true);
+     setOnboardingStep(1);
+     setRightPanelTab('home');
+     setChosenStartMode(null);
+     setExplanationCountdown(null);
+     setIsFadingMascot(false);
+     connect(undefined, true); // Voice Connection started immediately to speak mode explanations
+     resetReminderTimer();
+   }, 400);
+ };
+
  // Connect Click handler
  const handleConnectClick = () => {
- setIsFadingMascot(true);
- setTimeout(() => {
- setHasClickedConnect(true);
- setOnboardingStep(1);
- setRightPanelTab('chat');
- setChosenStartMode(null);
- setExplanationCountdown(null);
- setIsFadingMascot(false);
- connect(undefined, true); // Voice Connection started immediately to speak mode explanations
- resetReminderTimer();
- }, 400);
+   executeConnectFlow();
  };
 
  // Mode click handler
@@ -1321,7 +1408,7 @@ ${greetingPrompt}`;
  if (!selectedLevel) return;
  setOnboardingStep(4);
  } else if (onboardingStep === 4) {
- if (userName.trim() === '' || userLastName.trim() === '' || userEmail.trim() === '' || userPassword.trim() === '') return;
+ if (userName.trim() === '' || userEmail.trim() === '' || userPassword.trim() === '') return;
  handleCompleteOnboarding();
  }
  };
@@ -1418,7 +1505,7 @@ ${greetingPrompt}`;
  {selectedLang === 'EN' ? 'I AM USA' : 'YO SOY USA'}
  </span>
  <h1 style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 4px 15px rgba(0,0,0,0.8)', letterSpacing: '0.12em' }} className="text-5xl md:text-6xl font-black text-white mt-1.5 uppercase block leading-none">
- VOYAGER
+  VOYAGER<span className="text-[0.3em] font-light text-white/90 align-baseline ml-1 px-1 py-0.5 inline-block select-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 300, letterSpacing: "normal" }}>®</span>
  </h1>
  <span style={{ letterSpacing: '0.18em', fontFamily: "'Raleway', sans-serif" }} className="text-[10px] md:text-xs text-yellow-400 font-semibold uppercase block mt-2">
  {selectedLang === 'EN' ? 'AMERICAN ENGLISH TUTOR' : 'TUTOR DE INGLÉS AMERICANO'}
@@ -1451,33 +1538,12 @@ ${greetingPrompt}`;
  {translations[selectedLang].connect}
  </button>
  ) : isConnected ? (
- <div className="flex flex-col items-center gap-2">
  <button
  onClick={handleEndSessionClick}
  style={{ fontFamily: "'Raleway', sans-serif" }} className="px-6 py-2.5 bg-transparent border-[1.5pt] border-white text-white hover:text-[#FFD700] hover:border-[#FFD700] font-medium tracking-[0.12em] uppercase rounded-full transition-all duration-300 cursor-pointer hover:scale-[1.02] active:scale-95 text-[10px] md:text-xs min-w-[128px] flex items-center justify-center"
  >
  <span>{selectedLang === 'EN' ? 'FINISH' : 'FINALIZAR'}</span>
  </button>
- <button
- type="button"
- onClick={() => {
-   if (isPaused) {
-     resume();
-   } else {
-     pause();
-   }
- }}
- title={isPaused ? (selectedLang === 'EN' ? 'Resume' : 'Reanudar') : (selectedLang === 'EN' ? 'Pause' : 'Pausar')}
- className="text-white/80 hover:text-white font-mono text-[11px] md:text-xs tracking-wider flex items-center gap-1.5 bg-white/10 hover:bg-white/20 active:scale-95 px-3 py-1 rounded-full backdrop-blur-xs cursor-pointer transition-all border border-white/10 shadow-xs"
- >
- {isPaused ? (
-   <Play className="w-3 h-3 fill-current stroke-none text-[#FFD700] animate-pulse" />
- ) : (
-   <Pause className="w-3 h-3 fill-current stroke-none text-white/90" />
- )}
- <span>{Math.floor(secondsElapsed / 60)}:{(secondsElapsed % 60).toString().padStart(2, '0')}</span>
- </button>
- </div>
  ) : (
  <button
  onClick={handleContinuaClick}
@@ -1492,7 +1558,7 @@ ${greetingPrompt}`;
  </div>
 
  {/* Column 2 (Right Panel): The Cover Page (White layout) */}
- <div className="md:col-span-1 bg-white border border-black/10 rounded-[16px] sm:rounded-[24px] md:rounded-[32px] flex flex-col justify-between items-center text-center shadow-[0_15px_35px_rgba(0,0,0,0.15)] relative overflow-hidden w-full h-[80vh] sm:h-[85vh] md:h-full min-h-[480px] md:min-h-0">
+ <div className={`md:col-span-1 ${hasClickedConnect ? 'bg-[#0D224A]' : 'bg-white'} rounded-[16px] sm:rounded-[24px] md:rounded-[32px] flex flex-col justify-between items-center text-center shadow-[0_15px_35px_rgba(0,0,0,0.15)] relative overflow-hidden w-full h-[80vh] sm:h-[85vh] md:h-full min-h-[480px] md:min-h-0`}>
  {!hasClickedConnect ? (
  /* Disconnected Landing Screen inside the Cover */
  <>
@@ -1519,7 +1585,7 @@ ${greetingPrompt}`;
  className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
  >
  <span style={{ fontSize: '1.65em', lineHeight: '1' }} className="font-normal">©</span>
- <span>Copyright</span>
+  <span>{selectedLang === 'EN' ? 'Copyright' : 'Derechos'}</span>
  </button>
 
  {/* Privacy Button */}
@@ -1528,7 +1594,7 @@ ${greetingPrompt}`;
  className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
  >
  <Shield className="w-4 h-4" />
- <span>Privacy</span>
+  <span>{selectedLang === 'EN' ? 'Privacy' : 'Privacidad'}</span>
  </button>
 
  {/* Terms Button */}
@@ -1537,7 +1603,7 @@ ${greetingPrompt}`;
  className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
  >
  <FileText className="w-4 h-4" />
- <span>Terms</span>
+  <span>{selectedLang === 'EN' ? 'Terms' : 'Términos'}</span>
  </button>
 
  {/* Contact Button */}
@@ -1546,135 +1612,71 @@ ${greetingPrompt}`;
  className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
  >
  <Mail className="w-4 h-4" />
- <span>Contact</span>
+  <span>{selectedLang === 'EN' ? 'Contact' : 'Contacto'}</span>
  </button>
  </div>
  </div>
  </>
  ) : (
  /* Connected Workspace Area inside the Cover */
- <div className="w-full h-full flex flex-col overflow-hidden">
+ <div className="w-full h-full flex flex-col overflow-hidden bg-transparent">
  {/* Header / Tabs */}
  {/* Top Header with Hamburger Button */}
- <div className="w-full bg-[#0D224A] py-1.5 px-3 sm:px-6 flex items-center justify-between sticky top-0 z-50 flex-shrink-0 border-b border-white/20 shadow-md relative">
- {/* Left: Hamburger Toggle Button & Current Section Indicator */}
- <div className="flex items-center gap-2.5 z-10">
+ <div className="w-full bg-white py-8 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-50 flex-shrink-0 relative border-b border-slate-100/60">
+ {/* Left: Hamburger Toggle Button, Section Indicator, ON/OFF & Timer */}
+ <div className="flex items-center gap-2.5 sm:gap-3.5 z-10 translate-y-2 sm:translate-y-2.5">
+            {rightPanelTab !== 'home' && (
  <button
  onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
  title={selectedLang === 'EN' ? 'Menu' : 'Menú'}
  aria-label={selectedLang === 'EN' ? 'Menu' : 'Menú'}
- className="relative p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer flex items-center justify-center active:scale-95 border border-white/10"
+ className="relative p-1 text-red-600 hover:text-red-700 transition-colors cursor-pointer flex items-center justify-center active:scale-95"
  >
- {isNavMenuOpen ? <X className="w-6 h-6 text-[#FFD700]" /> : <Menu className="w-6 h-6 text-white" />}
+ {isNavMenuOpen ? <X className="w-7 h-7 text-red-600" strokeWidth={3} /> : <Menu className="w-7 h-7 text-red-600" strokeWidth={3} />}
  {cartCount > 0 && !isNavMenuOpen && (
  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1 border border-white">
  {cartCount}
  </span>
  )}
  </button>
-
- {/* Current Section Indicator */}
- <div className="flex items-center gap-2 text-[#FFD700]">
- {rightPanelTab === 'home' && <Home className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFD700]" />}
- {rightPanelTab === 'chat' && <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFD700]" />}
- {rightPanelTab === 'teachers' && <Apple className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFD700]" />}
- {rightPanelTab === 'roadmap' && <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFD700]" />}
- {rightPanelTab === 'shopping' && <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFD700]" />}
- {rightPanelTab === 'settings' && <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFD700]" />}
- 
- <span style={{ fontFamily: "'Raleway', sans-serif" }} className="text-xs sm:text-sm font-bold uppercase tracking-wider text-white hidden min-[400px]:inline-block">
- {rightPanelTab === 'home' && (selectedLang === 'EN' ? 'HOME' : 'INICIO')}
- {rightPanelTab === 'chat' && (selectedLang === 'EN' ? 'CHAT' : 'CHARLA')}
- {rightPanelTab === 'teachers' && (selectedLang === 'EN' ? 'TEACHER' : 'LA PROFE')}
- {rightPanelTab === 'roadmap' && (visitorFullName ? visitorFullName.toUpperCase() : (selectedLang === 'EN' ? 'PROFILE' : 'FEDERICO'))}
- {rightPanelTab === 'shopping' && (selectedLang === 'EN' ? 'STORE' : 'LA TIENDA')}
- {rightPanelTab === 'settings' && (selectedLang === 'EN' ? 'SETTINGS' : 'CONFIGURA')}
- </span>
- </div>
+            )}
  </div>
 
- {/* Center: USA VOYAGER Logo Copy (Reduced 50%) */}
- <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center justify-center text-center pointer-events-none select-none">
- <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.22em' }} className="text-[7.5px] sm:text-[9.5px] font-bold text-white/90 uppercase block leading-none">
+ {/* Center: USA VOYAGER Logo Copy */}
+ <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none select-none">
+ <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.25em' }} className="text-[10px] sm:text-[11px] md:text-[12px] font-bold text-[#0D224A] uppercase block leading-none">
  {selectedLang === 'EN' ? 'I AM USA' : 'YO SOY USA'}
  </span>
- <span style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 2px 10px rgba(0,0,0,0.8)', letterSpacing: '0.12em' }} className="text-lg sm:text-2xl font-black text-white uppercase block leading-tight mt-0.5">
- VOYAGER
+ <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.12em' }} className="text-2xl sm:text-3xl md:text-[34px] font-black text-[#0D224A] uppercase block leading-none mt-1">
+  VOYAGER<span className="text-[0.3em] font-light text-[#0D224A]/90 align-baseline ml-1 px-1 py-0.5 inline-block select-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 300, letterSpacing: "normal" }}>®</span>
  </span>
  </div>
 
- {/* Right: ON/OFF Toggle Button & Chronometer */}
- <div className="flex items-center gap-1.5 sm:gap-2 z-10">
- {/* ON/OFF Button */}
- <button
- onClick={() => {
- if (isConnected) {
- handleEndSessionClick();
- } else {
- handleConnectClick();
- }
- }}
- title={isConnected ? (selectedLang === 'EN' ? 'Turn OFF Session' : 'Apagar Sesión') : (selectedLang === 'EN' ? 'Turn ON Session' : 'Encender Sesión')}
- aria-label={isConnected ? (selectedLang === 'EN' ? 'Turn OFF Session' : 'Apagar Sesión') : (selectedLang === 'EN' ? 'Turn ON Session' : 'Encender Sesión')}
- className={`px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold tracking-wider flex items-center gap-1 sm:gap-1.5 transition-all cursor-pointer border active:scale-95 shadow-xs ${
- isConnected
- ? 'bg-emerald-500/25 text-emerald-300 border-emerald-400/60 hover:bg-emerald-500/40'
- : 'bg-rose-500/25 text-rose-300 border-rose-400/50 hover:bg-rose-500/40'
- }`}
- >
- <Power className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${isConnected ? 'text-emerald-400' : 'text-rose-400'}`} />
- <span className="text-[9px] sm:text-[10px] uppercase font-bold">{isConnected ? 'ON' : 'OFF'}</span>
- </button>
-
- {/* Chronometer */}
- <button
- type="button"
- onClick={() => {
- if (!isConnected) return;
- if (isPaused) {
- resume();
- } else {
- pause();
- }
- }}
- title={isPaused ? (selectedLang === 'EN' ? 'Resume' : 'Reanudar') : (selectedLang === 'EN' ? 'Pause' : 'Pausar')}
- className={`text-white/90 font-mono text-[10px] sm:text-xs tracking-wider flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full backdrop-blur-xs transition-all border shadow-xs ${
- isConnected
- ? 'bg-white/10 hover:bg-white/20 border-white/20 text-white cursor-pointer active:scale-95'
- : 'bg-white/5 border-white/10 text-white/40 cursor-not-allowed opacity-60'
- }`}
- >
- {isPaused ? (
- <Play className="w-3 h-3 fill-current stroke-none text-[#FFD700] animate-pulse" />
- ) : (
- <Pause className="w-3 h-3 fill-current stroke-none text-white/90" />
- )}
- <span>{Math.floor(secondsElapsed / 60)}:{(secondsElapsed % 60).toString().padStart(2, '0')}</span>
- </button>
- </div>
- </div>
+ {/* Right: Spacer to maintain center alignment */}
+ <div className="z-10 w-6 sm:w-10 pointer-events-none" />
 
  {/* Vertical Column Bar Dropdown Menu */}
  {isNavMenuOpen && (
  <>
  {/* Backdrop Overlay */}
  <div 
- className="absolute inset-0 z-40 bg-black/50 backdrop-blur-xs transition-opacity" 
+ className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs transition-opacity" 
  onClick={() => setIsNavMenuOpen(false)} 
  />
 
  {/* Column Menu Drawer */}
- <div className="absolute top-[48px] sm:top-[52px] left-0 right-0 z-50 bg-[#0D224A] border-b border-white/20 shadow-2xl py-2 px-3 flex flex-col gap-1.5 animate-slide-down">
+ <div className="absolute top-full left-2 mt-1 w-[165px] min-w-[165px] z-50 bg-[#0D224A]/50 backdrop-blur-md rounded-2xl shadow-2xl py-2 px-0 overflow-hidden flex flex-col gap-1 animate-slide-down">
  {[
- { id: 'home', icon: Home, label: selectedLang === 'EN' ? 'HOME' : 'INICIO', hash: '' },
- { id: 'chat', icon: Bot, label: selectedLang === 'EN' ? 'CHAT' : 'CHARLA', hash: '' },
- { id: 'teachers', icon: Apple, label: selectedLang === 'EN' ? 'TEACHER' : 'LA PROFE', hash: '' },
- { id: 'roadmap', icon: User, label: visitorFullName ? visitorFullName.toUpperCase() : (selectedLang === 'EN' ? 'PROFILE' : 'FEDERICO'), hash: '' },
- { id: 'shopping', icon: ShoppingCart, label: selectedLang === 'EN' ? 'STORE' : 'LA TIENDA', badge: cartCount > 0 ? cartCount : undefined, hash: '#/shop' },
- { id: 'settings', icon: Settings, label: selectedLang === 'EN' ? 'SETTINGS' : 'CONFIGURA', hash: '' },
+ { id: 'home', icon: Home, label: selectedLang === 'EN' ? 'Home' : 'Inicio', hash: '' },
+ { id: 'chat', icon: Bot, label: selectedLang === 'EN' ? 'Chat' : 'Charla', hash: '' },
+ { id: 'teachers', icon: Apple, label: selectedLang === 'EN' ? 'Teacher' : 'La Profe', hash: '' },
+ { id: 'roadmap', icon: User, label: visitorFullName ? visitorFullName : (selectedLang === 'EN' ? 'Guest' : 'Invitado'), hash: '' },
+ { id: 'shopping', icon: ShoppingCart, label: selectedLang === 'EN' ? 'Store' : 'La Tienda', badge: cartCount > 0 ? cartCount : undefined, hash: '#/shop' },
+ { id: 'settings', icon: Settings, label: selectedLang === 'EN' ? 'Settings' : 'Configura', hash: '' },
  ].map((item) => {
  const IconComponent = item.icon;
- const isActive = rightPanelTab === item.id;
+ const activeTab = !hasInteracted ? 'home' : rightPanelTab;
+ const isActive = activeTab === item.id;
  return (
  <button
  key={item.id}
@@ -1683,15 +1685,15 @@ ${greetingPrompt}`;
  setIsNavMenuOpen(false);
  window.location.hash = item.hash;
  }}
- className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${
+ className={`w-full flex items-center justify-between px-3 py-2 transition-all cursor-pointer ${
  isActive 
- ? 'bg-white/20 text-[#FFD700] font-bold border-l-4 border-[#FFD700] shadow-sm' 
- : 'text-white/85 hover:bg-white/10 hover:text-white'
+ ? 'bg-[#0B1B3D] text-white font-bold border border-white/30 relative z-10 shadow-md' 
+ : 'text-white/60 hover:text-white hover:bg-white/10'
  }`}
  >
- <div className="flex items-center gap-3">
- <IconComponent className={`w-5 h-5 ${isActive ? 'text-[#FFD700]' : 'text-white/70'}`} />
- <span style={{ fontFamily: "'Raleway', sans-serif" }} className="text-xs sm:text-sm font-semibold tracking-wider uppercase">
+ <div className="flex items-center gap-2.5">
+ <IconComponent className={`w-4 h-4 sm:w-5 sm:h-5 ${isActive ? 'text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.9)]' : 'text-white/60'}`} />
+ <span style={{ fontFamily: '"Allerta", sans-serif' }} className={`text-xs sm:text-sm tracking-wide ${isActive ? 'font-bold text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.9)]' : 'font-normal'}`}>
  {item.label}
  </span>
  </div>
@@ -1706,6 +1708,7 @@ ${greetingPrompt}`;
  </div>
  </>
  )}
+ </div>
 
 
  {showReviewScreen ? (
@@ -1741,65 +1744,21 @@ ${greetingPrompt}`;
 
  </div>
  ) : (
- <div className="flex-grow flex flex-col overflow-hidden pt-5 px-5 pb-1.5 md:pt-8 md:px-8 md:pb-2 min-h-0">
+ <div className="flex-grow flex flex-col overflow-hidden pt-5 px-5 pb-1.5 md:pt-8 md:px-8 md:pb-2 min-h-0 bg-white">
  {/* Old sub-header bar has been removed */}
- {rightPanelTab === 'home' ? (
- <div className="flex-grow flex flex-col justify-between items-center text-center p-6 h-full animate-fade-in tab-content-area">
- <div className="flex-1 flex items-center justify-center py-6 w-full relative z-10">
- <img 
- src="https://lh3.googleusercontent.com/d/1uCm4fqE6Qfxg1lm1FsCbo35fVQcI_E5k" 
- alt="Voyager USA Mascot" 
- referrerPolicy="no-referrer"
- className="w-[306px] h-[306px] md:w-[374px] md:h-[374px] max-w-[95%] max-h-[60vh] object-contain animate-float-zero-g mix-blend-multiply" 
- />
- </div>
- <div className="pb-8 z-10 px-4 flex flex-col items-center flex-shrink-0 w-full">
- {/* Footer Buttons Row */}
- <div className="flex items-center justify-center gap-4 text-xs font-mono select-none">
- {/* Copyright Button */}
- <button 
- onClick={() => setActivePolicyModal('copyright')}
- className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
- >
- <span style={{ fontSize: '1.65em', lineHeight: '1' }} className="font-normal">©</span>
- <span>Copyright</span>
- </button>
-
- {/* Privacy Button */}
- <button 
- onClick={() => setActivePolicyModal('privacy')}
- className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
- >
- <Shield className="w-4 h-4" />
- <span>Privacy</span>
- </button>
-
- {/* Terms Button */}
- <button 
- onClick={() => setActivePolicyModal('terms')}
- className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
- >
- <FileText className="w-4 h-4" />
- <span>Terms</span>
- </button>
-
- {/* Contact Button */}
- <button 
- onClick={() => setActivePolicyModal('contact')}
- className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
- >
- <Mail className="w-4 h-4" />
- <span>Contact</span>
- </button>
- </div>
- </div>
- </div>
- ) : rightPanelTab === 'chat' ? (
- <div className="flex-grow flex flex-col overflow-hidden h-full">
- {!hasInteracted ? (
+          {(!hasInteracted && hasClickedConnect) ? (
  <div className="flex-grow flex flex-col justify-center items-center overflow-y-auto p-4 md:p-6 tab-content-area h-full select-none">
  <div className="w-full max-w-2xl mx-auto flex flex-col justify-start p-2 sm:p-4 animate-fade-in">
- {/* Main grid: Mascot on Left, Steps on Right */}
+ {authNotification && (
+            <div className="w-full max-w-xl mx-auto px-2 sm:px-4 mb-4 z-10">
+              <div className="py-1.5 px-3 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold rounded-lg animate-fade-in flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                {authNotification}
+              </div>
+            </div>
+          )}
+
+          {/* Main grid: Mascot on Left, Steps on Right */}
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-10 items-center w-full">
  {/* Left: Mascot */}
  <div className="flex items-center justify-center w-full">
@@ -1823,8 +1782,8 @@ ${greetingPrompt}`;
  {onboardingStep === 1 && (
  <div className="space-y-0.5 w-full">
  {[
- { id: 'PROFESSIONAL', label: selectedLang === 'EN' ? 'Professional' : 'Professional', icon: Briefcase },
- { id: 'ESTUDIO', label: selectedLang === 'EN' ? 'Study' : 'Estudio', icon: BookOpen },
+ { id: 'PROFESSIONAL', label: selectedLang === 'EN' ? 'Professional' : 'Profesional', icon: Briefcase },
+ { id: 'ESTUDIO', label: selectedLang === 'EN' ? 'Study' : 'Estudios', icon: BookOpen },
  { id: 'VIAJANTE', label: selectedLang === 'EN' ? 'Traveler' : 'Viajante', icon: Plane },
  { id: 'DOCENTES', label: selectedLang === 'EN' ? 'Teachers' : 'Docentes', icon: Presentation }
  ].map((opt) => {
@@ -2209,70 +2168,86 @@ ${greetingPrompt}`;
       )}
 
   {onboardingStep === 4 && (
-    <div className="space-y-3 w-full pt-1" style={{ fontFamily: "'Raleway', sans-serif" }}>
-      {/* Field 1: PRIMER NOMBRE */}
-      <div>
+    <div className="space-y-3.5 w-full pt-0" style={{ fontFamily: "'Raleway', sans-serif" }}>
+      {/* Avatar Icon */}
+      <div className="w-11 h-11 bg-blue-50/90 text-[#0D224A] rounded-full flex items-center justify-center mx-auto mb-1 shadow-2xs border border-blue-100/80">
+        <User className="w-5.5 h-5.5 stroke-[2.2]" />
+      </div>
+
+      {/* Subtitle */}
+      <p className="text-xs text-neutral-500 font-medium text-center -mt-1 mb-3.5">
+        {selectedLang === 'EN' ? 'Access your personalized learning journey' : 'Accede a tu trayectoria de aprendizaje personalizada'}
+      </p>
+
+      {/* Field 1: NOMBRE COMPLETO */}
+      <div className="text-left">
+        <label className="block text-[11px] font-extrabold text-neutral-600 uppercase tracking-wider mb-1">
+          {selectedLang === 'EN' ? 'FULL NAME' : 'NOMBRE COMPLETO'}
+        </label>
         <input 
           type="text"
-          value={userName}
-          onChange={(e) => setUserName(e.target.value)}
-          placeholder={selectedLang === 'EN' ? 'First Name' : 'Primer Nombre'}
-          className={`w-full px-4 py-2.5 rounded-full border bg-white text-slate-800 font-bold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
-            userName.trim() !== '' ? 'border-red-600 border-[1.5px]' : 'border-gray-300'
+          value={userName || userLastName ? `${userName}${userLastName ? ' ' + userLastName : ''}` : ''}
+          onChange={(e) => {
+            const val = e.target.value;
+            const parts = val.trim().split(' ');
+            if (parts.length > 1) {
+              setUserName(parts[0]);
+              setUserLastName(parts.slice(1).join(' '));
+            } else {
+              setUserName(val);
+              setUserLastName('');
+            }
+          }}
+          placeholder={selectedLang === 'EN' ? 'e.g. Maria Gonzalez' : 'ej. María González'}
+          className={`w-full px-4 py-2.5 rounded-2xl border bg-white text-slate-800 font-semibold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
+            userName.trim() !== '' ? 'border-[#0D224A] border-[1.5px]' : 'border-neutral-300'
           }`}
         />
       </div>
 
-      {/* Field 2: APELLIDO */}
-      <div>
-        <input 
-          type="text"
-          value={userLastName}
-          onChange={(e) => setUserLastName(e.target.value)}
-          placeholder={selectedLang === 'EN' ? 'Last Name' : 'Apellido'}
-          className={`w-full px-4 py-2.5 rounded-full border bg-white text-slate-800 font-bold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
-            userLastName.trim() !== '' ? 'border-red-600 border-[1.5px]' : 'border-gray-300'
-          }`}
-        />
-      </div>
-
-      {/* Field 3: E-MAIL */}
-      <div>
+      {/* Field 2: CORREO ELECTRÓNICO */}
+      <div className="text-left">
+        <label className="block text-[11px] font-extrabold text-neutral-600 uppercase tracking-wider mb-1">
+          {selectedLang === 'EN' ? 'EMAIL ADDRESS' : 'CORREO ELECTRÓNICO'}
+        </label>
         <input 
           type="email"
           value={userEmail}
           onChange={(e) => setUserEmail(e.target.value)}
-          placeholder={selectedLang === 'EN' ? 'Your Email' : 'Tu Correo Electrónico'}
-          className={`w-full px-4 py-2.5 rounded-full border bg-white text-slate-800 font-bold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
-            userEmail.trim() !== '' ? 'border-red-600 border-[1.5px]' : 'border-gray-300'
+          placeholder="email@example.com"
+          className={`w-full px-4 py-2.5 rounded-2xl border bg-white text-slate-800 font-semibold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
+            userEmail.trim() !== '' ? 'border-[#0D224A] border-[1.5px]' : 'border-neutral-300'
           }`}
         />
       </div>
 
-      {/* Field 4: CREAR CLAVE */}
-      <div>
+      {/* Field 3: CONTRASEÑA */}
+      <div className="text-left">
+        <label className="block text-[11px] font-extrabold text-neutral-600 uppercase tracking-wider mb-1">
+          {selectedLang === 'EN' ? 'PASSWORD' : 'CONTRASEÑA'}
+        </label>
         <div className="relative flex items-center">
           <input 
             type={showPassword ? 'text' : 'password'}
             value={userPassword}
             onChange={(e) => setUserPassword(e.target.value)}
-            placeholder={selectedLang === 'EN' ? 'Create your password' : 'Crea tu clave'}
-            className={`w-full px-4 py-2.5 rounded-full border bg-white text-slate-800 font-bold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
-              userPassword.trim() !== '' ? 'border-red-600 border-[1.5px]' : 'border-gray-300'
+            placeholder="........"
+            className={`w-full px-4 py-2.5 rounded-2xl border bg-white text-slate-800 font-semibold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
+              userPassword.trim() !== '' ? 'border-[#0D224A] border-[1.5px]' : 'border-neutral-300'
             }`}
           />
         </div>
 
         {/* Info Icon, Requisitos de la clave & Ver / Show Toggle Button */}
-        <div className="mt-1.5 px-1 text-left">
+        <div className="mt-1.5 px-1">
           <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={() => setShowPasswordInfo(!showPasswordInfo)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-[#1A365D] transition-colors cursor-pointer select-none"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-500 hover:text-[#0D224A] transition-colors cursor-pointer select-none"
             >
               <Info className="w-4 h-4 text-neutral-500" />
-              <span className="text-[12px]">{selectedLang === 'EN' ? 'Password requirements' : 'Requisitos de la clave'}</span>
+              <span className="text-[11px]">{selectedLang === 'EN' ? 'Password requirements' : 'Requisitos de la clave'}</span>
             </button>
 
             <button
@@ -2285,13 +2260,13 @@ ${greetingPrompt}`;
           </div>
 
           {showPasswordInfo && (
-            <div className="mt-2 p-3.5 bg-neutral-50 border border-neutral-200/90 rounded-2xl animate-fade-in text-left shadow-2xs">
-              <p className="text-[13px] font-bold text-neutral-800 mb-2">
+            <div className="mt-2 p-3 bg-neutral-50 border border-neutral-200/90 rounded-xl animate-fade-in text-left shadow-2xs">
+              <p className="text-[12px] font-bold text-neutral-800 mb-1.5">
                 {selectedLang === 'EN' ? 'Password requirements:' : 'Requisitos de la clave:'}
               </p>
-              <ul className="space-y-2 text-[12px] sm:text-[13px] text-neutral-600 font-medium">
-                <li className="flex items-center gap-2.5">
-                  <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+              <ul className="space-y-1.5 text-[11px] text-neutral-600 font-medium">
+                <li className="flex items-center gap-2">
+                  <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                     userPassword.length >= 8 ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-200'
                   }`}>
                     {userPassword.length >= 8 ? (
@@ -2302,8 +2277,8 @@ ${greetingPrompt}`;
                   </span>
                   <span>{selectedLang === 'EN' ? 'At least 8 characters' : 'Mínimo 8 caracteres'}</span>
                 </li>
-                <li className="flex items-center gap-2.5">
-                  <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                <li className="flex items-center gap-2">
+                  <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                     /\d/.test(userPassword) ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-200'
                   }`}>
                     {/\d/.test(userPassword) ? (
@@ -2314,8 +2289,8 @@ ${greetingPrompt}`;
                   </span>
                   <span>{selectedLang === 'EN' ? 'At least one number' : 'Al menos un número'}</span>
                 </li>
-                <li className="flex items-center gap-2.5">
-                  <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                <li className="flex items-center gap-2">
+                  <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                     /[A-Z]/.test(userPassword) ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-200'
                   }`}>
                     {/[A-Z]/.test(userPassword) ? (
@@ -2332,29 +2307,54 @@ ${greetingPrompt}`;
         </div>
       </div>
 
-      {/* Button: Crear */}
-      <div className="pt-2">
+      {/* Button: Continuar con E-mail */}
+      <div className="pt-1">
         {(() => {
-          const isFormFilled = userName.trim() !== '' && userLastName.trim() !== '' && userEmail.trim() !== '' && userPassword.trim() !== '';
+          const isFormFilled = userName.trim() !== '' && userEmail.trim() !== '' && userPassword.trim() !== '';
           return (
             <button
               type="button"
               onClick={handleOnboardingNext}
               disabled={!isFormFilled}
-              className={`w-full py-3.5 px-6 rounded-full font-extrabold text-base flex items-center justify-center gap-2.5 transition-all duration-300 ${
+              className={`w-full py-3 px-6 rounded-2xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition-all duration-200 ${
                 isFormFilled
-                  ? 'bg-[#1A365D] hover:bg-[#152e50] text-white shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer border border-[#1A365D]'
-                  : 'bg-transparent border border-[#1A365D] text-[#1A365D] cursor-not-allowed opacity-90'
+                  ? 'bg-[#0D224A] hover:bg-[#152e50] text-white shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer'
+                  : 'bg-[#0D224A]/40 text-white/70 cursor-not-allowed'
               }`}
             >
-              <span>{selectedLang === 'EN' ? 'Create' : 'Crear'}</span>
-              <ArrowRight className={`w-5 h-5 stroke-[2.5] transition-colors ${isFormFilled ? 'text-white' : 'text-[#1A365D]'}`} />
+              <span>{selectedLang === 'EN' ? 'Continue with E-mail' : 'Continuar con E-mail'}</span>
             </button>
           );
         })()}
       </div>
+
+      {/* Divider with small circle */}
+      <div className="relative flex items-center justify-center my-3">
+        <div className="w-full border-t border-neutral-200"></div>
+        <div className="absolute bg-white px-2">
+          <span className="w-2.5 h-2.5 rounded-full border border-neutral-300 bg-white block"></span>
+        </div>
+      </div>
+
+      {/* Button: Continuar con Google */}
+      <div>
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          className="w-full py-2.5 px-4 rounded-2xl border border-neutral-300 hover:bg-neutral-50 bg-white text-neutral-800 font-bold text-sm flex items-center justify-center gap-2.5 transition-all duration-200 shadow-2xs cursor-pointer active:scale-[0.98]"
+        >
+          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>{selectedLang === 'EN' ? 'Continue with Google' : 'Continuar con Google'}</span>
+        </button>
+      </div>
     </div>
   )}
+
  {onboardingStep === 3 && (
  <div className="space-y-1 w-full">
  {modeDetails.map((mode) => {
@@ -2502,7 +2502,71 @@ ${greetingPrompt}`;
  </div>
  </div>
  </div>
- ) : (
+          ) : rightPanelTab === 'home' ? (
+ <div className="flex-grow flex flex-col justify-between items-center text-center p-4 sm:p-6 h-full animate-fade-in tab-content-area">
+ {authNotification && (
+              <div className="w-full max-w-xl px-2 sm:px-4 pt-1 sm:pt-2 z-10">
+                <div className="py-1.5 px-3 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold rounded-lg animate-fade-in flex items-center justify-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  {authNotification}
+                </div>
+              </div>
+            )}
+            
+            {/* MIDDLE: Voyager Mascot */}
+ <div className="flex-1 flex items-center justify-center py-2 sm:py-4 w-full relative z-10">
+ <img 
+ src="https://lh3.googleusercontent.com/d/1uCm4fqE6Qfxg1lm1FsCbo35fVQcI_E5k" 
+ alt="Voyager USA Mascot" 
+ referrerPolicy="no-referrer"
+ className="w-[260px] h-[260px] md:w-[320px] md:h-[320px] max-w-[90%] max-h-[50vh] object-contain animate-float-zero-g mix-blend-multiply" 
+ />
+ </div>
+
+ {/* BOTTOM: Footer Buttons Row */}
+ <div className="pb-4 sm:pb-6 z-10 px-4 flex flex-col items-center flex-shrink-0 w-full">
+ <div className="flex items-center justify-center gap-4 text-xs font-mono select-none">
+ {/* Copyright Button */}
+ <button 
+ onClick={() => setActivePolicyModal('copyright')}
+ className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
+ >
+ <span style={{ fontSize: '1.65em', lineHeight: '1' }} className="font-normal">©</span>
+  <span>{selectedLang === 'EN' ? 'Copyright' : 'Derechos'}</span>
+ </button>
+
+ {/* Privacy Button */}
+ <button 
+ onClick={() => setActivePolicyModal('privacy')}
+ className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
+ >
+ <Shield className="w-4 h-4" />
+  <span>{selectedLang === 'EN' ? 'Privacy' : 'Privacidad'}</span>
+ </button>
+
+ {/* Terms Button */}
+ <button 
+ onClick={() => setActivePolicyModal('terms')}
+ className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
+ >
+ <FileText className="w-4 h-4" />
+  <span>{selectedLang === 'EN' ? 'Terms' : 'Términos'}</span>
+ </button>
+
+ {/* Contact Button */}
+ <button 
+ onClick={() => setActivePolicyModal('contact')}
+ className="flex items-center gap-1.5 text-neutral-600 hover:text-black transition-colors duration-300 tracking-wider cursor-pointer"
+ >
+ <Mail className="w-4 h-4" />
+  <span>{selectedLang === 'EN' ? 'Contact' : 'Contacto'}</span>
+ </button>
+ </div>
+ </div>
+ </div>
+          
+  ) : rightPanelTab === 'chat' ? (
+ <div className="flex-grow flex flex-col overflow-hidden h-full">
 
  <div className="flex-1 px-1 sm:px-3 pt-2 pb-4 tab-content-area overflow-y-auto min-h-0">
  <div className="min-h-full flex flex-col justify-start space-y-4">
@@ -2527,55 +2591,7 @@ ${greetingPrompt}`;
  : 'bg-white border-[5px] border-[#FFD700] text-black rounded-tl-none'
  }
  `}>
- {isUser ? (
- <div className="flex items-center justify-end gap-2.5 mb-1.5 select-none">
- <button
- type="button"
- onClick={() => {
- if (!isConnected) return;
- if (isPaused) {
- resume();
- if (window.speechSynthesis && window.speechSynthesis.paused) {
- window.speechSynthesis.resume();
- }
- } else {
- pause();
- if (window.speechSynthesis && window.speechSynthesis.speaking) {
- window.speechSynthesis.pause();
- }
- }
- }}
- disabled={!isConnected}
- className={`flex items-center gap-1 group cursor-pointer transition-all duration-300 ${
- !isConnected ? 'opacity-30 cursor-not-allowed' : 'hover:scale-105 active:scale-95'
- }`}
- >
- {!isPaused && (
- <span 
- style={{ fontFamily: "'Raleway', sans-serif" }} 
- className="text-[9px] font-black tracking-wider transition-all duration-300 text-[#5382eb] group-hover:text-red-600"
- >
- PAUSA
- </span>
- )}
- {isPaused ? (
- <Play fill="currentColor" stroke="none" className="w-3.5 h-3.5 text-red-600 transition-all animate-pulse" />
- ) : (
- <Pause fill="currentColor" stroke="none" className="w-3.5 h-3.5 text-[#5382eb] group-hover:text-red-600 transition-all duration-300" />
- )}
- </button>
- <button
- type="button"
- onClick={() => {
- setRightPanelTab("roadmap");
- }}
- title={visitorFullName ? (selectedLang === "EN" ? `${visitorFullName}'s Profile` : `Perfil de ${visitorFullName}`) : (selectedLang === "EN" ? "Profile" : "Perfil")}
- className="flex items-center justify-center p-0.5 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer"
- >
- <User strokeWidth={2.5} className="w-4 h-4 text-[#5382eb] hover:text-red-600 transition-all duration-300" />
- </button>
- </div>
- ) : (
+ {!isUser && (
  <div className="flex items-center gap-1.5 sm:gap-4 flex-wrap mb-2.5 select-none">
  {/* Embedded Mode Selectors */}
  <div className="flex items-center gap-1.5 sm:gap-4 flex-wrap">
@@ -3024,13 +3040,13 @@ ${greetingPrompt}`;
   value={inputText}
   onChangeValue={setInputText}
   placeholderText={placeholderText}
+  onOpenProfile={() => setRightPanelTab('roadmap')}
   />
   </div>
   )}
  <div ref={chatEndRef} />
  </div>
  </div>
- )}
  </div>
  ) : rightPanelTab === 'roadmap' ? (
  <RoadmapPanel
@@ -3078,7 +3094,11 @@ Pregunta del usuario: "${text}"]`;
  }
  const teachersPrompt = text.startsWith('[AUTO_SYSTEM:')
  ? text
- : `[INSTRUCCIÓN DE SISTEMA: El usuario está preguntando sobre la sección de La Profe (Alejandra Francois, acompañamiento de clases en vivo, grabaciones de acento o logs de pronunciación). Mantén estrictamente tu tono de voz original, velocidad y personalidad de VOYAGER. Responde ÚNICAMENTE en español de forma clara, directa y comprensible para que un usuario de habla hispana entienda perfectamente cómo funciona el acompañamiento docente. No uses inglés ni enseñes inglés aquí. Pregunta del usuario: "${text}"]`;
+ : `[INSTRUCCIÓN DE SISTEMA CRÍTICA Y MANDATORIA: El usuario está conversando en la sección de La Profe.
+1. Está ESTRICTAMENTE PROHIBIDO continuar, retomar o hacer referencia a cualquier conversación previa de la sección de CHARLA general o práctica general de inglés.
+2. Las ÚNICAS conversaciones permitidas aquí son exclusivamente sobre temas de La Profe: clases particulares 1-a-1 en vivo con Alejandra Francois, programas de fonética y acento de Nueva York, contratación de paquetes y coaching, y soporte académico.
+3. Responde ÚNICAMENTE en español de forma clara, profesional, directa y amable con la voz y personalidad de VOYAGER. No enseñes inglés ni hables en inglés aquí.
+Pregunta del usuario: "${text}"]`;
  sendText(teachersPrompt);
  }}
  />
@@ -3109,6 +3129,7 @@ Pregunta del usuario: "${text}"]`;
  }}
  value={inputText}
  onChangeValue={setInputText}
+ onOpenProfile={() => setRightPanelTab('roadmap')}
  />
  </div>
  ) : rightPanelTab === 'settings' ? (
@@ -3210,246 +3231,236 @@ Pregunta del usuario: "${text}"]`;
  {activePolicyModal && (
  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
  <div className="bg-neutral-300 border border-black/15 rounded-2xl max-w-xl w-full shadow-[0_25px_50px_rgba(0,0,0,0.4)] p-6 md:p-8 flex flex-col max-h-[85vh] animate-scale-up">
- {/* Modal Header */}
- <div className="flex items-center justify-between border-b border-neutral-300 pb-4 mb-4">
- <h3 style={{ fontFamily: '"Raleway", sans-serif' }} className="text-lg md:text-xl font-black text-black uppercase tracking-wider">
- {activePolicyModal === 'copyright' ? (selectedLang === 'EN' ? 'Copyright Information' : 'Derechos de Autor') : activePolicyModal === 'privacy' ? 'Privacy Policy' : activePolicyModal === 'contact' ? (selectedLang === 'EN' ? 'Contact Us' : 'Contacto') : 'Terms of Service'}
- </h3>
- <button 
- onClick={() => setActivePolicyModal(null)}
- className="text-neutral-500 hover:text-black transition-colors p-1 rounded-full hover:bg-neutral-200 cursor-pointer"
- >
- <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
- <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
- </svg>
- </button>
- </div>
+  {/* Modal Header */}
+  <div className="flex items-center justify-between border-b border-neutral-300 pb-4 mb-4 gap-2">
+  <h3 style={{ fontFamily: '"Raleway", sans-serif' }} className="text-base sm:text-lg md:text-xl font-black text-black uppercase tracking-wider">
+  {activePolicyModal === 'copyright' ? (selectedLang === 'EN' ? 'Copyright Information' : 'Derechos de Autor') : activePolicyModal === 'privacy' ? (selectedLang === 'EN' ? 'Privacy Policy' : 'Política de Privacidad') : activePolicyModal === 'contact' ? (selectedLang === 'EN' ? 'Contact Us' : 'Contacto') : (selectedLang === 'EN' ? 'Terms of Service' : 'Términos de Servicio')}
+  </h3>
+  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+  {/* Language Toggle EN / ES */}
+  <div className="flex items-center bg-neutral-200/90 p-1 rounded-xl border border-black/10 shadow-inner">
+  <button
+  type="button"
+  onClick={() => setSelectedLang('EN')}
+  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${selectedLang === 'EN' ? 'bg-blue-600 text-white shadow-sm' : 'text-neutral-600 hover:text-black'}`}
+  >
+  EN
+  </button>
+  <button
+  type="button"
+  onClick={() => setSelectedLang('ES')}
+  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${selectedLang === 'ES' ? 'bg-blue-600 text-white shadow-sm' : 'text-neutral-600 hover:text-black'}`}
+  >
+  ES
+  </button>
+  </div>
+  <button 
+  type="button"
+  onClick={() => setActivePolicyModal(null)}
+  className="text-neutral-500 hover:text-black transition-colors p-1.5 rounded-full hover:bg-neutral-200 cursor-pointer"
+  title={selectedLang === 'EN' ? 'Close' : 'Cerrar'}
+  >
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+  </button>
+  </div>
+  </div>
  
  {/* Modal Content */}
  <div className="overflow-y-auto pr-2 space-y-4 text-xs md:text-sm text-neutral-800 leading-relaxed font-sans select-text">
  {activePolicyModal === 'copyright' ? (
  <div className="flex flex-col items-center justify-center py-6 text-center">
  <span style={{ fontSize: '3em' }} className="font-bold text-amber-600 mb-4 block leading-none">©</span>
- <p className="font-semibold text-[#231d17] text-sm md:text-base max-w-sm leading-relaxed">
- © 2026 Yo Soy Voger USA. All rights reserved. Derechos reservados
+ <p className="font-semibold text-[#231d17] text-xs sm:text-sm md:text-base max-w-lg px-2 leading-relaxed">
+  {selectedLang === 'EN' 
+    ? 'YO SOY VOYAGER USA is a product and brand owned by ©2026 FLORIDA SUNMAN LLC. Any reproduction, distribution, modification, or reverse engineering of this software, in whole or in part, without prior written authorization is strictly prohibited.' 
+    : 'YO SOY VOYAGER USA es un producto y una marca propiedad de ©2026 FLORIDA SUNMAN LLC. Se prohíbe la reproducción, distribución, modificación o ingeniería inversa de este software, total o parcialmente, sin autorización previa por escrito.'}
  </p>
  </div>
- ) : activePolicyModal === 'contact' ? (
- <div className="flex flex-col space-y-4 py-1">
- <div className="flex items-center gap-2 border-b border-black/10 pb-2">
- <Mail className="w-5 h-5 text-red-600 flex-shrink-0" />
- <div>
- <h4 className="font-bold text-neutral-900 text-sm md:text-base">
- {selectedLang === 'EN' ? 'Dynamic Contact & Profile Form' : 'Formulario Dinámico de Contacto y Perfil'}
- </h4>
- <p className="text-[11px] text-neutral-600">
- {selectedLang === 'EN' 
- ? 'Complete this form to contact USA Voyager and dynamically populate your PERFIL section.' 
- : 'Completa este formulario para contactar a USA Voyager y poblar dinámicamente tu sección PERFIL.'}
- </p>
- </div>
- </div>
-
- {contactSubmitted ? (
- <div className="bg-emerald-50 border border-emerald-300 text-emerald-800 p-4 rounded-xl text-center space-y-2">
- <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto text-lg font-bold">✓</div>
- <p className="font-bold text-sm">
- {selectedLang === 'EN' ? 'Message Sent & Profile Updated!' : '¡Mensaje Enviado y Perfil Actualizado!'}
- </p>
- <p className="text-xs">
- {selectedLang === 'EN' 
- ? 'Your profile details have been saved to the PERFIL section and our support team has received your inquiry.' 
- : 'Tus datos de perfil han sido guardados en la sección PERFIL y nuestro equipo de soporte ha recibido tu consulta.'}
- </p>
- <button
- onClick={() => {
- setContactSubmitted(false);
- setActivePolicyModal(null);
- setRightPanelTab('progress');
- }}
- className="mt-2 px-4 py-1.5 bg-emerald-600 text-white font-bold text-xs rounded-lg hover:bg-emerald-700 transition-all cursor-pointer shadow-sm"
- >
- {selectedLang === 'EN' ? 'View Profile (PERFIL)' : 'Ver Perfil (PERFIL)'}
- </button>
- </div>
- ) : (
- <form 
- onSubmit={(e) => {
- e.preventDefault();
- const mapLevelEstimate = (lvl: typeof selectedLevel) => {
- if (lvl === 'BEGINNER') return 'Beginner';
- if (lvl === 'INTERMEDIATE') return 'Intermediate';
- if (lvl === 'ADVANCED') return 'Advanced';
- if (lvl === 'NOT_SURE') return 'Not Sure';
- return 'Intermediate';
- };
- const getGoalText = () => {
- if (selectedGoal === 'PROFESSIONAL') return 'Professional';
- if (selectedGoal === 'ESTUDIO') return 'Academic / Study';
- if (selectedGoal === 'VIAJANTE') return 'Traveler';
- if (selectedGoal === 'DOCENTES') return 'Teachers';
- return 'Travel & Daily Conversation';
- };
- const u = {
- name: userName.trim() || (selectedLang === 'EN' ? 'Learner' : 'Estudiante'),
- email: userEmail.trim() || 'learner@usavoyager.com',
- age: userAge.trim() ? parseInt(userAge.trim()) : undefined,
- country: userCountry.trim() || (selectedLang === 'EN' ? 'Not specified' : 'Desconocido'),
- provider: 'Guest' as const,
- goal: getGoalText(),
- levelEstimate: mapLevelEstimate(selectedLevel),
- completedDays: [1],
- plan: 'FREE' as const
- };
- localStorage.setItem('voyager_user_account', JSON.stringify(u));
- setContactSubmitted(true);
- }}
- className="space-y-3"
- >
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
- <div>
- <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
- {selectedLang === 'EN' ? 'Name' : 'Nombre'}
- </label>
- <input 
- type="text"
- required
- value={userName}
- onChange={(e) => setUserName(e.target.value)}
- placeholder={selectedLang === 'EN' ? 'Your full name' : 'Tu nombre completo'}
- className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-semibold focus:border-red-600 focus:outline-none bg-white text-black"
- />
- </div>
-
- <div>
- <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
- {selectedLang === 'EN' ? 'Email' : 'Correo'}
- </label>
- <input 
- type="email"
- required
- value={userEmail}
- onChange={(e) => setUserEmail(e.target.value)}
- placeholder={selectedLang === 'EN' ? 'Your email address' : 'Tu correo electrónico'}
- className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-semibold focus:border-red-600 focus:outline-none bg-white text-black"
- />
- </div>
- </div>
-
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
- <div>
- <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
- {selectedLang === 'EN' ? 'Age' : 'Edad'}
- </label>
- <input 
- type="number"
- value={userAge}
- onChange={(e) => setUserAge(e.target.value)}
- placeholder={selectedLang === 'EN' ? 'Your age' : 'Tu edad'}
- min="1"
- max="120"
- className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-semibold focus:border-red-600 focus:outline-none bg-white text-black"
- />
- </div>
-
- <div>
- <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
- {selectedLang === 'EN' ? 'Country' : 'País'}
- </label>
- <select
- value={userCountry}
- onChange={(e) => setUserCountry(e.target.value)}
- className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-semibold focus:border-red-600 focus:outline-none bg-white text-black cursor-pointer"
- >
- <option value="" disabled hidden>
- {selectedLang === 'EN' ? 'Select Country' : 'Selecciona País'}
- </option>
- {countries.map((c) => (
- <option key={c.id} value={selectedLang === 'EN' ? c.nameEn : c.nameEs}>
- {selectedLang === 'EN' ? c.nameEn : c.nameEs}
- </option>
- ))}
- </select>
- </div>
- </div>
-
- <div>
- <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
- {selectedLang === 'EN' ? 'Message / Inquiry' : 'Mensaje o Consulta'}
- </label>
- <textarea
- rows={3}
- value={contactMessage}
- onChange={(e) => setContactMessage(e.target.value)}
- placeholder={selectedLang === 'EN' ? 'How can we help you on your Voyager journey?' : '¿Cómo podemos ayudarte en tu camino con Voyager?'}
- className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-medium focus:border-red-600 focus:outline-none bg-white text-black resize-none"
- />
- </div>
-
- <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-[11px] text-blue-900 font-medium">
- <span className="flex items-center gap-1.5">
- <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
- {selectedLang === 'EN' ? 'Dynamically populates PERFIL' : 'Poblando PERFIL dinámicamente'}
- </span>
- <a href="mailto:support@usavoyager.com" className="text-blue-700 font-mono font-bold hover:underline">
- support@usavoyager.com
- </a>
- </div>
-
- <div className="flex justify-end gap-2 pt-1">
- <button
- type="button"
- onClick={() => setActivePolicyModal(null)}
- className="px-4 py-2 border border-neutral-300 hover:bg-neutral-100 text-neutral-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
- >
- {selectedLang === 'EN' ? 'Cancel' : 'Cancelar'}
- </button>
- <button
- type="submit"
- className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md active:scale-95"
- >
- {selectedLang === 'EN' ? 'Send & Update Profile' : 'Enviar y Actualizar Perfil'}
- </button>
- </div>
- </form>
- )}
- </div>
- ) : activePolicyModal === 'privacy' ? (
- <>
- <p className="font-semibold text-neutral-900">
- This policy applies exclusively to data collected through the M&K Customer Feedback Portal and does not govern any other data practices of M&K or its affiliated businesses.
- </p>
- <p>
- We collect your name, Google account email, star rating, review text, and submission timestamp via Google OAuth (no password stored) solely to process feedback, generate AI-enriched review suggestions for your approval, notify managers of low ratings, and log interactions in a secure Google Sheet for internal improvement. Your data is never sold or shared with third parties, is accessible only to authorized M&K team members, and is retained only as long as needed to support service improvement and accountability. You have the right to access, correct, or request deletion of your personal data at any time by contacting your designated M&K representative.
- </p>
- </>
- ) : (
- <>
- <p className="font-semibold text-neutral-900">
- This policy applies exclusively to data collected through the M&K Customer Feedback Portal and does not govern any other data practices of M&K or its affiliated businesses.
- </p>
- <p>
- By accessing the M&K Customer Feedback Portal, you agree to use the service solely for its intended purpose of submitting genuine customer feedback — including optional AI-assisted enrichment and automated routing to M&K team members — and to provide accurate, truthful information at all times. M&K makes no guarantees, express or implied, regarding SEO outcomes, business results, or third-party platform visibility, and is not responsible for how submitted reviews are indexed or displayed. M&K reserves the right to modify, suspend, or discontinue the portal at any time without notice and, to the fullest extent permitted by law, shall not be liable for any indirect, incidental, or consequential damages arising from your use of or inability to use the service.
- </p>
- </>
+) : activePolicyModal === 'contact' ? (
+  <div className="flex flex-col space-y-4 py-1">
+  {contactSubmitted ? (
+  <div className="bg-emerald-50 border border-emerald-300 text-emerald-800 p-4 rounded-xl text-center space-y-2">
+  <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto text-lg font-bold">✓</div>
+  <p className="font-bold text-sm">
+  {selectedLang === 'EN' ? 'Message Sent!' : '¡Mensaje Enviado!'}
+  </p>
+  <p className="text-xs">
+  {selectedLang === 'EN' 
+  ? 'Thank you for contacting USA Voyager. Our team has received your message and will get back to you shortly.' 
+  : 'Gracias por contactar a USA Voyager. Nuestro equipo ha recibido tu mensaje y te responderá a la brevedad.'}
+  </p>
+  <button
+  onClick={() => {
+  setContactSubmitted(false);
+  setActivePolicyModal(null);
+  }}
+  className="mt-2 px-5 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-700 transition-all cursor-pointer shadow-sm"
+  >
+  {selectedLang === 'EN' ? 'Close' : 'Cerrar'}
+  </button>
+  </div>
+  ) : (
+  <form 
+  onSubmit={(e) => {
+  e.preventDefault();
+  setContactSubmitted(true);
+  }}
+  className="space-y-4"
+  >
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  <div>
+  <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
+  {selectedLang === 'EN' ? 'Name' : 'Nombre'}
+  </label>
+  <input 
+  type="text"
+  required
+  value={userName}
+  onChange={(e) => setUserName(e.target.value)}
+  placeholder={selectedLang === 'EN' ? 'Your full name' : 'Tu nombre completo'}
+  className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-semibold focus:border-red-600 focus:outline-none bg-white text-black"
+  />
+  </div>
+  <div>
+  <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
+  {selectedLang === 'EN' ? 'Email' : 'Correo'}
+  </label>
+  <input 
+  type="email"
+  required
+  value={userEmail}
+  onChange={(e) => setUserEmail(e.target.value)}
+  placeholder={selectedLang === 'EN' ? 'Your email address' : 'Tu correo electrónico'}
+  className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-semibold focus:border-red-600 focus:outline-none bg-white text-black"
+  />
+  </div>
+  </div>
+  <div>
+  <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
+  {selectedLang === 'EN' ? 'Country' : 'País'}
+  </label>
+  <select
+  value={userCountry}
+  onChange={(e) => setUserCountry(e.target.value)}
+  className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-semibold focus:border-red-600 focus:outline-none bg-white text-black cursor-pointer"
+  >
+  <option value="" disabled hidden>
+  {selectedLang === 'EN' ? 'Select Country' : 'Selecciona País'}
+  </option>
+  {countries.map((c) => (
+  <option key={c.id} value={selectedLang === 'EN' ? c.nameEn : c.nameEs}>
+  {selectedLang === 'EN' ? c.nameEn : c.nameEs}
+  </option>
+  ))}
+  </select>
+  </div>
+  <div>
+  <label className="block text-[11px] font-bold text-neutral-700 uppercase mb-1">
+  {selectedLang === 'EN' ? 'Message' : 'Mensaje'}
+  </label>
+  <textarea
+  rows={4}
+  value={contactMessage}
+  onChange={(e) => setContactMessage(e.target.value)}
+  placeholder={selectedLang === 'EN' ? 'How can we help you on your Voyager journey?' : '¿Cómo podemos ayudarte en tu camino con Voyager?'}
+  className="w-full px-3 py-2 border border-neutral-300 rounded-xl text-xs font-medium focus:border-red-600 focus:outline-none bg-white text-black resize-none"
+  />
+  </div>
+  <div className="flex justify-end pt-2">
+  <button
+  type="submit"
+  className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md active:scale-95"
+  >
+  {selectedLang === 'EN' ? 'Send' : 'Enviar'}
+  </button>
+  </div>
+  </form>
+  )}
+  </div>
+) : activePolicyModal === 'privacy' ? (
+  <>
+  <p className="font-semibold text-neutral-900 leading-relaxed">
+  {selectedLang === 'EN'
+    ? 'This policy applies exclusively to data collected through the YO SOY VOYAGER USA application and does not govern any other data practices of FLORIDA SUNMAN LLC or its affiliated businesses.'
+    : 'Esta política se aplica exclusivamente a los datos recopilados a través de la aplicación YO SOY VOYAGER USA y no rige ninguna otra práctica de datos de FLORIDA SUNMAN LLC o sus empresas afiliadas.'}
+  </p>
+  <p className="leading-relaxed">
+  {selectedLang === 'EN'
+    ? 'We collect your name, email address, profile preferences, and learning progress data solely to personalize your AI English tutoring experience with VOYAGER, manage learning roadmaps, track vocabulary growth, and log practice interactions for internal educational improvement. Your data is never sold or shared with third parties, is accessible only to authorized FLORIDA SUNMAN LLC team members, and is retained only as long as needed to support learning improvement and service accountability. You have the right to access, correct, or request deletion of your personal data at any time by contacting your designated FLORIDA SUNMAN LLC representative.'
+    : 'Recopilamos su nombre, correo electrónico, preferencias de perfil de usuario y datos de progreso de aprendizaje únicamente para personalizar su experiencia de tutoría de inglés con IA con VOYAGER, gestionar mapas de ruta de aprendizaje, realizar un seguimiento del vocabulario y registrar interacciones de práctica para la mejora educativa interna. Sus datos nunca se venden ni se comparten con terceros, solo son accesibles para el personal autorizado de FLORIDA SUNMAN LLC y se conservan únicamente el tiempo necesario para respaldar la mejora del aprendizaje y la responsabilidad del servicio. Tiene derecho a acceder, corregir o solicitar la eliminación de sus datos personales en cualquier momento poniéndose en contacto con su representante designado de FLORIDA SUNMAN LLC.'}
+  </p>
+  </>
+  ) : (
+  <>
+  <p className="font-semibold text-neutral-900 leading-relaxed">
+  {selectedLang === 'EN'
+    ? 'This policy applies exclusively to data and interactions through the YO SOY VOYAGER USA application and does not govern any other practices of FLORIDA SUNMAN LLC or its affiliated businesses.'
+    : 'Esta política se aplica exclusivamente a los datos e interacciones a través de la aplicación YO SOY VOYAGER USA y no rige ninguna otra práctica de FLORIDA SUNMAN LLC o sus empresas afiliadas.'}
+  </p>
+  <p className="leading-relaxed">
+  {selectedLang === 'EN'
+    ? 'By accessing the YO SOY VOYAGER USA application, you agree to use the service solely for its intended purpose of learning and practicing American English — including optional AI-assisted audio/text tutoring and practice modules — and to provide accurate, truthful information at all times. FLORIDA SUNMAN LLC makes no guarantees, express or implied, regarding language fluency outcomes, exam scores, or third-party platform proficiency, and is not responsible for how individual practice performance is evaluated. FLORIDA SUNMAN LLC reserves the right to modify, suspend, or discontinue the application at any time without notice and, to the fullest extent permitted by law, shall not be liable for any indirect, incidental, or consequential damages arising from your use of or inability to use the service.'
+    : 'Al acceder a la aplicación YO SOY VOYAGER USA, acepta utilizar el servicio únicamente para el propósito previsto de aprender y practicar inglés americano (incluidas las tutorías de audio/texto asistidas por IA opcionales y módulos de práctica) y proporcionar información precisa y verídica en todo momento. FLORIDA SUNMAN LLC no ofrece garantías, expresas o implícitas, con respecto a los resultados de fluidez del idioma, puntajes de exámenes o competencia en plataformas de terceros, y no es responsable de cómo se evalúa el rendimiento individual de la práctica. FLORIDA SUNMAN LLC se reserva el derecho de modificar, suspender o interrumpir la aplicación en cualquier momento sin previo aviso y, en la máxima medida permitida por la ley, no será responsable de ningún daño indirecto, incidental o consecuente que surja de su uso o incapacidad de usar el servicio.'}
+  </p>
+  </>
  )}
  </div>
  
  {/* Modal Footer */}
- <div className="mt-6 flex justify-end border-t border-neutral-300 pt-4 flex-shrink-0">
+  {activePolicyModal !== 'contact' && (
+  <div className="mt-6 flex justify-end border-t border-neutral-300 pt-4 flex-shrink-0">
  <button 
  onClick={() => setActivePolicyModal(null)}
  style={{ fontFamily: "'Raleway', sans-serif" }}
  className="px-5 py-2 bg-neutral-800 hover:bg-black text-white font-bold text-xs uppercase tracking-widest rounded-full transition-all cursor-pointer select-none"
  >
- Close
+  {selectedLang === 'EN' ? 'Close' : 'Cerrar'}
  </button>
- </div>
+  </div>
+  )}
  </div>
  </div>
  )}
- </div>
- );
+
+ {/* Email / Google / Guest Auth Modal */}
+  <AuthModal 
+    isOpen={!!authModalMode}
+    onClose={() => setAuthModalMode(null)}
+    selectedLang={selectedLang}
+    onEmailAuthSubmit={(_e, isRegister, nameVal, emailVal, passVal) => {
+      if (!emailVal) return;
+      const finalName = nameVal.trim() || userName || (selectedLang === 'EN' ? 'Guest' : 'Invitado');
+      setUserName(finalName);
+      setUserEmail(emailVal);
+      try {
+        localStorage.setItem('voyager_user_account', JSON.stringify({
+          name: finalName,
+          email: emailVal,
+          password: passVal,
+          provider: 'email',
+          isRegister,
+          loginTime: new Date().toISOString()
+        }));
+      } catch (e) {}
+      setAuthModalMode(null);
+      const msg = isRegister
+        ? (selectedLang === 'EN' ? `Account created! Welcome, ${finalName}!` : `¡Cuenta creada! Bienvenido, ${finalName}!`)
+        : (selectedLang === 'EN' ? `Welcome back, ${finalName}!` : `¡Bienvenido de nuevo, ${finalName}!`);
+      setAuthNotification(msg);
+      setTimeout(() => {
+        setAuthNotification(null);
+      }, 4000);
+      if (typeof executeConnectFlow === 'function') {
+        executeConnectFlow();
+      }
+    }}
+    onGoogleLogin={handleGoogleLogin}
+    onGuestLogin={handleGuestLogin}
+  />
+  </div>
+  );
 };
 
 export default LiveAgent;

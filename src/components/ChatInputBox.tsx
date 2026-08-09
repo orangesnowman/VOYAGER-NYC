@@ -11,6 +11,7 @@ interface ChatInputBoxProps {
   value?: string;
   onChangeValue?: (text: string) => void;
   placeholderText?: string;
+  onOpenProfile?: () => void;
 }
 
 interface VirtualKeyboardProps {
@@ -202,7 +203,8 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
   onSubmitText,
   value,
   onChangeValue,
-  placeholderText
+  placeholderText,
+  onOpenProfile
 }) => {
   const [internalText, setInternalText] = useState('');
   const [activeMode, setActiveMode] = useState<'ESCUCHA' | 'DICTA' | 'ESCRIBE'>('ESCUCHA');
@@ -470,15 +472,12 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
             : 'border-cyan-400 shadow-sm hover:shadow-md'
         } px-3.5 py-2 flex items-center gap-2 min-h-[44px]`}
       >
-        {/* User Profile Icon */}
-        <User className="w-4 h-4 text-[#5A8DF8] stroke-[2.2] flex-shrink-0 self-center" />
-
         {/* Textarea or Sound Graph + Action Controls */}
         <div className="flex items-center gap-2 flex-1 min-h-[36px]">
           {isListening ? (
             /* Vibrating Sound Graph during voice recording */
             <div className="flex-1 flex items-center justify-between gap-2 overflow-hidden py-0.5 px-1 min-h-[28px]">
-              <div className="text-right text-[13px] font-serif text-black/70 truncate flex-1 pr-1 italic">
+              <div style={{ fontFamily: '"Raleway", sans-serif', fontWeight: 600 }} className="text-right text-[13px] text-black/90 truncate flex-1 pr-1 font-semibold">
                 {currentText || (selectedLang === 'EN' ? 'Listening... speak now' : 'Escuchando... habla ahora')}
               </div>
               <div className="flex items-center gap-[3px] h-[26px] flex-shrink-0 px-1">
@@ -507,8 +506,8 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
                 }}
                 inputMode="text"
                 placeholder={placeholderText || defaultPlaceholder}
-                style={{ fontFamily: '"American Typewriter", "Courier New", Courier, serif' }}
-                className="w-full focus:outline-none transition-all border-none bg-transparent text-black text-right placeholder:text-right placeholder:text-black/40 font-serif text-[14px] leading-snug p-0 resize-none min-h-[28px] max-h-[100px] overflow-y-auto pr-1"
+                style={{ fontFamily: '"Raleway", sans-serif', fontWeight: 600 }}
+                className="w-full focus:outline-none transition-all border-none bg-transparent text-black text-right placeholder:text-right placeholder:text-black/40 font-semibold text-[14px] leading-snug p-0 resize-none min-h-[28px] max-h-[100px] overflow-y-auto pr-1"
               />
               {/* Blinking Caret / "I" Beam Indicator when ESCRIBE is active and empty */}
               {isEscribeActive && !currentText && (
@@ -578,6 +577,43 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
                 }`}
               >
                 <AudioLines className="w-4 h-4 stroke-[2.2]" />
+              </button>
+            )}
+
+            {/* PAUSA Control Button */}
+            <button
+              type="button"
+              onClick={handlePausaClick}
+              disabled={!isConnected}
+              title={isPaused ? (selectedLang === 'EN' ? 'Resume' : 'Reanudar') : (selectedLang === 'EN' ? 'Pause' : 'Pausar')}
+              className={`flex items-center gap-1 group cursor-pointer transition-all duration-300 px-1 py-0.5 select-none ${
+                !isConnected ? 'opacity-30 cursor-not-allowed' : 'hover:scale-105 active:scale-95'
+              }`}
+            >
+              {!isPaused && (
+                <span 
+                  style={{ fontFamily: "'Raleway', sans-serif" }} 
+                  className="text-[9px] font-black tracking-wider transition-all duration-300 text-[#5382eb] group-hover:text-red-600"
+                >
+                  {selectedLang === 'EN' ? 'PAUSE' : 'PAUSA'}
+                </span>
+              )}
+              {isPaused ? (
+                <Play fill="currentColor" stroke="none" className="w-3.5 h-3.5 text-red-600 transition-all animate-pulse" />
+              ) : (
+                <Pause fill="currentColor" stroke="none" className="w-3.5 h-3.5 text-[#5382eb] group-hover:text-red-600 transition-all duration-300" />
+              )}
+            </button>
+
+            {/* User Profile Navigation Button */}
+            {onOpenProfile && (
+              <button
+                type="button"
+                onClick={onOpenProfile}
+                title={selectedLang === 'EN' ? 'Profile' : 'Perfil'}
+                className="flex items-center justify-center p-1 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer"
+              >
+                <User strokeWidth={2.5} className="w-4 h-4 text-[#5382eb] hover:text-red-600 transition-all duration-300" />
               </button>
             )}
           </div>

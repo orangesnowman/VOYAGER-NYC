@@ -573,12 +573,26 @@ export const TeacherInsightsPanel: React.FC<TeacherInsightsPanelProps> = ({
 
         </div>
 
-        {/* Separate Chat messages sibling list */}
-        {chatMessages.filter(msg => {
-          if (msg.sender === 'system') return false;
-          if (msg.sender === 'user' && msg.text.startsWith('[')) return false;
-          return true;
-        }).map((msg, index) => {
+        {/* Separate Chat messages sibling list - Only show messages from 'teachers' tab */}
+        {(() => {
+          const teacherMessages = chatMessages.filter(msg => {
+            if (msg.sender === 'system') return false;
+            if (msg.sender === 'user' && msg.text.startsWith('[')) return false;
+            return msg.tab === 'teachers';
+          });
+
+          const messagesToRender = teacherMessages.length > 0 ? teacherMessages : [
+            {
+              id: 'teachers_welcome',
+              sender: 'splash' as const,
+              text: selectedLang === 'EN'
+                ? "Welcome to La Profe's section! Here we discuss private 1-on-1 live lessons with Alejandra Francois, NYC accent coaching, and personalized support. What would you like to know?"
+                : "¡Bienvenido a la sección de La Profe! Aquí conversaremos exclusivamente sobre las clases particulares 1-a-1 en vivo con Alejandra Francois, programas de fonética y acento de Nueva York y soporte personalizado. ¿Qué te gustaría saber hoy sobre La Profe?",
+              tab: 'teachers'
+            }
+          ];
+
+          return messagesToRender.map((msg, index) => {
           const isUser = msg.sender === 'user';
           let displayTxt = msg.text || '';
           
@@ -658,22 +672,23 @@ export const TeacherInsightsPanel: React.FC<TeacherInsightsPanelProps> = ({
                         if (parts.length >= 2) {
                           return (
                             <>
-                              <div style={{ fontFamily: '"American Typewriter", "Courier New", Courier, serif' }} className="text-black font-semibold leading-snug">{parseAndRenderEmojis(parts[0])}</div>
-                              <div style={{ fontFamily: '"American Typewriter", "Courier New", Courier, serif' }} className="chat-message-english text-black leading-snug mt-2">
+                              <div style={{ fontFamily: '"Raleway", sans-serif', fontWeight: 600 }} className="text-black font-semibold leading-snug">{parseAndRenderEmojis(parts[0])}</div>
+                              <div style={{ fontFamily: '"Raleway", sans-serif', fontWeight: 600 }} className="chat-message-english text-black font-semibold leading-snug mt-2">
                                 {parseAndRenderEmojis(parts.slice(1).join(" / "))}
                               </div>
                             </>
                           );
                         }
                       }
-                      return <div style={{ fontFamily: '"American Typewriter", "Courier New", Courier, serif' }} className="text-black leading-snug">{parseAndRenderEmojis(displayTxt)}</div>;
+                      return <div style={{ fontFamily: '"Raleway", sans-serif', fontWeight: 600 }} className="text-black font-semibold leading-snug">{parseAndRenderEmojis(displayTxt)}</div>;
                     })()}
                   </div>
                 </div>
               </div>
             </div>
           );
-        })}
+        });
+      })()}
         <div className="flex justify-end w-full animate-fade-in my-1">
           <ChatInputBox
             selectedLang={selectedLang}

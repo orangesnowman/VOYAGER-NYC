@@ -148,6 +148,10 @@ export function useConversationEngine(
     },
     onError: (errMsg) => {
       setError(errMsg);
+      addSystemMessage(
+        `⚠️ ${errMsg}`,
+        `msg_sys_err_${Date.now()}`
+      );
     },
     onClose: () => {
       addSystemMessage(

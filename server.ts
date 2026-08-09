@@ -520,10 +520,16 @@ async function startServer() {
               logToFile(`Connection closed quickly (${elapsed}ms). Initiating fallback sequence...`);
               triggerFallback();
             } else if (!isTransitioning) {
-              if (reason) {
-                clientWs.send(JSON.stringify({ error: `La conexión con Gemini falló: ${reason}` }));
+              const isNormalOrTimeout = reason.includes("GoAway") || reason.includes("aborted") || reason.includes("session duration") || reason.includes("normal") || code === 1000 || code === 1001;
+              if (isNormalOrTimeout) {
+                logToFile(`Gemini session closed cleanly or timed out: ${reason || code}`);
+                clientWs.send(JSON.stringify({ sessionEnded: true, info: "La sesión de voz finalizó automáticamente." }));
+              } else if (reason) {
+                clientWs.send(JSON.stringify({ error: `La conexión con Gemini se interrumpió: ${reason}` }));
               } else if (code === 1007) {
                 clientWs.send(JSON.stringify({ error: "Clave API de Gemini caducada o no válida." }));
+              } else {
+                clientWs.send(JSON.stringify({ sessionEnded: true }));
               }
               setTimeout(() => {
                 try { clientWs.close(); } catch(e) {}
@@ -549,8 +555,14 @@ async function startServer() {
               logToFile(`Error occurred on model ${modelName}. Initiating fallback sequence...`);
               triggerFallback();
             } else if (!isTransitioning) {
-              const clientMsg = err instanceof Error ? err.message : "Live API connection error";
-              clientWs.send(JSON.stringify({ error: clientMsg }));
+              const clientMsg = err instanceof Error ? err.message : String(err || "Live API connection error");
+              const isGoAwayOrAborted = clientMsg.includes("GoAway") || clientMsg.includes("aborted") || clientMsg.includes("session duration");
+              if (isGoAwayOrAborted) {
+                logToFile(`Gemini Live API error ignored due to GoAway/aborted timeout: ${clientMsg}`);
+                clientWs.send(JSON.stringify({ sessionEnded: true }));
+              } else {
+                clientWs.send(JSON.stringify({ error: "La conexión con Gemini se interrumpió temporalmente." }));
+              }
             }
           }
         }

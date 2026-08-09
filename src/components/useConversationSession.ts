@@ -218,9 +218,24 @@ export function useConversationSession(config: UseConversationSessionConfig) {
             vadRef.current.recordActivity();
             ws.send(JSON.stringify({ audio: base64Data }));
           });
-        } catch (captureErr) {
+        } catch (captureErr: any) {
           console.error('Audio capture failed to start:', captureErr);
-          onErrorRef.current('Microphone access or initialization failed.');
+          const errStr = String(captureErr?.message || captureErr || '').toLowerCase();
+          const errName = String(captureErr?.name || '');
+          const isPermissionDenied = errName === 'NotAllowedError' || 
+            errName === 'PermissionDeniedError' || 
+            errStr.includes('permission') || 
+            errStr.includes('denied');
+
+          const userErrMsg = isPermissionDenied 
+            ? (selectedLang === 'EN' 
+                ? 'Microphone permission denied. Voice mode is disabled, but you can continue using text chat.' 
+                : 'Permiso de micrófono denegado. El modo de voz está desactivado, pero puedes continuar usando el chat de texto.')
+            : (selectedLang === 'EN'
+                ? 'Microphone initialization failed. You can continue using text chat.'
+                : 'No se pudo iniciar el micrófono. Puedes continuar usando el chat de texto.');
+
+          onErrorRef.current(userErrMsg);
         }
       };
 
@@ -277,7 +292,24 @@ REGLA CRÍTICA: NO digas nada más, NO saludes con "Hola", NO preguntes "¿Qué 
             return;
           }
           
+          if (msg.sessionEnded) {
+            console.log('Session ended gracefully by server:', msg.info);
+            disconnect();
+            return;
+          }
+
           if (msg.error) {
+             const isGoAwayOrAborted = typeof msg.error === 'string' && (
+               msg.error.includes("GoAway") || 
+               msg.error.includes("aborted") || 
+               msg.error.includes("session duration") ||
+               msg.error.includes("GoAway signal")
+             );
+             if (isGoAwayOrAborted) {
+               console.log('Session ended due to timeout or GoAway signal:', msg.error);
+               disconnect();
+               return;
+             }
              console.error('Server reported error:', msg.error);
              setError(msg.error);
              disconnect();
