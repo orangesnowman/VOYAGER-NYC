@@ -1502,15 +1502,7 @@ ${greetingPrompt}`;
  {/* Ambient Background Glow */}
  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
  
-  {/* Header Text - VOYAGER USA without pill background */}
-  <div className="space-y-2 pt-3">
-  <h1 style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 4px 15px rgba(0,0,0,0.8)', letterSpacing: '0.10em' }} className="text-4xl sm:text-5xl md:text-6xl font-black text-white mt-1.5 uppercase block leading-none">
-   VOYAGER USA<span className="text-[0.3em] font-light text-white/90 align-baseline ml-1 inline-block select-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 300, letterSpacing: "normal" }}>®</span>
-  </h1>
-  <span style={{ letterSpacing: '0.18em', fontFamily: "'Raleway', sans-serif" }} className="text-[10px] md:text-xs text-yellow-400 font-semibold uppercase block mt-2">
-  {selectedLang === 'EN' ? 'AMERICAN ENGLISH TUTOR' : 'TUTOR DE INGLÉS AMERICANO'}
-  </span>
-  </div>
+  {/* Header Text - Removed */}
 
  {/* Glowing Golden Energy Sphere */}
  <div className="relative flex-grow flex-shrink min-h-0 w-full flex items-center justify-center pt-1 pb-4 md:pt-2 md:pb-6">
@@ -1653,9 +1645,7 @@ ${greetingPrompt}`;
  {/* Center: USA VOYAGER Logo Copy (Hidden in questionnaire section) */}
  {!(!hasInteracted && hasClickedConnect) && (
  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none select-none">
- <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.25em' }} className="text-[10px] sm:text-[11px] md:text-[12px] font-bold text-[#0D224A] uppercase block leading-none">
- {selectedLang === 'EN' ? 'I AM USA' : 'YO SOY USA'}
- </span>
+
  <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.12em' }} className="text-2xl sm:text-3xl md:text-[34px] font-black text-[#0D224A] uppercase block leading-none mt-1">
   VOYAGER<span className="text-[0.3em] font-light text-[#0D224A]/90 align-baseline ml-1 px-1 py-0.5 inline-block select-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 300, letterSpacing: "normal" }}>®</span>
  </span>
@@ -2602,45 +2592,8 @@ ${greetingPrompt}`;
  <div className="flex-grow flex flex-col overflow-hidden h-full">
 
  <div className="flex-1 px-0.5 sm:px-1.5 pt-1 pb-2 tab-content-area overflow-y-auto min-h-0">
- {isLiveVoiceActive ? (
+  {isLiveVoiceActive ? (
     <div className="fixed inset-0 z-50 w-screen h-[100dvh] bg-gradient-to-b from-[#0B1B3D] via-[#0D224A] to-[#061126] rounded-none border-none shadow-none p-4 sm:p-8 flex flex-col items-center justify-between text-center overflow-hidden animate-fade-in">
-     {/* Live Status Top Bar */}
-     <div className="flex items-center justify-between w-full px-3 py-2 bg-black/40 border border-white/10 rounded-2xl backdrop-blur-md">
-       <div className="flex items-center gap-2">
-         <span className="relative flex h-3 w-3">
-           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-           <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-         </span>
-         <span style={{ fontFamily: '"Allerta Stencil", sans-serif' }} className="text-xs sm:text-sm font-bold text-amber-400 tracking-wider uppercase">
-           VOYAGER LIVE
-         </span>
-         <span className="text-[10px] text-white/60 font-mono hidden sm:inline-block">
-           ({selectedLang === 'EN' ? 'Voice Mode' : 'Modo Voz Continuo'})
-         </span>
-       </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              if (isPaused) {
-                resume();
-              } else {
-                pause();
-              }
-            }}
-            className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-semibold rounded-full border border-amber-500/40 flex items-center gap-1 transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
-          >
-            {isPaused ? <Play className="w-3 h-3 fill-current" /> : <Pause className="w-3 h-3 fill-current" />}
-            <span>{isPaused ? (selectedLang === 'EN' ? 'Resume' : 'Reanudar') : (selectedLang === 'EN' ? 'Pause' : 'Pausar')}</span>
-          </button>
-          <button
-            onClick={() => { setIsLiveVoiceActive(false); if (isConnected && !isPaused) pause(); }}
-            className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-[10px] font-semibold rounded-full border border-white/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
-          >
-            {selectedLang === 'EN' ? 'Exit Live' : 'Volver'}
-          </button>
-        </div>
-     </div>
-
      {/* Center Sound Bubble Canvas */}
      <div className="relative flex-1 flex flex-col items-center justify-center my-2 w-full">
        <div className="absolute inset-0 rounded-full bg-amber-500/10 blur-3xl animate-pulse pointer-events-none" />
