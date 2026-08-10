@@ -14,7 +14,7 @@ import { ChatInputBox } from './ChatInputBox';
 import { AuthModal } from './AuthModal';
 import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
 import chatAvatarIcon from '../assets/images/voyager_pixel_avatar_1784465509169.jpg';
-import { Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight, Headphones, AudioLines, MessageSquare, User, Settings, Sliders, ShoppingBag, Globe, Apple, Home, Pause, Play, Info, Shield, FileText, Bot, Eye, EyeOff, ShoppingCart, Briefcase, BookOpen, Luggage, Rocket, Check, UserCheck, Presentation, MessageSquareText, Plane, Sprout, Flower, TreeDeciduous, GraduationCap, Award, Mail, Menu, X, Power } from 'lucide-react';
+import { Mic, Plus, Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight, Headphones, AudioLines, MessageSquare, User, Settings, Sliders, ShoppingBag, Globe, Apple, Home, Pause, Play, Info, Shield, FileText, Bot, Eye, EyeOff, ShoppingCart, Briefcase, BookOpen, Luggage, Rocket, Check, UserCheck, Presentation, MessageSquareText, Plane, Sprout, Flower, TreeDeciduous, GraduationCap, Award, Mail, Menu, X, Power } from 'lucide-react';
 
 import { ChatMessage, Lead, TravelDestination, PronunciationFeedbackEvent, ConversationEvent } from './LiveAgentTypes';
 import { TRAVEL_PRESETS } from './TravelPresets';
@@ -220,6 +220,7 @@ const playPinSound = () => {
 const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) => {
  const [rightPanelTab, setRightPanelTab] = useState<'home' | 'chat' | 'roadmap' | 'teachers' | 'progress' | 'settings' | 'shopping'>('home');
  const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
+ const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
 
  const {
  isConnected,
@@ -266,6 +267,16 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
   });
  const [hasClickedConnect, setHasClickedConnect] = useState<boolean>(false);
  const [chosenStartMode, setChosenStartMode] = useState<ConversationMode | null>('SPANISH');
+
+ const currentModeObj = useMemo(() => {
+   if (isBilingualMode) return modeDetails.find(m => m.id === 'BILINGUAL') || modeDetails[0];
+   if (isEnglishOnlyMode) return modeDetails.find(m => m.id === 'AMERICAN_ENGLISH') || modeDetails[0];
+   if (isTranslateMode) return modeDetails.find(m => m.id === 'LIVE_TRANSLATOR') || modeDetails[0];
+   if (isListenOnly) return modeDetails.find(m => m.id === 'LISTEN_ONLY') || modeDetails[0];
+   if (isSpanishOnlyMode) return modeDetails.find(m => m.id === 'SPANISH') || modeDetails[0];
+   return modeDetails.find(m => m.id === (chosenStartMode || 'SPANISH')) || modeDetails[0];
+ }, [isBilingualMode, isEnglishOnlyMode, isTranslateMode, isListenOnly, isSpanishOnlyMode, chosenStartMode]);
+
  const [onboardingStep, setOnboardingStep] = useState<number>(0);
  const [selectedGoal, setSelectedGoal] = useState<'PROFESSIONAL' | 'ESTUDIO' | 'VIAJANTE' | 'DOCENTES' | null>(null);
  const [selectedLevel, setSelectedLevel] = useState<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'NOT_SURE' | null>(null);
@@ -594,7 +605,18 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  // Particle visualizer canvas refs & loop
  const particleCanvasRef = useRef<HTMLCanvasElement | null>(null);
  const coverParticleCanvasRef = useRef<HTMLCanvasElement | null>(null);
- const [isLiveVoiceActive, setIsLiveVoiceActive] = useState<boolean>(false);
+ const [isLiveVoiceActive, setIsLiveVoiceActive] = useState<boolean>(true);
+
+  // Sync Live Voice Active mode with WebSocket pause/resume
+  useEffect(() => {
+    if (isConnected) {
+      if (isLiveVoiceActive && isPaused) {
+        resume();
+      } else if (!isLiveVoiceActive && !isPaused) {
+        pause();
+      }
+    }
+  }, [isLiveVoiceActive, isConnected]);
  const volumeRef = useRef(0);
  volumeRef.current = volume;
  const reminderTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -1049,26 +1071,14 @@ NO respondas a ruidos, habla o ruidos de fondo.]`;
  }
  };
 
- // Helper to apply mode to Hook state
- const applyChosenMode = (mode: ConversationMode) => {
- switch (mode) {
- case 'BILINGUAL':
- setIsBilingualMode(true);
- break;
- case 'AMERICAN_ENGLISH':
- setIsEnglishOnlyMode(true);
- break;
- case 'LIVE_TRANSLATOR':
- setIsTranslateMode(true);
- break;
- case 'LISTEN_ONLY':
- setIsListenOnly(true);
- break;
- case 'SPANISH':
- setIsSpanishOnlyMode(true);
- break;
- }
- };
+  // Helper to apply mode to Hook state
+  const applyChosenMode = (mode: ConversationMode) => {
+    setIsBilingualMode(mode === 'BILINGUAL');
+    setIsEnglishOnlyMode(mode === 'AMERICAN_ENGLISH');
+    setIsTranslateMode(mode === 'LIVE_TRANSLATOR');
+    setIsListenOnly(mode === 'LISTEN_ONLY');
+    setIsSpanishOnlyMode(mode === 'SPANISH');
+  };
 
  const handleCompleteOnboarding = () => {
  const saved = localStorage.getItem('voyager_user_account');
@@ -1477,7 +1487,7 @@ ${greetingPrompt}`;
 
  return (
  <div 
- className="relative min-h-screen md:h-screen w-full bg-[#000000] flex items-center justify-center px-1 sm:px-1.5 md:px-2 py-0.5 overflow-y-auto md:overflow-hidden select-none"
+ className="relative h-[100dvh] md:h-screen w-full bg-[#000000] flex items-center justify-center p-0 md:px-2 md:py-0.5 overflow-hidden select-none"
  style={{
  backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0)',
  backgroundSize: '24px 24px'
@@ -1492,18 +1502,15 @@ ${greetingPrompt}`;
  {/* Ambient Background Glow */}
  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
  
- {/* Header Text */}
- <div className="space-y-2 pt-3">
- <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.25em' }} className="text-xl md:text-2xl font-bold text-white uppercase tracking-widest block">
- {selectedLang === 'EN' ? 'I AM USA' : 'YO SOY USA'}
- </span>
- <h1 style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 4px 15px rgba(0,0,0,0.8)', letterSpacing: '0.12em' }} className="text-5xl md:text-6xl font-black text-white mt-1.5 uppercase block leading-none">
-  VOYAGER<span className="text-[0.3em] font-light text-white/90 align-baseline ml-1 px-1 py-0.5 inline-block select-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 300, letterSpacing: "normal" }}>®</span>
- </h1>
- <span style={{ letterSpacing: '0.18em', fontFamily: "'Raleway', sans-serif" }} className="text-[10px] md:text-xs text-yellow-400 font-semibold uppercase block mt-2">
- {selectedLang === 'EN' ? 'AMERICAN ENGLISH TUTOR' : 'TUTOR DE INGLÉS AMERICANO'}
- </span>
- </div>
+  {/* Header Text - VOYAGER USA without pill background */}
+  <div className="space-y-2 pt-3">
+  <h1 style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 4px 15px rgba(0,0,0,0.8)', letterSpacing: '0.10em' }} className="text-4xl sm:text-5xl md:text-6xl font-black text-white mt-1.5 uppercase block leading-none">
+   VOYAGER USA<span className="text-[0.3em] font-light text-white/90 align-baseline ml-1 inline-block select-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 300, letterSpacing: "normal" }}>®</span>
+  </h1>
+  <span style={{ letterSpacing: '0.18em', fontFamily: "'Raleway', sans-serif" }} className="text-[10px] md:text-xs text-yellow-400 font-semibold uppercase block mt-2">
+  {selectedLang === 'EN' ? 'AMERICAN ENGLISH TUTOR' : 'TUTOR DE INGLÉS AMERICANO'}
+  </span>
+  </div>
 
  {/* Glowing Golden Energy Sphere */}
  <div className="relative flex-grow flex-shrink min-h-0 w-full flex items-center justify-center pt-1 pb-4 md:pt-2 md:pb-6">
@@ -1521,8 +1528,7 @@ ${greetingPrompt}`;
  </div>
 
  {/* Bottom Button Panel */}
- <div className="pb-4 md:pb-7 w-full z-10 flex flex-col items-center justify-center">
- {/* Main Action Button */}
+ <div className="pb-4 md:pb-7 w-full z-10 flex items-center justify-center gap-3">
  {!hasClickedConnect ? (
  <button
  onClick={handleConnectClick}
@@ -1547,11 +1553,20 @@ ${greetingPrompt}`;
  )}
 
 
+ {/* Chat Mode Menu Trigger (+) */}
+ <button
+ onClick={() => setIsModeMenuOpen(prev => !prev)}
+ title={selectedLang === 'EN' ? 'Chat Modes' : 'Modos de Charla'}
+ className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 text-white flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-md relative"
+ >
+ <Plus className="w-5 h-5 text-white" />
+ </button>
+
  </div>
  </div>
 
  {/* Column 2 (Right Panel): The Cover Page (White layout) */}
- <div className={`md:col-span-1 ${hasClickedConnect ? 'bg-[#0D224A]' : 'bg-white'} rounded-[16px] sm:rounded-[24px] md:rounded-[32px] flex flex-col justify-between items-center text-center shadow-[0_15px_35px_rgba(0,0,0,0.15)] relative overflow-hidden w-full h-[96vh] sm:h-[98vh] md:h-full min-h-[480px] md:min-h-0`}>
+ <div className={`md:col-span-1 ${hasClickedConnect ? 'bg-[#0D224A]' : 'bg-white'} rounded-none md:rounded-[32px] flex flex-col justify-between items-center text-center shadow-none md:shadow-[0_15px_35px_rgba(0,0,0,0.15)] relative overflow-hidden w-full h-[100dvh] md:h-full min-h-0`}>
  {!hasClickedConnect ? (
  /* Disconnected Landing Screen inside the Cover */
  <>
@@ -1623,9 +1638,9 @@ ${greetingPrompt}`;
  onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
  title={selectedLang === 'EN' ? 'Menu' : 'Menú'}
  aria-label={selectedLang === 'EN' ? 'Menu' : 'Menú'}
- className="relative p-1 text-red-600 hover:text-red-700 transition-colors cursor-pointer flex items-center justify-center active:scale-95"
+ className="relative p-1.5 text-white hover:text-amber-300 bg-white/10 border border-white/20 rounded-xl transition-all cursor-pointer flex items-center justify-center active:scale-95 shadow-sm"
  >
- {isNavMenuOpen ? <X className="w-7 h-7 text-red-600" strokeWidth={3} /> : <Menu className="w-7 h-7 text-red-600" strokeWidth={3} />}
+ {isNavMenuOpen ? <X className="w-6 h-6 text-white" strokeWidth={3} /> : <Menu className="w-6 h-6 text-white" strokeWidth={3} />}
  {cartCount > 0 && !isNavMenuOpen && (
  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1 border border-white">
  {cartCount}
@@ -2588,7 +2603,7 @@ ${greetingPrompt}`;
 
  <div className="flex-1 px-0.5 sm:px-1.5 pt-1 pb-2 tab-content-area overflow-y-auto min-h-0">
  {isLiveVoiceActive ? (
-   <div className="flex-1 flex flex-col items-center justify-between p-4 sm:p-5 text-center animate-fade-in relative overflow-hidden bg-gradient-to-b from-[#0B1B3D] via-[#0D224A] to-[#061126] rounded-3xl border border-amber-500/30 shadow-[0_15px_50px_rgba(0,0,0,0.7)] my-1 min-h-[380px] w-full">
+    <div className="fixed inset-0 z-50 w-screen h-[100dvh] bg-gradient-to-b from-[#0B1B3D] via-[#0D224A] to-[#061126] rounded-none border-none shadow-none p-4 sm:p-8 flex flex-col items-center justify-between text-center overflow-hidden animate-fade-in">
      {/* Live Status Top Bar */}
      <div className="flex items-center justify-between w-full px-3 py-2 bg-black/40 border border-white/10 rounded-2xl backdrop-blur-md">
        <div className="flex items-center gap-2">
@@ -2603,12 +2618,27 @@ ${greetingPrompt}`;
            ({selectedLang === 'EN' ? 'Voice Mode' : 'Modo Voz Continuo'})
          </span>
        </div>
-       <button
-         onClick={() => setIsLiveVoiceActive(false)}
-         className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-[10px] font-semibold rounded-full border border-white/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
-       >
-         {selectedLang === 'EN' ? 'Exit Live' : 'Volver al Chat'}
-       </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (isPaused) {
+                resume();
+              } else {
+                pause();
+              }
+            }}
+            className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-semibold rounded-full border border-amber-500/40 flex items-center gap-1 transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
+          >
+            {isPaused ? <Play className="w-3 h-3 fill-current" /> : <Pause className="w-3 h-3 fill-current" />}
+            <span>{isPaused ? (selectedLang === 'EN' ? 'Resume' : 'Reanudar') : (selectedLang === 'EN' ? 'Pause' : 'Pausar')}</span>
+          </button>
+          <button
+            onClick={() => { setIsLiveVoiceActive(false); if (isConnected && !isPaused) pause(); }}
+            className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-[10px] font-semibold rounded-full border border-white/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+          >
+            {selectedLang === 'EN' ? 'Exit Live' : 'Volver'}
+          </button>
+        </div>
      </div>
 
      {/* Center Sound Bubble Canvas */}
@@ -2618,22 +2648,8 @@ ${greetingPrompt}`;
          ref={coverParticleCanvasRef}
          width={720}
          height={720}
-         className="z-10 w-44 h-44 sm:w-56 sm:h-56 max-w-full object-contain animate-float-zero-g"
+         className="z-10 w-80 h-80 sm:w-[400px] sm:h-[400px] md:w-[460px] md:h-[460px] max-w-full object-contain animate-float-zero-g"
        />
-
-       {/* Voice Wave Visualizer Bars */}
-       <div className="flex items-center justify-center gap-1 mt-2">
-         {[0.4, 0.7, 1.0, 0.6, 0.9, 0.5, 0.8, 0.3].map((heightFactor, i) => (
-           <div
-             key={i}
-             className="w-1 bg-amber-400 rounded-full transition-all duration-75"
-             style={{
-               height: `${Math.max(6, Math.min(32, (volume * heightFactor * 0.8) + 8))}px`,
-               opacity: volume > 5 ? 0.9 : 0.4
-             }}
-           />
-         ))}
-       </div>
 
        <span className="text-xs font-mono font-medium text-amber-300 mt-2 block animate-pulse">
          {volume > 15
@@ -2642,28 +2658,61 @@ ${greetingPrompt}`;
        </span>
      </div>
 
-     {/* Realtime Subtitle Banner (Latest Spoken Line) */}
-     {chatMessages.filter(m => !m.tab || m.tab === 'chat').slice(-1)[0] && (
-       <div className="w-full max-w-lg mx-auto bg-black/60 border border-amber-500/20 backdrop-blur-md rounded-2xl p-3 text-left shadow-lg animate-fade-in">
-         <div className="flex items-center gap-1.5 mb-1 text-[10px] font-bold text-amber-400 tracking-wider uppercase">
-           {chatMessages.filter(m => !m.tab || m.tab === 'chat').slice(-1)[0].sender === 'user' ? (
-             <>
-               <User className="w-3 h-3 text-blue-400" />
-               <span>{selectedLang === 'EN' ? 'YOU SAID' : 'TÚ DIJISTE'}</span>
-             </>
-           ) : (
-             <>
-               <AudioLines className="w-3 h-3 text-amber-400" />
-               <span>VOYAGER</span>
-             </>
-           )}
-         </div>
-         <p className="text-xs text-white/90 leading-relaxed font-normal line-clamp-3">
-           {chatMessages.filter(m => !m.tab || m.tab === 'chat').slice(-1)[0].text}
-         </p>
-       </div>
-     )}
-   </div>
+      {/* Realtime Subtitle & Dictation Control Bar */}
+      <div className="w-full max-w-xl mx-auto bg-black/70 border border-amber-500/30 backdrop-blur-md rounded-2xl p-3 flex items-center justify-between gap-3 shadow-none animate-fade-in">
+        <div className="flex-1 text-left min-w-0">
+          <div className="flex items-center gap-1.5 mb-1 text-[10px] font-bold text-amber-400 tracking-wider uppercase">
+            {chatMessages.filter(m => !m.tab || m.tab === 'chat').slice(-1)[0]?.sender === 'user' ? (
+              <>
+                <User className="w-3 h-3 text-blue-400" />
+                <span>{selectedLang === 'EN' ? 'YOU SAID' : 'TÚ DIJISTE'}</span>
+              </>
+            ) : (
+              <>
+                <Bot className="w-3.5 h-3.5 text-amber-400" />
+                <span>{selectedLang === 'EN' ? currentModeObj.nameEn : currentModeObj.nameEs}</span>
+              </>
+            )}
+          </div>
+          <p className="text-xs sm:text-sm text-white/90 leading-relaxed font-normal line-clamp-2">
+            {chatMessages.filter(m => !m.tab || m.tab === 'chat').slice(-1)[0]?.text || (selectedLang === 'EN' ? 'Listening...' : 'Escuchando...')}
+          </p>
+        </div>
+
+        {/* Right Action Icons: Chat Modes (+), Open Chat & Close */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => setIsModeMenuOpen(prev => !prev)}
+            title={selectedLang === 'EN' ? 'Chat Modes' : 'Modos de Charla'}
+            className="p-2.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 rounded-full text-amber-300 transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-md flex items-center justify-center"
+          >
+            <Plus className="w-5 h-5 text-amber-300" />
+          </button>
+
+          <button
+            onClick={() => {
+              setRightPanelTab('chat');
+              setIsLiveVoiceActive(false);
+            }}
+            title={selectedLang === 'EN' ? 'Open Chat' : 'Abrir Chat'}
+            className="p-2.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 rounded-full text-amber-300 transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-md flex items-center justify-center"
+          >
+            <MessageSquare className="w-5 h-5 text-amber-300" />
+          </button>
+
+          <button
+            onClick={() => {
+              setIsLiveVoiceActive(false);
+              if (isConnected && !isPaused) pause();
+            }}
+            title={selectedLang === 'EN' ? 'Exit Live' : 'Cerrar Modo Voz'}
+            className="p-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full text-white/80 hover:text-white transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-md"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+     </div>
  ) : (
  <div className="min-h-full flex flex-col justify-start space-y-4">
  {chatMessages.filter(msg => !msg.tab || msg.tab === 'chat').map((msg, index) => {
@@ -3116,61 +3165,55 @@ ${greetingPrompt}`;
  {isSubmittingInlineLead ? "ENVIANDO..." : "ENVIAR"}
  </button>
  </div>
- </div>
- </>
- )}
- </div>
- )}
- </div>
- </div>
- </div>
- );
- })}
- </div>
- )}
-  {!showReviewScreen && hasInteracted && (
-  <div className="flex justify-end w-full animate-fade-in my-1">
+  </div>
+  </>
+  )}
+  </div>
+  )}
+  </div>
+  </div>
+  </div>
+  );
+  })}
+  <div ref={chatEndRef} />
+  </div>
+  )}
+  </div>
   <ChatInputBox
     selectedLang={selectedLang}
     isConnected={isConnected}
-    isPaused={isPaused}
-    pause={pause}
-    resume={resume}
-    onSubmitText={(text) => {
-      const trimmed = text ? text.trim() : '';
-      if (!trimmed) return;
-      addUserMessage(trimmed);
-      sendText(trimmed);
-    }}
-    value={inputText}
-    onChangeValue={setInputText}
-    placeholderText={placeholderText}
-    onOpenProfile={() => setRightPanelTab('roadmap')}
-    isSpanishOnlyMode={isSpanishOnlyMode}
-    setIsSpanishOnlyMode={setIsSpanishOnlyMode}
-    isBilingualMode={isBilingualMode}
-    setIsBilingualMode={setIsBilingualMode}
-    isEnglishOnlyMode={isEnglishOnlyMode}
-    setIsEnglishOnlyMode={setIsEnglishOnlyMode}
-    isTranslateMode={isTranslateMode}
-    setIsTranslateMode={setIsTranslateMode}
-    isListenOnly={isListenOnly}
-    setIsListenOnly={setIsListenOnly}
-    isLiveVoiceActive={isLiveVoiceActive}
-    onToggleLiveVoice={() => {
-      setIsLiveVoiceActive(prev => !prev);
-      if (isConnected && isPaused) {
-        resume();
-      }
-    }}
+   resume={resume}
+   onSubmitText={(text) => {
+     const trimmed = text ? text.trim() : '';
+     if (!trimmed) return;
+     addUserMessage(trimmed);
+     sendText(trimmed);
+   }}
+   value={inputText}
+   onChangeValue={setInputText}
+   placeholderText={placeholderText}
+   onOpenProfile={() => setRightPanelTab('roadmap')}
+   isSpanishOnlyMode={isSpanishOnlyMode}
+   setIsSpanishOnlyMode={setIsSpanishOnlyMode}
+   isBilingualMode={isBilingualMode}
+   setIsBilingualMode={setIsBilingualMode}
+   isEnglishOnlyMode={isEnglishOnlyMode}
+   setIsEnglishOnlyMode={setIsEnglishOnlyMode}
+   isTranslateMode={isTranslateMode}
+   setIsTranslateMode={setIsTranslateMode}
+   isListenOnly={isListenOnly}
+   setIsListenOnly={setIsListenOnly}
+   isLiveVoiceActive={isLiveVoiceActive}
+   onToggleLiveVoice={() => {
+     setIsLiveVoiceActive(prev => !prev);
+     if (isConnected && isPaused) {
+       resume();
+     }
+   }}
   />
   </div>
-  )}
- <div ref={chatEndRef} />
- </div>
- </div>
- ) : rightPanelTab === 'roadmap' ? (
- <RoadmapPanel
+  ) : rightPanelTab === 'roadmap' ? (
+  <RoadmapPanel
  selectedLang={selectedLang}
  learnedWordsCount={learnedWords.length}
  grammarScore={scores.grammar}
@@ -3288,7 +3331,6 @@ Pregunta del usuario: "${text}"]`;
  setIsEnglishOnlyMode={setIsEnglishOnlyMode}
  />
  ) : null}
-
  {/* Always mount ShoppingPanel to prevent script reloading & duplicate minicart widgets */}
  <div className={rightPanelTab === 'shopping' ? 'flex-grow flex flex-col overflow-hidden h-full min-h-0' : 'hidden'}>
  <ShoppingPanel
@@ -3359,19 +3401,15 @@ Pregunta del usuario: "${text}"]`;
  sendText(storePrompt);
  }}
  />
- </div>
-
- </div>
- )}
- </div>
- )}
- </div>
- </div>
- {/* Policy Modal Overlay */}
- {activePolicyModal && (
- <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
- <div className="bg-neutral-300 border border-black/15 rounded-2xl max-w-xl w-full shadow-[0_25px_50px_rgba(0,0,0,0.4)] p-6 md:p-8 flex flex-col max-h-[85vh] animate-scale-up">
-  {/* Modal Header */}
+  </div>
+  </div>
+  )}
+  </div>
+  )}
+  </div>
+  {activePolicyModal && (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-neutral-200">
   <div className="flex items-center justify-between border-b border-neutral-300 pb-4 mb-4 gap-2">
   <h3 style={{ fontFamily: '"Raleway", sans-serif' }} className="text-base sm:text-lg md:text-xl font-black text-black uppercase tracking-wider">
   {activePolicyModal === 'copyright' ? (selectedLang === 'EN' ? 'Copyright Information' : 'Derechos de Autor') : activePolicyModal === 'privacy' ? (selectedLang === 'EN' ? 'Privacy Policy' : 'Política de Privacidad') : activePolicyModal === 'contact' ? (selectedLang === 'EN' ? 'Contact Us' : 'Contacto') : (selectedLang === 'EN' ? 'Terms of Service' : 'Términos de Servicio')}
@@ -3564,6 +3602,109 @@ Pregunta del usuario: "${text}"]`;
  </div>
  )}
 
+  {/* Chat Modes Selection Modal */}
+  {isModeMenuOpen && (
+    <div className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-[#0B1B3D] border border-white/20 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl flex flex-col gap-4 text-white relative">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300">
+              <Plus className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 style={{ fontFamily: '"Raleway", sans-serif' }} className="text-base font-bold text-white uppercase tracking-wider">
+                {selectedLang === 'EN' ? 'Chat Modes' : 'Modos de Charla'}
+              </h3>
+              <p className="text-[11px] text-white/60">
+                {selectedLang === 'EN' ? 'Select VOYAGER conversation style' : 'Selecciona el estilo de conversación de VOYAGER'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsModeMenuOpen(false)}
+            className="p-1.5 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-all cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Modes Options */}
+        <div className="flex flex-col gap-2.5 my-1 max-h-[60vh] overflow-y-auto pr-1">
+          {modeDetails.map((mode) => {
+            const name = selectedLang === 'EN' ? mode.nameEn : mode.nameEs;
+            const desc = selectedLang === 'EN' ? mode.descEn : mode.descEs;
+            const tag = selectedLang === 'EN' ? mode.tagEn : mode.tagEs;
+            const effectiveMode = chosenStartMode || 'SPANISH';
+            const isSelected = effectiveMode === mode.id;
+
+            const IconComp = mode.id === 'BILINGUAL' ? Sparkles :
+                             mode.id === 'AMERICAN_ENGLISH' ? Compass :
+                             mode.id === 'LIVE_TRANSLATOR' ? Languages :
+                             mode.id === 'LISTEN_ONLY' ? Headphones : MessageSquare;
+
+            return (
+              <button
+                key={mode.id}
+                onClick={() => {
+                  handleModeSelection(mode.id as ConversationMode);
+                  applyChosenMode(mode.id as ConversationMode);
+                  if (isConnected) {
+                    sendText(`[INSTRUCCIÓN DE SISTEMA: El usuario ha seleccionado el modo de conversación: "${name}". Cambia tu estilo e idioma inmediatamente a este modo: "${desc}"]`);
+                  }
+                  setIsModeMenuOpen(false);
+                }}
+                className={`w-full flex items-start gap-3.5 p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-amber-500/25 to-amber-600/15 border-amber-400 text-white shadow-lg ring-1 ring-amber-400/50'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/80 hover:text-white hover:border-white/25'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                  isSelected ? 'bg-amber-400 text-black shadow-md' : 'bg-white/10 text-amber-300'
+                }`}>
+                  <IconComp className="w-5 h-5" />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span style={{ fontFamily: "'Raleway', sans-serif" }} className="text-xs sm:text-sm font-bold tracking-wide">
+                      {name}
+                    </span>
+                    {isSelected ? (
+                      <span className="px-2 py-0.5 bg-amber-400 text-black text-[9px] font-black uppercase rounded-full tracking-wider flex items-center gap-1 shadow-xs">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        {selectedLang === 'EN' ? 'Active' : 'Activo'}
+                      </span>
+                    ) : tag ? (
+                      <span className="text-[9px] text-white/50 bg-white/5 px-2 py-0.5 rounded-full border border-white/10 font-medium">
+                        {tag}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-[11px] text-white/70 mt-1 leading-snug">
+                    {desc}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-white/50">
+          <span>VOYAGER USA • {selectedLang === 'EN' ? 'Chat Modes' : 'Modos de Charla'}</span>
+          <button
+            onClick={() => setIsModeMenuOpen(false)}
+            className="px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
+          >
+            {selectedLang === 'EN' ? 'Close' : 'Cerrar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+
  {/* Email / Google / Guest Auth Modal */}
   <AuthModal 
     isOpen={!!authModalMode}
@@ -3599,6 +3740,7 @@ Pregunta del usuario: "${text}"]`;
     onGoogleLogin={handleGoogleLogin}
     onGuestLogin={handleGuestLogin}
   />
+  </div>
   </div>
   );
 };

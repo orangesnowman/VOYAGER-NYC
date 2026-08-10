@@ -319,7 +319,7 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
 
       recognition.onresult = (event: any) => {
         let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        for (let i = 0; i < event.results.length; i++) {
           transcript += event.results[i][0].transcript;
         }
 
@@ -625,51 +625,51 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
             )}
           </div>
 
-          {isListening ? (
-            /* Vibrating Sound Graph during voice recording (Compact wave so buttons stay fully visible) */
-            <div className="flex-1 flex items-center justify-center overflow-hidden py-0.5 px-1 min-h-[28px] max-w-[140px] mx-auto">
-              <div className="flex items-center justify-center gap-[3px] h-[28px] w-full">
-                {waveformHeights.map((h, idx) => (
+          {/* Listening Waveform Indicator (Onda Visualizer) - visible when isListening is true */}
+          {isListening && (
+            <div className="flex-shrink-0 flex items-center justify-center h-[28px] px-2 bg-emerald-50 rounded-full border border-emerald-300/80 shadow-inner">
+              <div className="flex items-center justify-center gap-[2.5px] h-[20px] w-[42px]">
+                {waveformHeights.slice(0, 8).map((h, idx) => (
                   <span
                     key={idx}
-                    style={{ height: `${Math.max(15, h)}%` }}
+                    style={{ height: `${Math.max(20, h)}%` }}
                     className="w-[2.5px] bg-emerald-500 rounded-full transition-all duration-75 ease-out shrink-0"
                   />
                 ))}
               </div>
             </div>
-          ) : (
-            /* Standard Text Area for typing / viewing transcribed text */
-            <div className="relative flex-1 flex items-center">
-              <textarea
-                ref={textareaRef}
-                rows={1}
-                value={currentText}
-                onChange={handleTextChange}
-                onKeyDown={handleKeyDown}
-                onClick={() => {
-                  setActiveMode('ESCRIBE');
-                  setIsEscribeActive(true);
-                  setShowVirtualKeyboard(true);
-                }}
-                onFocus={() => {
-                  setActiveMode('ESCRIBE');
-                  setIsEscribeActive(true);
-                  setShowVirtualKeyboard(true);
-                }}
-                inputMode="text"
-                placeholder={placeholderText || defaultPlaceholder}
-                style={{ fontFamily: '"Raleway", sans-serif', fontWeight: 600 }}
-                className="w-full focus:outline-none transition-all border-none bg-transparent text-black text-right placeholder:text-right placeholder:text-black/40 font-semibold text-[14px] leading-snug p-0 resize-none min-h-[28px] max-h-[100px] overflow-y-auto pr-1"
-              />
-              {/* Blinking Caret / "I" Beam Indicator when ESCRIBE is active and empty */}
-              {isEscribeActive && !currentText && (
-                <span className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center pointer-events-none pr-0.5">
-                  <span className="w-[2px] h-[16px] bg-blue-600 animate-pulse inline-block" />
-                </span>
-              )}
-            </div>
           )}
+
+          {/* Text Area for real-time transcription and typing */}
+          <div className="relative flex-1 flex items-center min-w-0">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={currentText}
+              onChange={handleTextChange}
+              onKeyDown={handleKeyDown}
+              onClick={() => {
+                setActiveMode('ESCRIBE');
+                setIsEscribeActive(true);
+                setShowVirtualKeyboard(true);
+              }}
+              onFocus={() => {
+                setActiveMode('ESCRIBE');
+                setIsEscribeActive(true);
+                setShowVirtualKeyboard(true);
+              }}
+              inputMode="text"
+              placeholder={placeholderText || defaultPlaceholder}
+              style={{ fontFamily: '"Raleway", sans-serif', fontWeight: 600 }}
+              className="w-full focus:outline-none transition-all border-none bg-transparent text-black text-right placeholder:text-right placeholder:text-black/40 font-semibold text-[14px] leading-snug p-0 resize-none min-h-[28px] max-h-[100px] overflow-y-auto pr-1"
+            />
+            {/* Blinking Caret / "I" Beam Indicator when ESCRIBE is active and empty */}
+            {isEscribeActive && !currentText && !isListening && (
+              <span className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center pointer-events-none pr-0.5">
+                <span className="w-[2px] h-[16px] bg-blue-600 animate-pulse inline-block" />
+              </span>
+            )}
+          </div>
 
           <div className="flex items-center gap-1.5 flex-shrink-0 pb-0.5">
             {/* Primary Action Button: Mic -> Square (Stop) -> ArrowUp (Send) */}

@@ -319,11 +319,11 @@ REGLA CRÍTICA: NO digas nada más, NO saludes con "Hola", NO preguntes "¿Qué 
              return;
           }
 
-          if (msg.userTranscription) {
+          if (msg.userTranscription && !isPausedRef.current) {
             onUserTranscriptionRef.current(msg.userTranscription);
           }
 
-          if (msg.text) {
+          if (msg.text && !isPausedRef.current) {
             onTextResponseRef.current(msg.text, !!msg.showForm);
           }
 
