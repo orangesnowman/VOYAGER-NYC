@@ -19,7 +19,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onGuestLogin,
 }) => {
   const [isRegister, setIsRegister] = useState(false);
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -27,7 +28,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onEmailAuthSubmit(e, isRegister, name, email, password);
+    const fullName = `${firstName} ${lastName}`.trim();
+    onEmailAuthSubmit(e, isRegister, fullName, email, password);
   };
 
   return (
@@ -42,16 +44,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </button>
 
         <div className="text-center mb-5">
-          <div className="w-14 h-14 bg-blue-50/80 text-[#1A365D] rounded-full flex items-center justify-center mx-auto mb-3">
-            <User className="w-7 h-7 stroke-[1.75]" />
-          </div>
           <h3 style={{ fontFamily: "'Raleway', sans-serif" }} className="text-2xl font-extrabold text-[#1A365D]">
             {selectedLang === 'EN' 
-              ? (isRegister ? 'Create Account' : 'Sign In to USA Voyager') 
-              : (isRegister ? 'Crear Cuenta en USA Voyager' : 'Iniciar Sesión en USA Voyager')}
+              ? (isRegister ? 'Create Account' : 'Sign In') 
+              : (isRegister ? 'Crear Cuenta' : 'Iniciar Sesión')}
           </h3>
-          <p className="text-xs sm:text-sm text-neutral-500 mt-1 font-medium">
-            {selectedLang === 'EN' ? 'Access your personalized learning journey' : 'Accede a tu trayectoria de aprendizaje personalizada'}
+          <p className="text-xs sm:text-sm text-black font-semibold mt-1 font-medium">
+            {selectedLang === 'EN' ? 'Use your Google account or email to log in to your account' : 'Utiliza tu cuenta de Google o tu correo electrónico para entrar a tu cuenta'}
           </p>
         </div>
 
@@ -63,7 +62,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all cursor-pointer ${
               isRegister 
                 ? 'bg-white text-[#1A365D] shadow-xs' 
-                : 'text-neutral-500 hover:text-neutral-800'
+                : 'text-black font-semibold hover:text-neutral-800'
             }`}
           >
             {selectedLang === 'EN' ? 'Create Account' : 'Crear Cuenta'}
@@ -74,7 +73,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             className={`flex-1 py-2 text-xs sm:text-sm font-bold rounded-lg transition-all cursor-pointer ${
               !isRegister 
                 ? 'bg-white text-[#1A365D] shadow-xs' 
-                : 'text-neutral-500 hover:text-neutral-800'
+                : 'text-black font-semibold hover:text-neutral-800'
             }`}
           >
             {selectedLang === 'EN' ? 'Sign In' : 'Iniciar Sesión'}
@@ -83,18 +82,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           {isRegister && (
-            <div>
-              <label className="block text-xs font-extrabold text-neutral-700 uppercase tracking-wider mb-1">
-                {selectedLang === 'EN' ? 'Full Name' : 'NOMBRE COMPLETO'}
-              </label>
-              <input 
-                type="text" 
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={selectedLang === 'EN' ? 'e.g. Maria Gonzalez' : 'ej. María González'}
-                className="w-full px-4 py-2.5 border border-neutral-300 rounded-xl text-sm font-medium focus:border-[#1A365D] focus:ring-1 focus:ring-[#1A365D] focus:outline-none bg-white text-black placeholder-neutral-400"
-              />
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-xs font-extrabold text-neutral-700 uppercase tracking-wider mb-1">
+                  {selectedLang === 'EN' ? 'First Name' : 'PRIMER NOMBRE'}
+                </label>
+                <input 
+                  type="text" 
+                  required
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder={selectedLang === 'EN' ? 'e.g. Maria' : 'ej. María'}
+                  className="w-full px-4 py-2.5 border-2 border-[#1A365D] rounded-full text-sm font-bold bg-white text-neutral-800 placeholder-neutral-400 focus:outline-none shadow-2xs"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-extrabold text-neutral-700 uppercase tracking-wider mb-1">
+                  {selectedLang === 'EN' ? 'Last Name' : 'APELLIDO'}
+                </label>
+                <input 
+                  type="text" 
+                  required
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder={selectedLang === 'EN' ? 'e.g. Gonzalez' : 'ej. González'}
+                  className="w-full px-4 py-2.5 border-2 border-[#1A365D] rounded-full text-sm font-bold bg-white text-neutral-800 placeholder-neutral-400 focus:outline-none shadow-2xs"
+                />
+              </div>
             </div>
           )}
 
@@ -108,7 +122,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="email@example.com"
-              className="w-full px-4 py-2.5 border border-neutral-300 rounded-xl text-sm font-medium focus:border-[#1A365D] focus:ring-1 focus:ring-[#1A365D] focus:outline-none bg-white text-black placeholder-neutral-400"
+              className="w-full px-4 py-2.5 border-2 border-[#1A365D] rounded-full text-sm font-bold bg-white text-neutral-800 placeholder-neutral-400 focus:outline-none shadow-2xs"
             />
           </div>
 
@@ -122,13 +136,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-4 py-2.5 border border-neutral-300 rounded-xl text-sm font-medium focus:border-[#1A365D] focus:ring-1 focus:ring-[#1A365D] focus:outline-none bg-white text-black placeholder-neutral-400"
+              className="w-full px-4 py-2.5 border-2 border-[#1A365D] rounded-full text-sm font-bold bg-white text-neutral-800 placeholder-neutral-400 focus:outline-none shadow-2xs"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 bg-[#1C3B68] hover:bg-[#132A4C] text-white font-bold text-sm sm:text-base rounded-xl transition-all shadow-md cursor-pointer active:scale-[0.98] mt-2"
+            className="w-full py-2.5 px-4 border-2 border-[#1A365D] bg-white hover:bg-neutral-50 text-neutral-800 font-bold text-sm rounded-full transition-all shadow-2xs cursor-pointer active:scale-[0.98] mt-2 flex items-center justify-center gap-2.5"
           >
             {isRegister 
               ? (selectedLang === 'EN' ? 'Create My Account' : 'Crear Mi Cuenta')
@@ -136,15 +150,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
         </form>
 
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-neutral-200" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-white px-2.5 text-neutral-400 text-xs font-medium flex items-center justify-center">
-              <span className="w-2 h-2 rounded-full border border-neutral-300 block bg-white" />
-            </span>
-          </div>
+        <div className="py-2.5 my-2">
+          <div className="w-full border-t-[3px] border-dotted border-[#1A365D]" />
         </div>
 
         {/* Google Login */}
@@ -154,7 +161,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             onClose();
             onGoogleLogin();
           }}
-          className="w-full flex items-center justify-center gap-3 py-2.5 border border-neutral-300 hover:bg-neutral-50 rounded-xl text-sm font-semibold text-neutral-800 transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-3 py-2.5 border-2 border-[#1A365D] hover:bg-neutral-50 rounded-full text-sm font-semibold text-neutral-800 transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
         >
           <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -172,7 +179,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             onClose();
             onGuestLogin();
           }}
-          className="w-full mt-2.5 flex items-center justify-center gap-2.5 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border border-neutral-200 rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-[0.98]"
+          className="w-full mt-2.5 flex items-center justify-center gap-2.5 py-2.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border border-neutral-200 rounded-full text-sm font-bold transition-all cursor-pointer active:scale-[0.98]"
         >
           <UserCheck className="w-5 h-5 text-[#1A365D] flex-shrink-0" />
           <span>{selectedLang === 'EN' ? 'Enter as Guest' : 'Entrar como Invitado'}</span>

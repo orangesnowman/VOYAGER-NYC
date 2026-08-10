@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Pause, Play, Mic, MicOff, User, ArrowRight, ArrowUp, Square, Type, Headphones, AudioLines, Keyboard, ChevronDown, Delete, CornerDownLeft } from 'lucide-react';
+import { Plus, Pause, Play, Mic, MicOff, User, ArrowRight, ArrowUp, Square, Type, Headphones, AudioLines, Keyboard, ChevronDown, Delete, CornerDownLeft } from 'lucide-react';
 
 interface ChatInputBoxProps {
   selectedLang: 'EN' | 'ES';
@@ -12,6 +12,18 @@ interface ChatInputBoxProps {
   onChangeValue?: (text: string) => void;
   placeholderText?: string;
   onOpenProfile?: () => void;
+  isSpanishOnlyMode?: boolean;
+  setIsSpanishOnlyMode?: (v: boolean) => void;
+  isBilingualMode?: boolean;
+  setIsBilingualMode?: (v: boolean) => void;
+  isEnglishOnlyMode?: boolean;
+  setIsEnglishOnlyMode?: (v: boolean) => void;
+  isTranslateMode?: boolean;
+  setIsTranslateMode?: (v: boolean) => void;
+  isListenOnly?: boolean;
+  setIsListenOnly?: (v: boolean) => void;
+  isLiveVoiceActive?: boolean;
+  onToggleLiveVoice?: () => void;
 }
 
 interface VirtualKeyboardProps {
@@ -37,13 +49,10 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, onClose, 
   ];
 
   return (
-    <div className="w-full bg-[#EAEFF2] border-t border-slate-300 p-1.5 sm:p-2 select-none shadow-2xl rounded-t-2xl animate-in slide-in-from-bottom duration-200 mt-1.5">
+    <div className="w-full bg-[#EAEFF2] border-t border-slate-300 p-1 sm:p-1.5 pb-2 select-none shadow-none rounded-none animate-in slide-in-from-bottom duration-200 mt-0">
       {/* Top Bar with Hide Button */}
       <div className="flex justify-between items-center px-2 py-0.5 mb-1 text-slate-500 text-xs">
-        <span className="font-semibold tracking-wider text-[10px] uppercase text-slate-600 flex items-center gap-1">
-          <Keyboard className="w-3.5 h-3.5 text-[#1A365D]" />
-          {selectedLang === 'EN' ? 'Smartphone Keyboard' : 'Teclado de Smartphone'}
-        </span>
+        <span className="font-semibold tracking-wider text-[10px] uppercase text-slate-600 flex items-center gap-1"></span>
         <button
           type="button"
           onClick={onClose}
@@ -61,7 +70,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, onClose, 
             key={num}
             type="button"
             onClick={() => onKeyPress(num)}
-            className="flex-1 max-w-[36px] h-8 sm:h-9 bg-white hover:bg-slate-100 active:bg-slate-300 rounded-md text-slate-800 font-semibold text-sm shadow-sm flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+            className="flex-1 max-w-[36px] h-8 sm:h-9 bg-white hover:bg-slate-100 active:bg-slate-300 rounded-md text-slate-800 font-semibold text-sm shadow-none flex items-center justify-center transition-all active:scale-95 cursor-pointer"
           >
             {num}
           </button>
@@ -80,7 +89,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, onClose, 
                 onKeyPress(display);
                 if (isShift) setIsShift(false);
               }}
-              className="flex-1 max-w-[36px] h-8 sm:h-9 bg-white hover:bg-slate-100 active:bg-slate-300 rounded-md text-slate-800 font-medium text-base shadow-sm flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+              className="flex-1 max-w-[36px] h-8 sm:h-9 bg-white hover:bg-slate-100 active:bg-slate-300 rounded-md text-slate-800 font-medium text-base shadow-none flex items-center justify-center transition-all active:scale-95 cursor-pointer"
             >
               {display}
             </button>
@@ -89,7 +98,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, onClose, 
       </div>
 
       {/* Row 2 Letters/Symbols */}
-      <div className="flex justify-center gap-1 mb-1 px-2 sm:px-4">
+      <div className="flex justify-center gap-1 mb-1 px-1">
         {letterRows[1].map((char) => {
           const display = isShift ? char.toUpperCase() : char;
           return (
@@ -100,7 +109,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, onClose, 
                 onKeyPress(display);
                 if (isShift) setIsShift(false);
               }}
-              className="flex-1 max-w-[36px] h-8 sm:h-9 bg-white hover:bg-slate-100 active:bg-slate-300 rounded-md text-slate-800 font-medium text-base shadow-sm flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+              className="flex-1 max-w-[36px] h-8 sm:h-9 bg-white hover:bg-slate-100 active:bg-slate-300 rounded-md text-slate-800 font-medium text-base shadow-none flex items-center justify-center transition-all active:scale-95 cursor-pointer"
             >
               {display}
             </button>
@@ -114,7 +123,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, onClose, 
           <button
             type="button"
             onClick={() => setIsShift(!isShift)}
-            className={`px-2 sm:px-2.5 h-8 sm:h-9 rounded-md font-bold text-xs shadow-sm flex items-center justify-center transition-all active:scale-95 cursor-pointer ${
+            className={`px-2 sm:px-2.5 h-8 sm:h-9 rounded-md font-bold text-xs shadow-none flex items-center justify-center transition-all active:scale-95 cursor-pointer ${
               isShift ? 'bg-[#1A365D] text-white' : 'bg-slate-300 text-slate-700 hover:bg-slate-400'
             }`}
           >
@@ -132,7 +141,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, onClose, 
                 onKeyPress(display);
                 if (isShift) setIsShift(false);
               }}
-              className="flex-1 max-w-[36px] h-8 sm:h-9 bg-white hover:bg-slate-100 active:bg-slate-300 rounded-md text-slate-800 font-medium text-base shadow-sm flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+              className="flex-1 max-w-[36px] h-8 sm:h-9 bg-white hover:bg-slate-100 active:bg-slate-300 rounded-md text-slate-800 font-medium text-base shadow-none flex items-center justify-center transition-all active:scale-95 cursor-pointer"
             >
               {display}
             </button>
@@ -142,7 +151,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, onClose, 
         <button
           type="button"
           onClick={() => onKeyPress('BACKSPACE')}
-          className="px-2 sm:px-2.5 h-8 sm:h-9 bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-700 rounded-md font-bold text-xs shadow-sm flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+          className="px-2 sm:px-2.5 h-8 sm:h-9 bg-slate-300 hover:bg-slate-400 active:bg-slate-500 text-slate-700 rounded-md font-bold text-xs shadow-none flex items-center justify-center transition-all active:scale-95 cursor-pointer"
         >
           <Delete className="w-4 h-4" />
         </button>
@@ -153,7 +162,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, onClose, 
         <button
           type="button"
           onClick={() => setIsSymbols(!isSymbols)}
-          className="px-2.5 sm:px-3 h-8 sm:h-9 bg-slate-300 hover:bg-slate-400 text-slate-800 font-bold text-xs rounded-md shadow-sm flex items-center justify-center cursor-pointer"
+          className="px-2.5 sm:px-3 h-8 sm:h-9 bg-slate-300 hover:bg-slate-400 text-slate-800 font-bold text-xs rounded-md shadow-none flex items-center justify-center cursor-pointer"
         >
           {isSymbols ? 'ABC' : '?123'}
         </button>
@@ -161,7 +170,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, onClose, 
         <button
           type="button"
           onClick={() => onKeyPress(',')}
-          className="w-8 sm:w-9 h-8 sm:h-9 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-base rounded-md shadow-sm flex items-center justify-center cursor-pointer"
+          className="w-8 sm:w-9 h-8 sm:h-9 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-base rounded-md shadow-none flex items-center justify-center cursor-pointer"
         >
           ,
         </button>
@@ -169,7 +178,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, onClose, 
         <button
           type="button"
           onClick={() => onKeyPress(' ')}
-          className="flex-1 h-8 sm:h-9 bg-white hover:bg-slate-100 text-slate-500 font-medium text-xs rounded-md shadow-sm flex items-center justify-center cursor-pointer tracking-wider"
+          className="flex-1 h-8 sm:h-9 bg-white hover:bg-slate-100 text-slate-500 font-medium text-xs rounded-md shadow-none flex items-center justify-center cursor-pointer tracking-wider"
         >
           {selectedLang === 'EN' ? 'space' : 'espacio'}
         </button>
@@ -177,7 +186,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, onClose, 
         <button
           type="button"
           onClick={() => onKeyPress('.')}
-          className="w-8 sm:w-9 h-8 sm:h-9 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-base rounded-md shadow-sm flex items-center justify-center cursor-pointer"
+          className="w-8 sm:w-9 h-8 sm:h-9 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-base rounded-md shadow-none flex items-center justify-center cursor-pointer"
         >
           .
         </button>
@@ -185,7 +194,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ onKeyPress, onClose, 
         <button
           type="button"
           onClick={() => onKeyPress('ENTER')}
-          className="px-3 sm:px-3.5 h-8 sm:h-9 bg-[#10B981] hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs rounded-md shadow-sm flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+          className="px-3 sm:px-3.5 h-8 sm:h-9 bg-[#10B981] hover:bg-emerald-600 active:bg-emerald-700 text-white font-bold text-xs rounded-md shadow-none flex items-center justify-center transition-all active:scale-95 cursor-pointer"
         >
           <CornerDownLeft className="w-4 h-4 stroke-[2.5]" />
         </button>
@@ -204,20 +213,49 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
   value,
   onChangeValue,
   placeholderText,
-  onOpenProfile
+  onOpenProfile,
+  isSpanishOnlyMode,
+  setIsSpanishOnlyMode,
+  isBilingualMode,
+  setIsBilingualMode,
+  isEnglishOnlyMode,
+  setIsEnglishOnlyMode,
+  isTranslateMode,
+  setIsTranslateMode,
+  isListenOnly,
+  setIsListenOnly,
+  isLiveVoiceActive,
+  onToggleLiveVoice
 }) => {
   const [internalText, setInternalText] = useState('');
   const [activeMode, setActiveMode] = useState<'ESCUCHA' | 'DICTA' | 'ESCRIBE'>('ESCUCHA');
   const [isListening, setIsListening] = useState(false);
   const [isEscribeActive, setIsEscribeActive] = useState(false);
-  const [showVirtualKeyboard, setShowVirtualKeyboard] = useState(false);
+  const [showVoiceModeMenu, setShowVoiceModeMenu] = useState(false);
+  const [showVirtualKeyboard, setShowVirtualKeyboard] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== 'undefined') {
+        setShowVirtualKeyboard(window.innerWidth < 768);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const recognitionRef = useRef<any>(null);
   const baseTextRef = useRef<string>('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Animated sound graph waveform state
   const [waveformHeights, setWaveformHeights] = useState<number[]>(
-    Array.from({ length: 28 }, () => 20)
+    Array.from({ length: 16 }, () => 20)
   );
 
   const currentText = value !== undefined ? value : internalText;
@@ -228,8 +266,8 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
     if (isListening) {
       interval = setInterval(() => {
         setWaveformHeights(
-          Array.from({ length: 28 }, (_, i) => {
-            const centerDist = Math.abs(i - 14) / 14;
+          Array.from({ length: 16 }, (_, i) => {
+            const centerDist = Math.abs(i - 8) / 8;
             const baseFactor = Math.max(0.25, 1 - centerDist * 0.55);
             const randomHeight = Math.floor(Math.random() * 80) + 20;
             return Math.round(randomHeight * baseFactor);
@@ -237,7 +275,7 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
         );
       }, 75);
     } else {
-      setWaveformHeights(Array.from({ length: 28 }, () => 20));
+      setWaveformHeights(Array.from({ length: 16 }, () => 20));
     }
     return () => clearInterval(interval);
   }, [isListening]);
@@ -362,6 +400,9 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
     if (isConnected && isPaused) {
       resume();
     }
+    if (onToggleLiveVoice) {
+      onToggleLiveVoice();
+    }
   };
 
   const handleDictaClick = () => {
@@ -440,15 +481,19 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
       setIsListening(false);
     }
 
-    if (currentText.trim()) {
-      if (isConnected && isPaused) {
-        resume();
-      }
-      onSubmitText(currentText.trim());
-      updateText('');
-      setActiveMode('ESCUCHA');
-      setIsEscribeActive(false);
+    const trimmedText = (currentText || '').trim();
+    if (!trimmedText) {
+      return;
     }
+
+    if (isConnected && isPaused) {
+      resume();
+    }
+    onSubmitText(trimmedText);
+    updateText('');
+    setActiveMode('ESCUCHA');
+    setIsEscribeActive(false);
+    setShowVirtualKeyboard(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -474,18 +519,121 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
       >
         {/* Textarea or Sound Graph + Action Controls */}
         <div className="flex items-center gap-2 flex-1 min-h-[36px]">
+          {/* Voice Mode Selector (+) Button & Popover */}
+          <div className="relative flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowVoiceModeMenu((prev) => !prev)}
+              title={selectedLang === 'EN' ? 'Voice mode selector' : 'Seleccionar modo de voz'}
+              className={`p-1.5 rounded-full transition-all duration-300 cursor-pointer flex items-center justify-center ${
+                showVoiceModeMenu
+                  ? 'bg-[#1A365D] text-white shadow-md scale-105 rotate-45'
+                  : 'bg-neutral-100 text-neutral-600 hover:text-[#1A365D] hover:bg-neutral-200 active:scale-95'
+              }`}
+            >
+              <Plus className="w-4 h-4 stroke-[2.8]" />
+            </button>
+
+            {/* Voice Mode Popover Menu */}
+            {showVoiceModeMenu && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40 bg-transparent" 
+                  onClick={() => setShowVoiceModeMenu(false)} 
+                />
+                <div className="absolute left-0 bottom-full mb-2 bg-white border border-slate-200 shadow-2xl rounded-2xl py-1.5 w-60 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                  <div className="px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1 flex items-center justify-between">
+                    <span>{selectedLang === 'EN' ? 'Voice & Conversation Mode' : 'Modo de Voz y Conversación'}</span>
+                  </div>
+                  
+                  {/* List of Voice Modes - Single row per mode */}
+                  <div className="flex flex-col py-0.5 max-h-60 overflow-y-auto">
+                    {[
+                      {
+                        id: 'spanish',
+                        label: selectedLang === 'EN' ? 'SPANISH' : 'ESPAÑOL',
+                        subLabel: selectedLang === 'EN' ? 'Spanish Only' : 'Solo Español',
+                        active: !!isSpanishOnlyMode,
+                        activate: () => {
+                          setIsSpanishOnlyMode?.(true);
+                          if (isPaused) resume();
+                        }
+                      },
+                      {
+                        id: 'bilingual',
+                        label: 'BILINGÜE',
+                        subLabel: selectedLang === 'EN' ? 'Bilingual' : 'Apoyo Bilingüe',
+                        active: !!isBilingualMode,
+                        activate: () => {
+                          setIsBilingualMode?.(true);
+                          if (isPaused) resume();
+                        }
+                      },
+                      {
+                        id: 'english',
+                        label: selectedLang === 'EN' ? 'ENGLISH' : 'INGLÉS',
+                        subLabel: selectedLang === 'EN' ? 'English Only' : 'Solo Inglés',
+                        active: !!isEnglishOnlyMode,
+                        activate: () => {
+                          setIsEnglishOnlyMode?.(true);
+                          if (isPaused) resume();
+                        }
+                      },
+                      {
+                        id: 'translate',
+                        label: selectedLang === 'EN' ? 'TRANSLATOR' : 'TRADUCTOR',
+                        subLabel: selectedLang === 'EN' ? 'Translation' : 'Traductor',
+                        active: !!isTranslateMode,
+                        activate: () => {
+                          setIsTranslateMode?.(true);
+                          if (isPaused) resume();
+                        }
+                      },
+                      {
+                        id: 'listen',
+                        label: selectedLang === 'EN' ? 'LISTEN' : 'ESCUCHA',
+                        subLabel: selectedLang === 'EN' ? 'Listen Only' : 'Solo Escucha',
+                        active: !!isListenOnly,
+                        activate: () => {
+                          setIsListenOnly?.(true);
+                          if (isPaused) resume();
+                        }
+                      }
+                    ].map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => {
+                          m.activate();
+                          setShowVoiceModeMenu(false);
+                        }}
+                        className={`w-full px-3 py-1.5 text-left flex items-center justify-between transition-colors cursor-pointer ${
+                          m.active
+                            ? 'bg-amber-50 text-amber-900 font-bold border-l-4 border-amber-500'
+                            : 'text-slate-700 hover:bg-slate-50 font-semibold'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <span className="text-xs font-bold tracking-wide shrink-0" style={{ fontFamily: '"Raleway", sans-serif' }}>{m.label}</span>
+                          <span className="text-[10px] text-slate-400 font-normal truncate">({m.subLabel})</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
           {isListening ? (
-            /* Vibrating Sound Graph during voice recording */
-            <div className="flex-1 flex items-center justify-between gap-2 overflow-hidden py-0.5 px-1 min-h-[28px]">
-              <div style={{ fontFamily: '"Raleway", sans-serif', fontWeight: 600 }} className="text-right text-[13px] text-black/90 truncate flex-1 pr-1 font-semibold">
-                {currentText || (selectedLang === 'EN' ? 'Listening... speak now' : 'Escuchando... habla ahora')}
-              </div>
-              <div className="flex items-center gap-[3px] h-[26px] flex-shrink-0 px-1">
+            /* Vibrating Sound Graph during voice recording (Compact wave so buttons stay fully visible) */
+            <div className="flex-1 flex items-center justify-center overflow-hidden py-0.5 px-1 min-h-[28px] max-w-[140px] mx-auto">
+              <div className="flex items-center justify-center gap-[3px] h-[28px] w-full">
                 {waveformHeights.map((h, idx) => (
                   <span
                     key={idx}
-                    style={{ height: `${h}%` }}
-                    className="w-[3px] bg-emerald-500 rounded-full transition-all duration-75 ease-out"
+                    style={{ height: `${Math.max(15, h)}%` }}
+                    className="w-[2.5px] bg-emerald-500 rounded-full transition-all duration-75 ease-out shrink-0"
                   />
                 ))}
               </div>
@@ -499,6 +647,11 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
                 value={currentText}
                 onChange={handleTextChange}
                 onKeyDown={handleKeyDown}
+                onClick={() => {
+                  setActiveMode('ESCRIBE');
+                  setIsEscribeActive(true);
+                  setShowVirtualKeyboard(true);
+                }}
                 onFocus={() => {
                   setActiveMode('ESCRIBE');
                   setIsEscribeActive(true);
@@ -519,44 +672,17 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
           )}
 
           <div className="flex items-center gap-1.5 flex-shrink-0 pb-0.5">
-            {/* Keyboard Icon Button to focus soft keyboard on smartphone / desktop */}
-            <button
-              type="button"
-              onClick={handleEscribeClick}
-              title={selectedLang === 'EN' ? 'Type with keyboard' : 'Escribir con teclado'}
-              className={`p-1.5 rounded-full transition-all duration-300 cursor-pointer flex items-center justify-center ${
-                showVirtualKeyboard || activeMode === 'ESCRIBE' || isEscribeActive
-                  ? 'bg-[#1A365D] text-white shadow-md scale-105'
-                  : 'bg-neutral-100 text-neutral-600 hover:text-[#1A365D] hover:bg-neutral-200 active:scale-95'
-              }`}
-            >
-              <Keyboard className="w-4 h-4 stroke-[2.2]" />
-            </button>
-
-            {/* Microphone / Stop Square Button */}
-            <button
-              type="button"
-              onClick={handleDictaClick}
-              title={
-                isListening
-                  ? (selectedLang === 'EN' ? 'Stop dictating' : 'Detener dictado')
-                  : (selectedLang === 'EN' ? 'Dictate with voice' : 'Dictar por voz')
-              }
-              className={`p-1.5 rounded-full transition-all duration-300 cursor-pointer flex items-center justify-center ${
-                isListening
-                  ? 'bg-red-600 text-white shadow-md shadow-red-500/40 animate-pulse scale-105'
-                  : 'bg-neutral-100 text-neutral-600 hover:text-[#1A365D] hover:bg-neutral-200 active:scale-95'
-              }`}
-            >
-              {isListening ? (
+            {/* Primary Action Button: Mic -> Square (Stop) -> ArrowUp (Send) */}
+            {isListening ? (
+              <button
+                type="button"
+                onClick={handleDictaClick}
+                title={selectedLang === 'EN' ? 'Stop dictating' : 'Detener dictado'}
+                className="p-1.5 rounded-full bg-red-600 text-white shadow-md shadow-red-500/40 animate-pulse scale-105 hover:bg-red-700 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+              >
                 <Square className="w-3.5 h-3.5 fill-current stroke-none text-white" />
-              ) : (
-                <Mic className="w-4 h-4 stroke-[2.5]" />
-              )}
-            </button>
-
-            {/* Blue Send Button (takes place of chat wave button when text is transcribed) OR Chat Wave Button */}
-            {!isListening && currentText.trim().length > 0 ? (
+              </button>
+            ) : currentText.trim().length > 0 ? (
               <button
                 type="submit"
                 onClick={handleSubmit}
@@ -568,61 +694,36 @@ export const ChatInputBox: React.FC<ChatInputBoxProps> = ({
             ) : (
               <button
                 type="button"
-                onClick={handleEscuchaClick}
-                title={selectedLang === 'EN' ? 'Voice interaction mode' : 'Modo de voz interactivo'}
-                className={`p-1.5 rounded-full transition-all duration-300 cursor-pointer flex items-center justify-center ${
-                  activeMode === 'ESCUCHA' && isConnected && !isPaused
-                    ? 'bg-[#1A365D] text-white shadow-md scale-105'
-                    : 'bg-neutral-100 text-neutral-600 hover:text-[#1A365D] hover:bg-neutral-200 active:scale-95'
-                }`}
+                onClick={handleDictaClick}
+                title={selectedLang === 'EN' ? 'Dictate with voice' : 'Dictar por voz'}
+                className="p-1.5 rounded-full bg-neutral-100 text-neutral-600 hover:text-[#1A365D] hover:bg-neutral-200 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
               >
-                <AudioLines className="w-4 h-4 stroke-[2.2]" />
+                <Mic className="w-4 h-4 stroke-[2.5]" />
               </button>
             )}
 
-            {/* PAUSA Control Button */}
+            {/* Secondary Button: Voice interaction mode (Go Live) */}
             <button
               type="button"
-              onClick={handlePausaClick}
-              disabled={!isConnected}
-              title={isPaused ? (selectedLang === 'EN' ? 'Resume' : 'Reanudar') : (selectedLang === 'EN' ? 'Pause' : 'Pausar')}
-              className={`flex items-center gap-1 group cursor-pointer transition-all duration-300 px-1 py-0.5 select-none ${
-                !isConnected ? 'opacity-30 cursor-not-allowed' : 'hover:scale-105 active:scale-95'
+              onClick={handleEscuchaClick}
+              title={selectedLang === 'EN' ? 'Go Live Voice Mode (ChatGPT style)' : 'Modo de Voz en Vivo (Estilo ChatGPT)'}
+              className={`p-1.5 rounded-full transition-all duration-300 cursor-pointer flex items-center justify-center ${
+                isLiveVoiceActive
+                  ? 'bg-amber-500 text-black shadow-lg scale-110 animate-pulse ring-2 ring-amber-300'
+                  : activeMode === 'ESCUCHA' && isConnected && !isPaused
+                  ? 'bg-[#1A365D] text-white shadow-md scale-105'
+                  : 'bg-neutral-100 text-neutral-600 hover:text-[#1A365D] hover:bg-neutral-200 active:scale-95'
               }`}
             >
-              {!isPaused && (
-                <span 
-                  style={{ fontFamily: "'Raleway', sans-serif" }} 
-                  className="text-[9px] font-black tracking-wider transition-all duration-300 text-[#5382eb] group-hover:text-red-600"
-                >
-                  {selectedLang === 'EN' ? 'PAUSE' : 'PAUSA'}
-                </span>
-              )}
-              {isPaused ? (
-                <Play fill="currentColor" stroke="none" className="w-3.5 h-3.5 text-red-600 transition-all animate-pulse" />
-              ) : (
-                <Pause fill="currentColor" stroke="none" className="w-3.5 h-3.5 text-[#5382eb] group-hover:text-red-600 transition-all duration-300" />
-              )}
+              <AudioLines className="w-4 h-4 stroke-[2.2]" />
             </button>
-
-            {/* User Profile Navigation Button */}
-            {onOpenProfile && (
-              <button
-                type="button"
-                onClick={onOpenProfile}
-                title={selectedLang === 'EN' ? 'Profile' : 'Perfil'}
-                className="flex items-center justify-center p-1 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer"
-              >
-                <User strokeWidth={2.5} className="w-4 h-4 text-[#5382eb] hover:text-red-600 transition-all duration-300" />
-              </button>
-            )}
           </div>
         </div>
       </form>
 
       {/* Virtual Soft Keyboard Drawer for Smartphones / Touch Screens */}
       {showVirtualKeyboard && (
-        <div className="w-full max-w-[98%] sm:max-w-[95%] mx-auto">
+        <div className="w-full -mx-2 sm:-mx-3 -mb-2 md:-mb-2.5 mt-1">
           <VirtualKeyboard
             onKeyPress={handleVirtualKeyPress}
             onClose={() => setShowVirtualKeyboard(false)}

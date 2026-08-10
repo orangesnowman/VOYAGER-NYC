@@ -79,7 +79,6 @@ export function useConversationEngine(
     userGoal: profile?.goal,
     userLevel: profile?.levelEstimate,
     onUserTranscription: (text) => {
-      updateUserVoiceTranscription(text);
       if (onUserVoiceTranscription) {
         onUserVoiceTranscription(text);
       }

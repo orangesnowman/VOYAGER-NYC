@@ -138,7 +138,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
     } else if (goalText.startsWith('Travel:')) {
       trackLabel = isEn ? 'TRAVELER' : 'VIAJANTE';
       subGoalLabel = goalText.replace('Travel:', '').trim();
-    } else if (goalText.startsWith('Teachers:') || goalText.startsWith('Docentes')) {
+    } else if (goalText.startsWith('Teachers:') || goalText.startsWith('Docentes') || goalText.startsWith('Docente')) {
       trackLabel = isEn ? 'TEACHER' : 'DOCENTE';
       subGoalLabel = goalText.replace('Teachers:', '').trim();
     }

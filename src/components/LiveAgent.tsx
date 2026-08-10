@@ -14,7 +14,7 @@ import { ChatInputBox } from './ChatInputBox';
 import { AuthModal } from './AuthModal';
 import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
 import chatAvatarIcon from '../assets/images/voyager_pixel_avatar_1784465509169.jpg';
-import { Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight, Headphones, MessageSquare, User, Settings, Sliders, ShoppingBag, Globe, Apple, Home, Pause, Play, Info, Shield, FileText, Bot, Eye, EyeOff, ShoppingCart, Briefcase, BookOpen, Luggage, Rocket, Check, UserCheck, Presentation, MessageSquareText, Plane, Sprout, Flower, TreeDeciduous, GraduationCap, Award, Mail, Menu, X, Power } from 'lucide-react';
+import { Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight, Headphones, AudioLines, MessageSquare, User, Settings, Sliders, ShoppingBag, Globe, Apple, Home, Pause, Play, Info, Shield, FileText, Bot, Eye, EyeOff, ShoppingCart, Briefcase, BookOpen, Luggage, Rocket, Check, UserCheck, Presentation, MessageSquareText, Plane, Sprout, Flower, TreeDeciduous, GraduationCap, Award, Mail, Menu, X, Power } from 'lucide-react';
 
 import { ChatMessage, Lead, TravelDestination, PronunciationFeedbackEvent, ConversationEvent } from './LiveAgentTypes';
 import { TRAVEL_PRESETS } from './TravelPresets';
@@ -356,50 +356,53 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const [authIsRegister, setAuthIsRegister] = useState<boolean>(true);
  const [authNotification, setAuthNotification] = useState<string | null>(null);
 
- const handleGuestLogin = () => {
- const guestName = selectedLang === 'EN' ? 'Guest' : 'Invitado';
- setUserName(guestName);
- setUserEmail('');
- try {
- localStorage.setItem('voyager_user_account', JSON.stringify({
- name: guestName,
- email: '',
- provider: 'guest',
- loginTime: new Date().toISOString()
- }));
- } catch (e) {}
- setAuthModalMode(null);
- setAuthNotification(selectedLang === 'EN' ? 'Entered as Guest!' : '¡Entrando como invitado!');
- setTimeout(() => {
- setAuthNotification(null);
- }, 4000);
- if (typeof executeConnectFlow === 'function') {
- executeConnectFlow();
- }
- };
+  const handleGuestLogin = () => {
+    const guestName = selectedLang === 'EN' ? 'Guest' : 'Invitado';
+    setUserName(guestName);
+    setUserEmail('');
+    try {
+      localStorage.setItem('voyager_user_account', JSON.stringify({
+        name: guestName,
+        email: '',
+        provider: 'guest',
+        loginTime: new Date().toISOString()
+      }));
+    } catch (e) {}
+    setAuthModalMode(null);
+    setAuthNotification(selectedLang === 'EN' ? 'Entered as Guest!' : '¡Entrando como invitado!');
+    setTimeout(() => {
+      setAuthNotification(null);
+    }, 4000);
+    if (onboardingStep === 4) {
+      handleContinuaClick();
+    } else if (typeof executeConnectFlow === 'function') {
+      executeConnectFlow();
+    }
+  };
 
- const handleGoogleLogin = () => {
-   const gName = userName || 'Google User';
-   const gEmail = userEmail || 'user@gmail.com';
-   setUserName(gName);
-   setUserEmail(gEmail);
-   try {
-     localStorage.setItem('voyager_user_account', JSON.stringify({
-       name: gName,
-       email: gEmail,
-       provider: 'google',
-       loginTime: new Date().toISOString()
-     }));
-   } catch (e) {}
-   setAuthNotification(selectedLang === 'EN' ? 'Logged in with Google!' : '¡Sesión iniciada con Google!');
-   setTimeout(() => {
-     setAuthNotification(null);
-   }, 4000);
-   if (typeof executeConnectFlow === 'function') {
-     executeConnectFlow();
-   }
- };
-
+  const handleGoogleLogin = () => {
+    const gName = userName || 'Google User';
+    const gEmail = userEmail || 'user@gmail.com';
+    setUserName(gName);
+    setUserEmail(gEmail);
+    try {
+      localStorage.setItem('voyager_user_account', JSON.stringify({
+        name: gName,
+        email: gEmail,
+        provider: 'google',
+        loginTime: new Date().toISOString()
+      }));
+    } catch (e) {}
+    setAuthNotification(selectedLang === 'EN' ? 'Logged in with Google!' : '¡Sesión iniciada con Google!');
+    setTimeout(() => {
+      setAuthNotification(null);
+    }, 4000);
+    if (onboardingStep === 4) {
+      handleContinuaClick();
+    } else if (typeof executeConnectFlow === 'function') {
+      executeConnectFlow();
+    }
+  };
  const handleEmailAuthSubmit = (e: React.FormEvent) => {
    e.preventDefault();
    if (!authEmail) return;
@@ -590,6 +593,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
 
  // Particle visualizer canvas refs & loop
  const particleCanvasRef = useRef<HTMLCanvasElement | null>(null);
+ const coverParticleCanvasRef = useRef<HTMLCanvasElement | null>(null);
+ const [isLiveVoiceActive, setIsLiveVoiceActive] = useState<boolean>(false);
  const volumeRef = useRef(0);
  volumeRef.current = volume;
  const reminderTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -619,8 +624,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const numOrbiters = 8;
  const orbiters: { angle: number; speed: number; rx: number; ry: number; size: number; alpha: number }[] = [];
  for (let i = 0; i < numOrbiters; i++) {
- let rxFactor = 1.35 + (i % 3) * 0.12;
- let ryFactor = 1.0 + (i % 3) * 0.08;
+ let rxFactor = 1.1 + (i % 3) * 0.08;
+ let ryFactor = 1.1 + (i % 3) * 0.08;
  orbiters.push({
  angle: (i * 2 * Math.PI) / numOrbiters + Math.random() * 0.5,
  speed: (0.007 + (i % 3) * 0.005) * (i % 2 === 0 ? 1 : -1),
@@ -632,21 +637,24 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  }
 
  const renderLoop = () => {
- const canvas = particleCanvasRef.current;
- if (!canvas) {
+ const activeCanvases = [particleCanvasRef.current, coverParticleCanvasRef.current].filter(Boolean) as HTMLCanvasElement[];
+ if (activeCanvases.length === 0) {
  animationFrameId = requestAnimationFrame(renderLoop);
  return;
  }
 
+ time += 1;
+ const currentVolume = volumeRef.current;
+
+ for (const canvas of activeCanvases) {
  const ctx = canvas.getContext('2d');
- if (!ctx) return;
+ if (!ctx) continue;
 
  const width = canvas.width;
  const height = canvas.height;
  const centerX = width / 2;
  const centerY = height / 2;
  const scale = width / 360;
- const currentVolume = volumeRef.current;
 
  ctx.clearRect(0, 0, width, height);
 
@@ -654,17 +662,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  ctx.shadowBlur = 0;
  ctx.shadowColor = 'transparent';
 
- // Draw solid background circle (color: #50411a) in the center of the orb
- ctx.beginPath();
- ctx.arc(centerX, centerY, (71 + currentVolume * 0.15) * scale, 0, 2 * Math.PI);
- ctx.fillStyle = '#50411a';
- ctx.fill();
- ctx.strokeStyle = 'rgba(255, 215, 0, 0.25)';
- ctx.lineWidth = 1.5 * scale;
- ctx.stroke();
-
  // Radial background glow (gold)
- let grad = ctx.createRadialGradient(centerX, centerY, 11.5 * scale, centerX, centerY, (69 + currentVolume * 0.65) * scale);
+ let grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, (109 + currentVolume * 0.5) * scale);
  grad.addColorStop(0, 'rgba(255, 223, 0, 0.45)');
  grad.addColorStop(0.5, 'rgba(255, 215, 0, 0.18)');
  grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
@@ -673,15 +672,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  ctx.arc(centerX, centerY, (109 + currentVolume * 0.5) * scale, 0, 2 * Math.PI);
  ctx.fill();
 
- // Outer ring
- ctx.beginPath();
- ctx.ellipse(centerX, centerY, 86 * scale, 63 * scale, 0, 0, 2 * Math.PI);
- ctx.strokeStyle = 'rgba(255, 215, 0, 0.15)';
- ctx.lineWidth = 4 * scale;
- ctx.stroke();
-
  // Shimmering dust particles
- time += 1;
  for (let i = 0; i < numParticles; i++) {
  let p = particles[i];
  let speedMultiplier = 1.0 + (currentVolume * 0.08);
@@ -693,8 +684,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
 
  p.pulsePhase += 0.02;
 
- let px = centerX + Math.cos(p.angle) * finalRadius * 1.35;
- let py = centerY + Math.sin(p.angle) * finalRadius * 1.0;
+ let px = centerX + Math.cos(p.angle) * finalRadius * 1.1;
+ let py = centerY + Math.sin(p.angle) * finalRadius * 1.1;
  let opacity = 0.35 + Math.sin(p.pulsePhase + i) * 0.25 + (Math.random() * 0.25);
  
  ctx.fillStyle = `rgba(255, 215, 0, ${opacity})`;
@@ -720,6 +711,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  ctx.shadowBlur = (6 + (currentVolume / 100) * 8) * scale;
  ctx.shadowColor = '#ffd700';
  ctx.fill();
+ }
  }
 
  animationFrameId = requestAnimationFrame(renderLoop);
@@ -963,7 +955,7 @@ Reglas esenciales:
  case 2:
  return lang === 'EN' ? 'What is your estimated English level?' : '¿Cuál es tu nivel estimado de inglés?';
  case 4:
- return lang === 'EN' ? 'Sign In to USA Voyager' : 'Iniciar Sesión en USA Voyager';
+ return lang === 'EN' ? 'Sign In' : 'Iniciar Sesión';
  case 3:
  return lang === 'EN' ? 'Select your starting conversation mode:' : 'Selecciona tu modo de conversación para iniciar:';
  default:
@@ -1084,8 +1076,8 @@ NO respondas a ruidos, habla o ruidos de fondo.]`;
  if (selectedGoal === 'PROFESSIONAL') {
  const interestText = selectedProfInterest ? ` (${selectedProfInterest})` : '';
  if (selectedProfSubGoal === 'CONSEGUIR_EMPLEO') return `Professional: Conseguir Empleo${interestText}`;
- if (selectedProfSubGoal === 'COMUNICARME_TRABAJO') return `Professional: Comunicarme en el Trabajo${interestText}`;
- return `Professional: Crecer Profesionalmente${interestText}`;
+ if (selectedProfSubGoal === 'COMUNICARME_TRABAJO') return `Professional: Mejorar Comunicación${interestText}`;
+ return `Professional: Mejorar Salario${interestText}`;
  }
  if (selectedGoal === 'ESTUDIO') {
  const schoolText = selectedSchoolLevel ? ` (${selectedSchoolLevel})` : '';
@@ -1093,7 +1085,8 @@ NO respondas a ruidos, habla o ruidos de fondo.]`;
  if (selectedAcademicGoal === 'ACADEMIC_SUCCESS') return `Academic: Éxito Académico${schoolText}`;
  if (selectedAcademicGoal === 'STUDY_ABROAD') return `Academic: Estudiar en el Extranjero${schoolText}`;
  if (selectedAcademicGoal === 'IMPROVE_CONVERSATION') return `Academic: Mejorar Conversación${schoolText}`;
- return `Academic: Conocimiento General${schoolText}`;
+ if (selectedAcademicGoal === 'GENERAL_KNOWLEDGE') return `Academic: Cultura General${schoolText}`;
+    return `Academic: Cultura General${schoolText}`;
  }
  if (selectedGoal === 'VIAJANTE') {
  if (selectedViajanteSubGoal === 'EXPLORAR') return 'Travel: Explorar';
@@ -1109,7 +1102,7 @@ NO respondas a ruidos, habla o ruidos de fondo.]`;
  if (selectedDocenteProfile === 'INSTRUCTOR_CORPORATIVO') return `Teachers: Instructor Corporativo${goalText}`;
  if (selectedDocenteProfile === 'ORGANIZACION') return `Teachers: Organización Educativa${goalText}`;
  if (selectedDocenteProfile === 'CREADOR_CONTENIDO') return `Teachers: Creador de Contenido${goalText}`;
- return `Docentes${goalText}`;
+ return `Docente${goalText}`;
  }
  return 'Travel & Daily Conversation';
  };
@@ -1495,7 +1488,7 @@ ${greetingPrompt}`;
  
  {/* Left Side (Column 1): The Passport (Deep Navy Voyager Blue Console) */}
  {/* It remains CONSTANT throughout the entire session */}
- <div className="md:col-span-1 bg-gradient-to-b from-[#153166] to-[#0a1833] border border-[#2563eb]/20 rounded-[16px] sm:rounded-[24px] md:rounded-[32px] px-1.5 py-2 sm:p-3 md:p-5 flex flex-col justify-between items-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.65)] relative overflow-hidden w-full h-full min-h-[380px] sm:min-h-[420px] md:min-h-0">
+ <div className="hidden md:flex md:col-span-1 bg-gradient-to-b from-[#153166] to-[#0a1833] border border-[#2563eb]/20 rounded-[16px] sm:rounded-[24px] md:rounded-[32px] px-1.5 py-2 sm:p-3 md:p-5 flex-col justify-between items-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.65)] relative overflow-hidden w-full h-full min-h-[380px] sm:min-h-[420px] md:min-h-0">
  {/* Ambient Background Glow */}
  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
  
@@ -1558,7 +1551,7 @@ ${greetingPrompt}`;
  </div>
 
  {/* Column 2 (Right Panel): The Cover Page (White layout) */}
- <div className={`md:col-span-1 ${hasClickedConnect ? 'bg-[#0D224A]' : 'bg-white'} rounded-[16px] sm:rounded-[24px] md:rounded-[32px] flex flex-col justify-between items-center text-center shadow-[0_15px_35px_rgba(0,0,0,0.15)] relative overflow-hidden w-full h-[80vh] sm:h-[85vh] md:h-full min-h-[480px] md:min-h-0`}>
+ <div className={`md:col-span-1 ${hasClickedConnect ? 'bg-[#0D224A]' : 'bg-white'} rounded-[16px] sm:rounded-[24px] md:rounded-[32px] flex flex-col justify-between items-center text-center shadow-[0_15px_35px_rgba(0,0,0,0.15)] relative overflow-hidden w-full h-[96vh] sm:h-[98vh] md:h-full min-h-[480px] md:min-h-0`}>
  {!hasClickedConnect ? (
  /* Disconnected Landing Screen inside the Cover */
  <>
@@ -1622,9 +1615,9 @@ ${greetingPrompt}`;
  <div className="w-full h-full flex flex-col overflow-hidden bg-transparent">
  {/* Header / Tabs */}
  {/* Top Header with Hamburger Button */}
- <div className="w-full bg-white py-4 px-2 sm:px-3 flex items-center justify-between sticky top-0 z-50 flex-shrink-0 relative border-b border-slate-100/60">
+ <div className="w-full bg-white pt-[24px] pb-1 sm:pb-1.5 px-1.5 sm:px-2 flex items-center justify-between sticky top-0 z-50 flex-shrink-0 relative">
  {/* Left: Hamburger Toggle Button, Section Indicator, ON/OFF & Timer */}
- <div className="flex items-center gap-2.5 sm:gap-3.5 z-10 translate-y-2 sm:translate-y-2.5">
+ <div className="flex items-center gap-2.5 sm:gap-3.5 z-10">
             {rightPanelTab !== 'home' && (
  <button
  onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
@@ -1642,7 +1635,8 @@ ${greetingPrompt}`;
             )}
  </div>
 
- {/* Center: USA VOYAGER Logo Copy */}
+ {/* Center: USA VOYAGER Logo Copy (Hidden in questionnaire section) */}
+ {!(!hasInteracted && hasClickedConnect) && (
  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none select-none">
  <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.25em' }} className="text-[10px] sm:text-[11px] md:text-[12px] font-bold text-[#0D224A] uppercase block leading-none">
  {selectedLang === 'EN' ? 'I AM USA' : 'YO SOY USA'}
@@ -1651,6 +1645,7 @@ ${greetingPrompt}`;
   VOYAGER<span className="text-[0.3em] font-light text-[#0D224A]/90 align-baseline ml-1 px-1 py-0.5 inline-block select-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 300, letterSpacing: "normal" }}>®</span>
  </span>
  </div>
+ )}
 
  {/* Right: Spacer to maintain center alignment */}
  <div className="z-10 w-6 sm:w-10 pointer-events-none" />
@@ -1761,7 +1756,7 @@ ${greetingPrompt}`;
           {/* Main grid: Mascot on Left, Steps on Right */}
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-10 items-center w-full">
  {/* Left: Mascot */}
- <div className="flex items-center justify-center w-full">
+ <div className={`${onboardingStep === 4 ? 'hidden sm:flex' : 'flex'} items-center justify-center w-full`}>
  <img 
  src="https://lh3.googleusercontent.com/d/1uCm4fqE6Qfxg1lm1FsCbo35fVQcI_E5k" 
  alt="Voyager USA Mascot" 
@@ -1773,19 +1768,28 @@ ${greetingPrompt}`;
  {/* Right: Steps */}
  <div className="flex flex-col w-full text-left">
  {/* Header */}
- <div className="w-full mb-3 flex items-center justify-between gap-4">
+ <div className="w-full mb-3 flex flex-col gap-1">
+ <div className="flex items-center justify-between gap-4">
  <h2 style={{ fontFamily: "'Raleway', sans-serif" }} className="text-xl md:text-2xl font-bold text-[#1A365D] leading-tight flex-1">
  {getOnboardingStepTitle(onboardingStep, selectedLang)}
  </h2>
+ </div>
+ {onboardingStep === 4 && (
+ <p className="text-xs text-black font-semibold leading-relaxed mt-0.5">
+ {selectedLang === 'EN'
+ ? 'Use your Google account or email to log in to your account'
+ : 'Utiliza tu cuenta de Google o tu correo electrónico para entrar a tu cuenta'}
+ </p>
+ )}
  </div>
 
  {onboardingStep === 1 && (
  <div className="space-y-0.5 w-full">
  {[
  { id: 'PROFESSIONAL', label: selectedLang === 'EN' ? 'Professional' : 'Profesional', icon: Briefcase },
- { id: 'ESTUDIO', label: selectedLang === 'EN' ? 'Study' : 'Estudios', icon: BookOpen },
+ { id: 'ESTUDIO', label: selectedLang === 'EN' ? 'Student' : 'Estudiante', icon: BookOpen },
  { id: 'VIAJANTE', label: selectedLang === 'EN' ? 'Traveler' : 'Viajante', icon: Plane },
- { id: 'DOCENTES', label: selectedLang === 'EN' ? 'Teachers' : 'Docentes', icon: Presentation }
+ { id: 'DOCENTES', label: selectedLang === 'EN' ? 'Teacher' : 'Docente', icon: Presentation }
  ].map((opt) => {
  const isSel = selectedGoal === opt.id;
  const IconComp = opt.icon;
@@ -1827,8 +1831,8 @@ ${greetingPrompt}`;
  <div className="space-y-0.5 w-full">
  {[
  { id: 'CONSEGUIR_EMPLEO', label: selectedLang === 'EN' ? 'Get a Job' : 'Conseguir Empleo', icon: UserCheck },
- { id: 'COMUNICARME_TRABAJO', label: selectedLang === 'EN' ? 'Communicate at Work' : 'Comunicarme en el Trabajo', icon: MessageSquareText },
- { id: 'CRECER_PROFESIONAL', label: selectedLang === 'EN' ? 'Grow Professionally' : 'Crecer Profesionalmente', icon: Presentation }
+ { id: 'COMUNICARME_TRABAJO', label: selectedLang === 'EN' ? 'Improve Communication' : 'Mejorar Comunicación', icon: MessageSquareText },
+ { id: 'CRECER_PROFESIONAL', label: selectedLang === 'EN' ? 'Increase Salary' : 'Mejorar Salario', icon: Presentation }
  ].map((opt) => {
  const isSel = selectedProfSubGoal === opt.id;
  const IconComp = opt.icon;
@@ -2086,7 +2090,8 @@ ${greetingPrompt}`;
  {[
  { id: 'ACADEMIC_SUCCESS', label: selectedLang === 'EN' ? 'Academic Success' : 'Éxito Académico', icon: Check },
  { id: 'STUDY_ABROAD', label: selectedLang === 'EN' ? 'Study Abroad' : 'Estudiar en el Extranjero', icon: Plane },
- { id: 'IMPROVE_CONVERSATION', label: selectedLang === 'EN' ? 'Improve Conversation' : 'Mejorar Conversación', icon: MessageSquare }
+ { id: 'IMPROVE_CONVERSATION', label: selectedLang === 'EN' ? 'Improve Conversation' : 'Mejorar Conversación', icon: MessageSquare },
+          { id: 'GENERAL_KNOWLEDGE', label: selectedLang === 'EN' ? 'General Culture' : 'Cultura general', icon: Globe }
  ].map((opt) => {
  const isSel = selectedAcademicGoal === opt.id;
  const IconComp = opt.icon;
@@ -2169,40 +2174,70 @@ ${greetingPrompt}`;
 
   {onboardingStep === 4 && (
     <div className="space-y-3.5 w-full pt-0" style={{ fontFamily: "'Raleway', sans-serif" }}>
-      {/* Avatar Icon */}
-      <div className="w-11 h-11 bg-blue-50/90 text-[#0D224A] rounded-full flex items-center justify-center mx-auto mb-1 shadow-2xs border border-blue-100/80">
-        <User className="w-5.5 h-5.5 stroke-[2.2]" />
+
+      {/* Blue dotted line separator above Google button */}
+      <div className="py-1">
+        <div className="w-full border-t-[3px] border-dotted border-[#0D224A]"></div>
       </div>
 
-      {/* Subtitle */}
-      <p className="text-xs text-neutral-500 font-medium text-center -mt-1 mb-3.5">
-        {selectedLang === 'EN' ? 'Access your personalized learning journey' : 'Accede a tu trayectoria de aprendizaje personalizada'}
-      </p>
+      {/* Buttons: Continuar como Invitado & Continuar con Google */}
+      <div className="flex flex-col gap-2.5">
+        <button
+          type="button"
+          onClick={handleGuestLogin}
+          className="w-full py-2.5 px-4 rounded-full border-2 border-[#0D224A] hover:bg-neutral-50 bg-white text-neutral-800 font-bold text-sm flex items-center justify-center gap-2.5 transition-all duration-200 shadow-2xs cursor-pointer active:scale-[0.98]"
+        >
+          <UserCheck className="w-5 h-5 text-[#0D224A] shrink-0" />
+          <span>{selectedLang === 'EN' ? 'Enter as Guest' : 'Continuar como Invitado'}</span>
+        </button>
 
-      {/* Field 1: NOMBRE COMPLETO */}
-      <div className="text-left">
-        <label className="block text-[11px] font-extrabold text-neutral-600 uppercase tracking-wider mb-1">
-          {selectedLang === 'EN' ? 'FULL NAME' : 'NOMBRE COMPLETO'}
-        </label>
-        <input 
-          type="text"
-          value={userName || userLastName ? `${userName}${userLastName ? ' ' + userLastName : ''}` : ''}
-          onChange={(e) => {
-            const val = e.target.value;
-            const parts = val.trim().split(' ');
-            if (parts.length > 1) {
-              setUserName(parts[0]);
-              setUserLastName(parts.slice(1).join(' '));
-            } else {
-              setUserName(val);
-              setUserLastName('');
-            }
-          }}
-          placeholder={selectedLang === 'EN' ? 'e.g. Maria Gonzalez' : 'ej. María González'}
-          className={`w-full px-4 py-2.5 rounded-2xl border bg-white text-slate-800 font-semibold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
-            userName.trim() !== '' ? 'border-[#0D224A] border-[1.5px]' : 'border-neutral-300'
-          }`}
-        />
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          className="w-full py-2.5 px-4 rounded-full border-2 border-[#0D224A] hover:bg-neutral-50 bg-white text-neutral-800 font-bold text-sm flex items-center justify-center gap-2.5 transition-all duration-200 shadow-2xs cursor-pointer active:scale-[0.98]"
+        >
+          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>{selectedLang === 'EN' ? 'Continue with Google' : 'Continuar con Google'}</span>
+        </button>
+      </div>
+
+      {/* Blue dotted line separator */}
+      <div className="py-2.5">
+        <div className="w-full border-t-[3px] border-dotted border-[#0D224A]"></div>
+      </div>
+
+
+      {/* Field 1 & 2: PRIMER NOMBRE & APELLIDO */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="text-left">
+          <label className="block text-[11px] font-extrabold text-neutral-600 uppercase tracking-wider mb-1">
+            {selectedLang === 'EN' ? 'FIRST NAME' : 'PRIMER NOMBRE'}
+          </label>
+          <input 
+            type="text"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            placeholder={selectedLang === 'EN' ? 'e.g. Maria' : 'ej. María'}
+            className="w-full px-4 py-2.5 rounded-full border-2 border-[#0D224A] bg-white text-neutral-800 font-bold text-sm focus:outline-none transition-all placeholder:text-neutral-400 placeholder:font-normal shadow-2xs"
+          />
+        </div>
+        <div className="text-left">
+          <label className="block text-[11px] font-extrabold text-neutral-600 uppercase tracking-wider mb-1">
+            {selectedLang === 'EN' ? 'LAST NAME' : 'APELLIDO'}
+          </label>
+          <input 
+            type="text"
+            value={userLastName}
+            onChange={(e) => setUserLastName(e.target.value)}
+            placeholder={selectedLang === 'EN' ? 'e.g. Gonzalez' : 'ej. González'}
+            className="w-full px-4 py-2.5 rounded-full border-2 border-[#0D224A] bg-white text-neutral-800 font-bold text-sm focus:outline-none transition-all placeholder:text-neutral-400 placeholder:font-normal shadow-2xs"
+          />
+        </div>
       </div>
 
       {/* Field 2: CORREO ELECTRÓNICO */}
@@ -2215,9 +2250,7 @@ ${greetingPrompt}`;
           value={userEmail}
           onChange={(e) => setUserEmail(e.target.value)}
           placeholder="email@example.com"
-          className={`w-full px-4 py-2.5 rounded-2xl border bg-white text-slate-800 font-semibold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
-            userEmail.trim() !== '' ? 'border-[#0D224A] border-[1.5px]' : 'border-neutral-300'
-          }`}
+          className="w-full px-4 py-2.5 rounded-full border-2 border-[#0D224A] bg-white text-neutral-800 font-bold text-sm focus:outline-none transition-all placeholder:text-neutral-400 placeholder:font-normal shadow-2xs"
         />
       </div>
 
@@ -2231,9 +2264,9 @@ ${greetingPrompt}`;
             type={showPassword ? 'text' : 'password'}
             value={userPassword}
             onChange={(e) => setUserPassword(e.target.value)}
-            placeholder="........"
-            className={`w-full px-4 py-2.5 rounded-2xl border bg-white text-slate-800 font-semibold text-sm focus:outline-none transition-all placeholder:text-gray-400 placeholder:font-normal ${
-              userPassword.trim() !== '' ? 'border-[#0D224A] border-[1.5px]' : 'border-neutral-300'
+            placeholder="● ● ● ● ● ● ● ●"
+            className={`w-full px-4 py-2.5 rounded-full border-2 border-[#0D224A] bg-white text-neutral-800 font-bold focus:outline-none transition-all placeholder:text-neutral-400 placeholder:font-normal shadow-2xs ${
+              !showPassword ? 'text-lg tracking-widest' : 'text-sm'
             }`}
           />
         </div>
@@ -2310,48 +2343,32 @@ ${greetingPrompt}`;
       {/* Button: Continuar con E-mail */}
       <div className="pt-1">
         {(() => {
-          const isFormFilled = userName.trim() !== '' && userEmail.trim() !== '' && userPassword.trim() !== '';
+          const isFormFilled = userName.trim() !== '' && userLastName.trim() !== '' && userEmail.trim() !== '' && userPassword.trim() !== '';
           return (
             <button
               type="button"
               onClick={handleOnboardingNext}
               disabled={!isFormFilled}
-              className={`w-full py-3 px-6 rounded-2xl font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 transition-all duration-200 ${
+              className={`w-full py-2.5 px-4 rounded-full border-2 border-[#0D224A] bg-white text-neutral-800 font-bold text-sm flex items-center justify-center gap-2.5 transition-all duration-200 shadow-2xs ${
                 isFormFilled
-                  ? 'bg-[#0D224A] hover:bg-[#152e50] text-white shadow-md hover:shadow-lg active:scale-[0.98] cursor-pointer'
-                  : 'bg-[#0D224A]/40 text-white/70 cursor-not-allowed'
+                  ? 'hover:bg-neutral-50 active:scale-[0.98] cursor-pointer'
+                  : 'opacity-50 cursor-not-allowed'
               }`}
             >
-              <span>{selectedLang === 'EN' ? 'Continue with E-mail' : 'Continuar con E-mail'}</span>
+              <svg className="w-5 h-5 shrink-0 rounded-full shadow-2xs overflow-hidden" viewBox="0 0 36 36">
+                <path fill="#ED1C24" d="M36 27a9 9 0 0 1-9 9H9a9 9 0 0 1-9-9v-4h36v4z"/>
+                <path fill="#FFF" d="M0 23h36v-3H0v3zm0-6h36v-3H0v3zm0-6h36V8H0v3z"/>
+                <path fill="#ED1C24" d="M0 20h36v-3H0v3zm0-6h36v-3H0v3z"/>
+                <path fill="#00205B" d="M0 9a9 9 0 0 1 9-9h9v18H0V9z"/>
+                <path fill="#FFF" d="M13.5 14.25l.882 2.715h2.855l-2.31 1.678.882 2.715-2.309-1.678-2.309 1.678.882-2.715-2.31-1.678h2.855zM4.5 14.25l.882 2.715h2.855l-2.31 1.678.882 2.715-2.309-1.678-2.309 1.678.882-2.715-2.31-1.678h2.855zM13.5 5.25l.882 2.715h2.855l-2.31 1.678.882 2.715-2.309-1.678-2.309 1.678.882-2.715-2.31-1.678h2.855zM4.5 5.25l.882 2.715h2.855l-2.31 1.678.882 2.715-2.309-1.678-2.309 1.678.882-2.715-2.31-1.678h2.855zM9 9.75l.882 2.715h2.855l-2.31 1.678.882 2.715-2.309-1.678-2.309 1.678.882-2.715-2.31-1.678h2.855z"/>
+              </svg>
+              <span>{selectedLang === 'EN' ? 'Continue with Email' : 'Continuar con Correo'}</span>
             </button>
           );
         })()}
       </div>
 
-      {/* Divider with small circle */}
-      <div className="relative flex items-center justify-center my-3">
-        <div className="w-full border-t border-neutral-200"></div>
-        <div className="absolute bg-white px-2">
-          <span className="w-2.5 h-2.5 rounded-full border border-neutral-300 bg-white block"></span>
-        </div>
-      </div>
 
-      {/* Button: Continuar con Google */}
-      <div>
-        <button
-          type="button"
-          onClick={handleGoogleLogin}
-          className="w-full py-2.5 px-4 rounded-2xl border border-neutral-300 hover:bg-neutral-50 bg-white text-neutral-800 font-bold text-sm flex items-center justify-center gap-2.5 transition-all duration-200 shadow-2xs cursor-pointer active:scale-[0.98]"
-        >
-          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-          </svg>
-          <span>{selectedLang === 'EN' ? 'Continue with Google' : 'Continuar con Google'}</span>
-        </button>
-      </div>
     </div>
   )}
 
@@ -2484,19 +2501,20 @@ ${greetingPrompt}`;
  </div>
  )}
 
-  {/* Underlined SALTAR / SKIP link at the bottom of the form */}
+  {/* Questionnaire options: Saltar cuestionario */}
   {onboardingStep !== 4 && (
- <div className="w-full text-left px-3 mt-3">
- <button
- onClick={() => {
- handleContinuaClick();
- }}
- style={{ fontFamily: "'Raleway', sans-serif" }}
- className="text-[15px] font-semibold text-neutral-700 hover:text-red-600 cursor-pointer transition-colors tracking-wide select-none inline-block py-1 px-0"
- >
- {selectedLang === 'EN' ? 'Skip' : 'Saltar'}
- </button>
- </div>
+    <div className="w-full text-left px-3 mt-3">
+      <button
+        type="button"
+        onClick={() => {
+          setOnboardingStep(4);
+        }}
+        style={{ fontFamily: "'Raleway', sans-serif" }}
+        className="text-[14px] font-semibold text-neutral-700 hover:text-[#0D224A] cursor-pointer transition-colors tracking-wide select-none inline-block py-0.5 text-left"
+      >
+        {selectedLang === 'EN' ? 'Skip questionnaire' : 'Saltar cuestionario'}
+      </button>
+    </div>
   )}
  </div>
  </div>
@@ -2565,10 +2583,88 @@ ${greetingPrompt}`;
  </div>
  </div>
           
-  ) : rightPanelTab === 'chat' ? (
+   ) : rightPanelTab === 'chat' ? (
  <div className="flex-grow flex flex-col overflow-hidden h-full">
 
- <div className="flex-1 px-1 sm:px-3 pt-2 pb-4 tab-content-area overflow-y-auto min-h-0">
+ <div className="flex-1 px-0.5 sm:px-1.5 pt-1 pb-2 tab-content-area overflow-y-auto min-h-0">
+ {isLiveVoiceActive ? (
+   <div className="flex-1 flex flex-col items-center justify-between p-4 sm:p-5 text-center animate-fade-in relative overflow-hidden bg-gradient-to-b from-[#0B1B3D] via-[#0D224A] to-[#061126] rounded-3xl border border-amber-500/30 shadow-[0_15px_50px_rgba(0,0,0,0.7)] my-1 min-h-[380px] w-full">
+     {/* Live Status Top Bar */}
+     <div className="flex items-center justify-between w-full px-3 py-2 bg-black/40 border border-white/10 rounded-2xl backdrop-blur-md">
+       <div className="flex items-center gap-2">
+         <span className="relative flex h-3 w-3">
+           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+           <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+         </span>
+         <span style={{ fontFamily: '"Allerta Stencil", sans-serif' }} className="text-xs sm:text-sm font-bold text-amber-400 tracking-wider uppercase">
+           VOYAGER LIVE
+         </span>
+         <span className="text-[10px] text-white/60 font-mono hidden sm:inline-block">
+           ({selectedLang === 'EN' ? 'Voice Mode' : 'Modo Voz Continuo'})
+         </span>
+       </div>
+       <button
+         onClick={() => setIsLiveVoiceActive(false)}
+         className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-[10px] font-semibold rounded-full border border-white/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
+       >
+         {selectedLang === 'EN' ? 'Exit Live' : 'Volver al Chat'}
+       </button>
+     </div>
+
+     {/* Center Sound Bubble Canvas */}
+     <div className="relative flex-1 flex flex-col items-center justify-center my-2 w-full">
+       <div className="absolute inset-0 rounded-full bg-amber-500/10 blur-3xl animate-pulse pointer-events-none" />
+       <canvas
+         ref={coverParticleCanvasRef}
+         width={720}
+         height={720}
+         className="z-10 w-44 h-44 sm:w-56 sm:h-56 max-w-full object-contain animate-float-zero-g"
+       />
+
+       {/* Voice Wave Visualizer Bars */}
+       <div className="flex items-center justify-center gap-1 mt-2">
+         {[0.4, 0.7, 1.0, 0.6, 0.9, 0.5, 0.8, 0.3].map((heightFactor, i) => (
+           <div
+             key={i}
+             className="w-1 bg-amber-400 rounded-full transition-all duration-75"
+             style={{
+               height: `${Math.max(6, Math.min(32, (volume * heightFactor * 0.8) + 8))}px`,
+               opacity: volume > 5 ? 0.9 : 0.4
+             }}
+           />
+         ))}
+       </div>
+
+       <span className="text-xs font-mono font-medium text-amber-300 mt-2 block animate-pulse">
+         {volume > 15
+           ? (selectedLang === 'EN' ? 'Listening to you...' : 'Escuchando tu voz...')
+           : (selectedLang === 'EN' ? 'Speak freely with Voyager...' : 'Habla libremente con Voyager...')}
+       </span>
+     </div>
+
+     {/* Realtime Subtitle Banner (Latest Spoken Line) */}
+     {chatMessages.filter(m => !m.tab || m.tab === 'chat').slice(-1)[0] && (
+       <div className="w-full max-w-lg mx-auto bg-black/60 border border-amber-500/20 backdrop-blur-md rounded-2xl p-3 text-left shadow-lg animate-fade-in">
+         <div className="flex items-center gap-1.5 mb-1 text-[10px] font-bold text-amber-400 tracking-wider uppercase">
+           {chatMessages.filter(m => !m.tab || m.tab === 'chat').slice(-1)[0].sender === 'user' ? (
+             <>
+               <User className="w-3 h-3 text-blue-400" />
+               <span>{selectedLang === 'EN' ? 'YOU SAID' : 'TÚ DIJISTE'}</span>
+             </>
+           ) : (
+             <>
+               <AudioLines className="w-3 h-3 text-amber-400" />
+               <span>VOYAGER</span>
+             </>
+           )}
+         </div>
+         <p className="text-xs text-white/90 leading-relaxed font-normal line-clamp-3">
+           {chatMessages.filter(m => !m.tab || m.tab === 'chat').slice(-1)[0].text}
+         </p>
+       </div>
+     )}
+   </div>
+ ) : (
  <div className="min-h-full flex flex-col justify-start space-y-4">
  {chatMessages.filter(msg => !msg.tab || msg.tab === 'chat').map((msg, index) => {
  if (msg.sender === 'system') {
@@ -2591,6 +2687,11 @@ ${greetingPrompt}`;
  : 'bg-white border-[5px] border-[#FFD700] text-black rounded-tl-none'
  }
  `}>
+ {isUser && (
+ <div className="flex items-center justify-end gap-1 mb-1.5 select-none">
+ <User strokeWidth={2.5} className="w-4 h-4 text-[#5382eb]" />
+ </div>
+ )}
  {!isUser && (
  <div className="flex items-center gap-1.5 sm:gap-4 flex-wrap mb-2.5 select-none">
  {/* Embedded Mode Selectors */}
@@ -3025,27 +3126,47 @@ ${greetingPrompt}`;
  </div>
  );
  })}
+ </div>
+ )}
   {!showReviewScreen && hasInteracted && (
   <div className="flex justify-end w-full animate-fade-in my-1">
   <ChatInputBox
-  selectedLang={selectedLang}
-  isConnected={isConnected}
-  isPaused={isPaused}
-  pause={pause}
-  resume={resume}
-  onSubmitText={(text) => {
-  addUserMessage(text);
-  sendText(text);
-  }}
-  value={inputText}
-  onChangeValue={setInputText}
-  placeholderText={placeholderText}
-  onOpenProfile={() => setRightPanelTab('roadmap')}
+    selectedLang={selectedLang}
+    isConnected={isConnected}
+    isPaused={isPaused}
+    pause={pause}
+    resume={resume}
+    onSubmitText={(text) => {
+      const trimmed = text ? text.trim() : '';
+      if (!trimmed) return;
+      addUserMessage(trimmed);
+      sendText(trimmed);
+    }}
+    value={inputText}
+    onChangeValue={setInputText}
+    placeholderText={placeholderText}
+    onOpenProfile={() => setRightPanelTab('roadmap')}
+    isSpanishOnlyMode={isSpanishOnlyMode}
+    setIsSpanishOnlyMode={setIsSpanishOnlyMode}
+    isBilingualMode={isBilingualMode}
+    setIsBilingualMode={setIsBilingualMode}
+    isEnglishOnlyMode={isEnglishOnlyMode}
+    setIsEnglishOnlyMode={setIsEnglishOnlyMode}
+    isTranslateMode={isTranslateMode}
+    setIsTranslateMode={setIsTranslateMode}
+    isListenOnly={isListenOnly}
+    setIsListenOnly={setIsListenOnly}
+    isLiveVoiceActive={isLiveVoiceActive}
+    onToggleLiveVoice={() => {
+      setIsLiveVoiceActive(prev => !prev);
+      if (isConnected && isPaused) {
+        resume();
+      }
+    }}
   />
   </div>
   )}
  <div ref={chatEndRef} />
- </div>
  </div>
  </div>
  ) : rightPanelTab === 'roadmap' ? (
@@ -3123,13 +3244,32 @@ Pregunta del usuario: "${text}"]`;
  pause={pause}
  resume={resume}
  onSubmitText={(text) => {
- setHasInteracted(true);
- addUserMessage(text);
- sendText(text);
+   const trimmed = text ? text.trim() : '';
+   if (!trimmed) return;
+   setHasInteracted(true);
+   addUserMessage(trimmed);
+   sendText(trimmed);
  }}
  value={inputText}
  onChangeValue={setInputText}
  onOpenProfile={() => setRightPanelTab('roadmap')}
+ isSpanishOnlyMode={isSpanishOnlyMode}
+ setIsSpanishOnlyMode={setIsSpanishOnlyMode}
+ isBilingualMode={isBilingualMode}
+ setIsBilingualMode={setIsBilingualMode}
+ isEnglishOnlyMode={isEnglishOnlyMode}
+ setIsEnglishOnlyMode={setIsEnglishOnlyMode}
+ isTranslateMode={isTranslateMode}
+ setIsTranslateMode={setIsTranslateMode}
+ isListenOnly={isListenOnly}
+ setIsListenOnly={setIsListenOnly}
+ isLiveVoiceActive={isLiveVoiceActive}
+ onToggleLiveVoice={() => {
+   setIsLiveVoiceActive(prev => !prev);
+   if (isConnected && isPaused) {
+     resume();
+   }
+ }}
  />
  </div>
  ) : rightPanelTab === 'settings' ? (
