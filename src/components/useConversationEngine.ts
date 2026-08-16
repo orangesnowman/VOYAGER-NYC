@@ -269,6 +269,8 @@ export function useConversationEngine(
     setError,
 
     // Language & Mode states
+    activeMode,
+    switchMode,
     selectedLang,
     setSelectedLang,
     isListenOnly,

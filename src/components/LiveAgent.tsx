@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { SUGGESTIONS, IMMERSION_CURRICULUM } from '../constants';
 import NycMap, { MapMarker, RouteInfo } from './NycMap';
 import { NycSubwayMap } from './NycSubwayMap';
@@ -14,7 +14,7 @@ import { ChatInputBox } from './ChatInputBox';
 import { AuthModal } from './AuthModal';
 import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
 import chatAvatarIcon from '../assets/images/voyager_pixel_avatar_1784465509169.jpg';
-import { Mic, Plus, Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight, Headphones, AudioLines, MessageSquare, User, Settings, Sliders, ShoppingBag, Globe, Apple, Home, Pause, Play, Info, Shield, FileText, Bot, Eye, EyeOff, ShoppingCart, Briefcase, BookOpen, Luggage, Rocket, Check, UserCheck, Presentation, MessageSquareText, Plane, Sprout, Flower, TreeDeciduous, GraduationCap, Award, Mail, Menu, X, Power } from 'lucide-react';
+import { Mic, MicOff, Plus, Compass, MapPin, Languages, Sparkles, ArrowLeft, ArrowRight, Headphones, AudioLines, MessageSquare, User, Settings, Sliders, ShoppingBag, Globe, Apple, Home, Pause, Play, Info, Shield, FileText, Bot, Eye, EyeOff, ShoppingCart, Briefcase, BookOpen, Luggage, Rocket, Check, UserCheck, Presentation, MessageSquareText, Plane, Sprout, Flower, TreeDeciduous, GraduationCap, Award, Mail, Menu, X, Power } from 'lucide-react';
 
 import { ChatMessage, Lead, TravelDestination, PronunciationFeedbackEvent, ConversationEvent } from './LiveAgentTypes';
 import { TRAVEL_PRESETS } from './TravelPresets';
@@ -223,6 +223,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const [isModeMenuOpen, setIsModeMenuOpen] = useState(false);
 
  const {
+ activeMode,
+ switchMode,
  isConnected,
  statusText,
  isPaused,
@@ -269,13 +271,31 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const [chosenStartMode, setChosenStartMode] = useState<ConversationMode | null>('SPANISH');
 
  const currentModeObj = useMemo(() => {
-   if (isBilingualMode) return modeDetails.find(m => m.id === 'BILINGUAL') || modeDetails[0];
-   if (isEnglishOnlyMode) return modeDetails.find(m => m.id === 'AMERICAN_ENGLISH') || modeDetails[0];
-   if (isTranslateMode) return modeDetails.find(m => m.id === 'LIVE_TRANSLATOR') || modeDetails[0];
-   if (isListenOnly) return modeDetails.find(m => m.id === 'LISTEN_ONLY') || modeDetails[0];
-   if (isSpanishOnlyMode) return modeDetails.find(m => m.id === 'SPANISH') || modeDetails[0];
-   return modeDetails.find(m => m.id === (chosenStartMode || 'SPANISH')) || modeDetails[0];
- }, [isBilingualMode, isEnglishOnlyMode, isTranslateMode, isListenOnly, isSpanishOnlyMode, chosenStartMode]);
+   const targetId = activeMode || chosenStartMode || 'SPANISH';
+   return modeDetails.find(m => m.id === targetId) || modeDetails[0];
+ }, [activeMode, chosenStartMode]);
+
+ const EspIcon = useCallback(({ className }: { className?: string }) => (
+   <span className={`font-black text-[10px] tracking-tighter leading-none flex items-center justify-center select-none ${className || ''}`}>
+     ESP
+   </span>
+ ), []);
+
+ const CurrentModeIcon = useMemo(() => {
+   switch (currentModeObj.id) {
+     case 'BILINGUAL':
+       return Sparkles;
+     case 'AMERICAN_ENGLISH':
+       return Compass;
+     case 'LIVE_TRANSLATOR':
+       return Languages;
+     case 'LISTEN_ONLY':
+       return Headphones;
+     case 'SPANISH':
+     default:
+       return EspIcon;
+   }
+ }, [currentModeObj, EspIcon]);
 
  const [onboardingStep, setOnboardingStep] = useState<number>(0);
  const [selectedGoal, setSelectedGoal] = useState<'PROFESSIONAL' | 'ESTUDIO' | 'VIAJANTE' | 'DOCENTES' | null>(null);
@@ -1073,11 +1093,8 @@ NO respondas a ruidos, habla o ruidos de fondo.]`;
 
   // Helper to apply mode to Hook state
   const applyChosenMode = (mode: ConversationMode) => {
-    setIsBilingualMode(mode === 'BILINGUAL');
-    setIsEnglishOnlyMode(mode === 'AMERICAN_ENGLISH');
-    setIsTranslateMode(mode === 'LIVE_TRANSLATOR');
-    setIsListenOnly(mode === 'LISTEN_ONLY');
-    setIsSpanishOnlyMode(mode === 'SPANISH');
+    switchMode(mode, selectedLang);
+    setChosenStartMode(mode);
   };
 
  const handleCompleteOnboarding = () => {
@@ -1502,7 +1519,18 @@ ${greetingPrompt}`;
  {/* Ambient Background Glow */}
  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
  
-  {/* Header Text - Removed */}
+  {/* Top Logo */}
+  <div className="pt-2 sm:pt-3 flex flex-col items-center justify-center text-center select-none z-20">
+    <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.25em' }} className="text-[10px] sm:text-xs font-bold text-white/90 uppercase tracking-widest block leading-none">
+      {selectedLang === 'EN' ? 'I AM USA' : 'YO SOY USA'}
+    </span>
+    <h1 style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 2px 12px rgba(0,0,0,0.7)', letterSpacing: '0.12em' }} className="text-2xl sm:text-3xl md:text-[38px] lg:text-[44px] font-black text-white mt-1 uppercase block leading-none">
+      VOYAGER<span className="text-[0.3em] font-light text-white/90 align-baseline ml-1 inline-block select-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 300, letterSpacing: "normal" }}>®</span>
+    </h1>
+    <span style={{ fontFamily: "'Raleway', 'Allerta', sans-serif", letterSpacing: '0.18em' }} className="text-[10px] sm:text-xs md:text-[13px] font-extrabold text-[#FFD700] uppercase tracking-widest mt-1.5 sm:mt-2 block leading-tight drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+      {selectedLang === 'EN' ? 'AMERICAN ENGLISH TUTOR' : 'TUTOR DE INGLÉS AMERICANO'}
+    </span>
+  </div>
 
  {/* Glowing Golden Energy Sphere */}
  <div className="relative flex-grow flex-shrink min-h-0 w-full flex items-center justify-center pt-1 pb-4 md:pt-2 md:pb-6">
@@ -1543,19 +1571,9 @@ ${greetingPrompt}`;
  {selectedLang === 'EN' ? 'SELECT' : 'SELECCIONA'}
  </button>
  )}
+  </div>
 
-
- {/* Chat Mode Menu Trigger (+) */}
- <button
- onClick={() => setIsModeMenuOpen(prev => !prev)}
- title={selectedLang === 'EN' ? 'Chat Modes' : 'Modos de Charla'}
- className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 text-white flex items-center justify-center transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-md relative"
- >
- <Plus className="w-5 h-5 text-white" />
- </button>
-
- </div>
- </div>
+  </div>
 
  {/* Column 2 (Right Panel): The Cover Page (White layout) */}
  <div className={`md:col-span-1 ${hasClickedConnect ? 'bg-[#0D224A]' : 'bg-white'} rounded-none md:rounded-[32px] flex flex-col justify-between items-center text-center shadow-none md:shadow-[0_15px_35px_rgba(0,0,0,0.15)] relative overflow-hidden w-full h-[100dvh] md:h-full min-h-0`}>
@@ -1630,9 +1648,9 @@ ${greetingPrompt}`;
  onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
  title={selectedLang === 'EN' ? 'Menu' : 'Menú'}
  aria-label={selectedLang === 'EN' ? 'Menu' : 'Menú'}
- className="relative p-1.5 text-white hover:text-amber-300 bg-white/10 border border-white/20 rounded-xl transition-all cursor-pointer flex items-center justify-center active:scale-95 shadow-sm"
+  className="relative p-1.5 text-slate-900 hover:text-black bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl transition-all cursor-pointer flex items-center justify-center active:scale-95 shadow-xs"
  >
- {isNavMenuOpen ? <X className="w-6 h-6 text-white" strokeWidth={3} /> : <Menu className="w-6 h-6 text-white" strokeWidth={3} />}
+  {isNavMenuOpen ? <X className="w-6 h-6 text-slate-900" strokeWidth={3} /> : <Menu className="w-6 h-6 text-slate-900" strokeWidth={3} />}
  {cartCount > 0 && !isNavMenuOpen && (
  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1 border border-white">
  {cartCount}
@@ -2382,7 +2400,7 @@ ${greetingPrompt}`;
  {modeDetails.map((mode) => {
  const name = selectedLang === 'EN' ? mode.nameEn : mode.nameEs;
  const desc = selectedLang === 'EN' ? mode.descEn : mode.descEs;
- const effectiveMode = chosenStartMode || 'SPANISH';
+ const effectiveMode = currentModeObj.id;
  const isSel = effectiveMode === mode.id;
 
  return (
@@ -2399,7 +2417,13 @@ ${greetingPrompt}`;
  <div className={`w-7.5 h-7.5 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-200 mt-0.5 ${
  isSel ? 'bg-red-600 text-white shadow-xs scale-105' : 'bg-transparent text-neutral-500 group-hover:bg-[#1A365D] group-hover:text-white'
  }`}>
- <MessageSquare className="w-[17px] h-[17px] flex-shrink-0" />
+ {(() => {
+   const ModeItemIcon = mode.id === 'BILINGUAL' ? Sparkles :
+                        mode.id === 'AMERICAN_ENGLISH' ? Compass :
+                        mode.id === 'LIVE_TRANSLATOR' ? Languages :
+                        mode.id === 'LISTEN_ONLY' ? Headphones : EspIcon;
+   return <ModeItemIcon className="w-[17px] h-[17px] flex-shrink-0" />;
+ })()}
  </div>
  <div className="flex-1 min-w-0">
  <span style={{ fontFamily: "'Raleway', sans-serif" }} className={`text-xs tracking-wide block leading-tight ${
@@ -2593,26 +2617,140 @@ ${greetingPrompt}`;
 
  <div className="flex-1 px-0.5 sm:px-1.5 pt-1 pb-2 tab-content-area overflow-y-auto min-h-0">
   {isLiveVoiceActive ? (
-    <div className="fixed inset-0 z-50 w-screen h-[100dvh] bg-gradient-to-b from-[#0B1B3D] via-[#0D224A] to-[#061126] rounded-none border-none shadow-none p-4 sm:p-8 flex flex-col items-center justify-between text-center overflow-hidden animate-fade-in">
+    <div className="fixed inset-0 z-50 w-screen h-[100dvh] bg-gradient-to-b from-[#0B1B3D] via-[#0D224A] to-[#061126] rounded-none border-none shadow-none p-3 sm:p-5 md:p-6 pb-4 sm:pb-6 flex flex-col items-center justify-between text-center overflow-hidden animate-fade-in">
+     {/* Top Left Menu Button */}
+     <button
+       onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
+       title={selectedLang === 'EN' ? 'Menu' : 'Menú'}
+       aria-label={selectedLang === 'EN' ? 'Menu' : 'Menú'}
+       className="absolute top-4 left-4 z-30 p-2 text-white hover:text-amber-300 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition-all cursor-pointer flex items-center justify-center active:scale-95 shadow-md"
+     >
+       {isNavMenuOpen ? <X className="w-5 h-5 text-white" strokeWidth={3} /> : <Menu className="w-5 h-5 text-white" strokeWidth={3} />}
+       {cartCount > 0 && !isNavMenuOpen && (
+         <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1 border border-white">
+           {cartCount}
+         </span>
+       )}
+     </button>
+
+     {/* Vertical Navigation Dropdown Menu in Live Overlay */}
+     {isNavMenuOpen && (
+       <>
+         <div 
+           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs transition-opacity" 
+           onClick={() => setIsNavMenuOpen(false)} 
+         />
+         <div className="absolute top-16 left-4 z-50 w-[165px] min-w-[165px] bg-[#0D224A]/90 border border-white/20 backdrop-blur-md rounded-2xl shadow-2xl py-2 px-0 overflow-hidden flex flex-col gap-1 animate-slide-down text-left">
+           {[
+             { id: 'home', icon: Home, label: selectedLang === 'EN' ? 'Home' : 'Inicio', hash: '' },
+             { id: 'chat', icon: Bot, label: selectedLang === 'EN' ? 'Chat' : 'Charla', hash: '' },
+             { id: 'teachers', icon: Apple, label: selectedLang === 'EN' ? 'Teacher' : 'La Profe', hash: '' },
+             { id: 'roadmap', icon: User, label: visitorFullName ? visitorFullName : (selectedLang === 'EN' ? 'Guest' : 'Invitado'), hash: '' },
+             { id: 'shopping', icon: ShoppingCart, label: selectedLang === 'EN' ? 'Store' : 'La Tienda', badge: cartCount > 0 ? cartCount : undefined, hash: '#/shop' },
+             { id: 'settings', icon: Settings, label: selectedLang === 'EN' ? 'Settings' : 'Configura', hash: '' },
+           ].map((item) => {
+             const IconComponent = item.icon;
+             const activeTab = !hasInteracted ? 'home' : rightPanelTab;
+             const isActive = activeTab === item.id;
+             return (
+               <button
+                 key={item.id}
+                 onClick={() => {
+                   setRightPanelTab(item.id as any);
+                   setIsNavMenuOpen(false);
+                   setIsLiveVoiceActive(false);
+                   window.location.hash = item.hash;
+                 }}
+                 className={`w-full flex items-center justify-between px-3 py-2 transition-all cursor-pointer ${
+                   isActive 
+                     ? 'bg-[#0B1B3D] text-white font-bold border border-white/30 relative z-10 shadow-md' 
+                     : 'text-white/60 hover:text-white hover:bg-white/10'
+                 }`}
+               >
+                 <div className="flex items-center gap-2.5">
+                   <IconComponent className={`w-4 h-4 sm:w-5 sm:h-5 ${isActive ? 'text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.9)]' : 'text-white/60'}`} />
+                   <span style={{ fontFamily: '"Allerta", sans-serif' }} className={`text-xs sm:text-sm tracking-wide ${isActive ? 'font-bold text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.9)]' : 'font-normal'}`}>
+                     {item.label}
+                   </span>
+                 </div>
+                 {item.badge && (
+                   <span className="bg-red-600 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+                     {item.badge}
+                   </span>
+                 )}
+               </button>
+             );
+           })}
+         </div>
+       </>
+     )}
+
+     {/* Top Center Logo */}
+     <div className="pt-1 flex flex-col items-center justify-center text-center select-none z-20">
+       <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.25em' }} className="text-[10px] sm:text-xs font-bold text-white/90 uppercase tracking-widest block leading-none">
+         {selectedLang === 'EN' ? 'I AM USA' : 'YO SOY USA'}
+       </span>
+       <h1 style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 2px 12px rgba(0,0,0,0.7)', letterSpacing: '0.12em' }} className="text-2xl sm:text-3xl md:text-[38px] font-black text-white mt-1 uppercase block leading-none">
+         VOYAGER<span className="text-[0.3em] font-light text-white/90 align-baseline ml-1 inline-block select-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 300, letterSpacing: "normal" }}>®</span>
+       </h1>
+       <span style={{ fontFamily: "'Raleway', 'Allerta', sans-serif", letterSpacing: '0.18em' }} className="text-[10px] sm:text-xs md:text-[13px] font-extrabold text-[#FFD700] uppercase tracking-widest mt-1.5 block leading-tight drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+         {selectedLang === 'EN' ? 'AMERICAN ENGLISH TUTOR' : 'TUTOR DE INGLÉS AMERICANO'}
+       </span>
+     </div>
+
      {/* Center Sound Bubble Canvas */}
-     <div className="relative flex-1 flex flex-col items-center justify-center my-2 w-full">
+     <div className="relative flex-1 min-h-0 flex flex-col items-center justify-center my-1 sm:my-2 w-full overflow-hidden">
        <div className="absolute inset-0 rounded-full bg-amber-500/10 blur-3xl animate-pulse pointer-events-none" />
        <canvas
          ref={coverParticleCanvasRef}
          width={720}
          height={720}
-         className="z-10 w-80 h-80 sm:w-[400px] sm:h-[400px] md:w-[460px] md:h-[460px] max-w-full object-contain animate-float-zero-g"
+         className="z-10 w-48 h-48 xs:w-64 xs:h-64 sm:w-80 sm:h-80 md:w-[380px] md:h-[380px] max-h-[36vh] max-w-full object-contain animate-float-zero-g"
        />
 
-       <span className="text-xs font-mono font-medium text-amber-300 mt-2 block animate-pulse">
-         {volume > 15
-           ? (selectedLang === 'EN' ? 'Listening to you...' : 'Escuchando tu voz...')
-           : (selectedLang === 'EN' ? 'Speak freely with Voyager...' : 'Habla libremente con Voyager...')}
-       </span>
+       {/* Audio Wave Toggle Button for Pause / Play Live Mode */}
+       <button
+         onClick={() => {
+           if (!isConnected) {
+             connect();
+           } else if (isPaused) {
+             resume();
+           } else {
+             pause();
+           }
+         }}
+         title={isPaused ? (selectedLang === 'EN' ? 'Resume Voice' : 'Activar Voz') : (selectedLang === 'EN' ? 'Pause Voice' : 'Pausar Voz')}
+         className={`z-20 mt-2 sm:mt-3 w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg transition-all cursor-pointer flex items-center justify-center hover:scale-110 active:scale-95 border ${
+           isPaused
+             ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/50'
+             : 'bg-white text-[#0D224A] hover:bg-white/90 border-white/80 shadow-amber-500/20'
+         }`}
+       >
+         {isPaused ? (
+           <AudioLines className="w-6 h-6 sm:w-7 sm:h-7 text-amber-300 opacity-50" />
+         ) : (
+           <AudioLines className="w-6 h-6 sm:w-7 sm:h-7 text-[#0D224A] animate-pulse" />
+         )}
+       </button>
+
+       <div className="flex flex-col items-center gap-1 mt-2.5 sm:mt-3 text-center max-w-xs sm:max-w-md px-3 z-20">
+         <p className="text-xs sm:text-sm font-semibold text-amber-300 tracking-wide leading-snug">
+           {selectedLang === 'EN' ? currentModeObj.descEn : currentModeObj.descEs}
+         </p>
+         {isPaused ? (
+           <span className="text-[10px] sm:text-[11px] font-mono text-amber-400/80 uppercase tracking-wider block">
+             {selectedLang === 'EN' ? '• Voice paused •' : '• Voz pausada •'}
+           </span>
+         ) : volume > 15 ? (
+           <span className="text-[10px] sm:text-[11px] font-mono text-amber-200/90 uppercase tracking-wider block animate-pulse">
+             {selectedLang === 'EN' ? '• Listening to your voice... •' : '• Escuchando tu voz... •'}
+           </span>
+         ) : null}
+       </div>
      </div>
 
       {/* Realtime Subtitle & Dictation Control Bar */}
-      <div className="w-full max-w-xl mx-auto bg-black/70 border border-amber-500/30 backdrop-blur-md rounded-2xl p-3 flex items-center justify-between gap-3 shadow-none animate-fade-in">
+      <div className="w-full max-w-xl mx-auto bg-black/80 border border-amber-500/30 backdrop-blur-md rounded-2xl p-2.5 sm:p-3 flex items-center justify-between gap-3 shadow-2xl animate-fade-in shrink-0 z-20">
         <div className="flex-1 text-left min-w-0">
           <div className="flex items-center gap-1.5 mb-1 text-[10px] font-bold text-amber-400 tracking-wider uppercase">
             {chatMessages.filter(m => !m.tab || m.tab === 'chat').slice(-1)[0]?.sender === 'user' ? (
@@ -2632,15 +2770,70 @@ ${greetingPrompt}`;
           </p>
         </div>
 
-        {/* Right Action Icons: Chat Modes (+), Open Chat & Close */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Right Action Icons: Chat Modes & Open Chat */}
+        <div className="flex items-center gap-2 flex-shrink-0 relative">
           <button
             onClick={() => setIsModeMenuOpen(prev => !prev)}
-            title={selectedLang === 'EN' ? 'Chat Modes' : 'Modos de Charla'}
+            title={`${selectedLang === 'EN' ? 'Chat Mode:' : 'Modo de Charla:'} ${selectedLang === 'EN' ? currentModeObj.nameEn : currentModeObj.nameEs}`}
             className="p-2.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 rounded-full text-amber-300 transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-md flex items-center justify-center"
           >
-            <Plus className="w-5 h-5 text-amber-300" />
+            <CurrentModeIcon className="w-5 h-5 text-amber-300" />
           </button>
+
+          {/* Quick Submenu Popover for Live Voice Mode */}
+          {isModeMenuOpen && isLiveVoiceActive && (
+            <>
+              <div
+                className="fixed inset-0 z-40 bg-transparent"
+                onClick={() => setIsModeMenuOpen(false)}
+              />
+              <div className="absolute bottom-full right-0 mb-3 z-50 w-40 bg-[#0B1B3D]/95 border border-amber-500/40 backdrop-blur-xl rounded-2xl p-1.5 shadow-2xl animate-fade-in flex flex-col text-white">
+                <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
+                  {modeDetails.map((mode) => {
+                    const name = selectedLang === 'EN' ? mode.nameEn : mode.nameEs;
+                    const desc = selectedLang === 'EN' ? mode.descEn : mode.descEs;
+                    const effectiveMode = currentModeObj.id;
+                    const isSelected = effectiveMode === mode.id;
+
+                    const IconComp = mode.id === 'BILINGUAL' ? Sparkles :
+                                     mode.id === 'AMERICAN_ENGLISH' ? Compass :
+                                     mode.id === 'LIVE_TRANSLATOR' ? Languages :
+                                     mode.id === 'LISTEN_ONLY' ? Headphones : EspIcon;
+
+                    return (
+                      <button
+                        key={mode.id}
+                        onClick={() => {
+                          handleModeSelection(mode.id as ConversationMode);
+                          applyChosenMode(mode.id as ConversationMode);
+                          if (isConnected) {
+                            sendText(`[INSTRUCCIÓN DE SISTEMA: El usuario ha seleccionado el modo de conversación: "${name}". Cambia tu estilo e idioma inmediatamente a este modo: "${desc}"]`);
+                          }
+                          setIsModeMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center p-1.5 rounded-lg text-left transition-all duration-150 cursor-pointer ${
+                          isSelected
+                            ? 'text-amber-300 font-extrabold'
+                            : 'text-white/70 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-6 h-6 flex items-center justify-center flex-shrink-0 ${
+                            isSelected ? 'text-amber-300' : 'text-white/70'
+                          }`}>
+                            <IconComp className="w-4 h-4" />
+                          </div>
+                          <span style={{ fontFamily: "'Raleway', sans-serif" }} className="text-xs font-semibold leading-tight truncate">
+                            {name}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
 
           <button
             onClick={() => {
@@ -2651,17 +2844,6 @@ ${greetingPrompt}`;
             className="p-2.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 rounded-full text-amber-300 transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-md flex items-center justify-center"
           >
             <MessageSquare className="w-5 h-5 text-amber-300" />
-          </button>
-
-          <button
-            onClick={() => {
-              setIsLiveVoiceActive(false);
-              if (isConnected && !isPaused) pause();
-            }}
-            title={selectedLang === 'EN' ? 'Exit Live' : 'Cerrar Modo Voz'}
-            className="p-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full text-white/80 hover:text-white transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-md"
-          >
-            <X className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -3554,109 +3736,6 @@ Pregunta del usuario: "${text}"]`;
  </div>
  </div>
  )}
-
-  {/* Chat Modes Selection Modal */}
-  {isModeMenuOpen && (
-    <div className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-[#0B1B3D] border border-white/20 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl flex flex-col gap-4 text-white relative">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300">
-              <Plus className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 style={{ fontFamily: '"Raleway", sans-serif' }} className="text-base font-bold text-white uppercase tracking-wider">
-                {selectedLang === 'EN' ? 'Chat Modes' : 'Modos de Charla'}
-              </h3>
-              <p className="text-[11px] text-white/60">
-                {selectedLang === 'EN' ? 'Select VOYAGER conversation style' : 'Selecciona el estilo de conversación de VOYAGER'}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setIsModeMenuOpen(false)}
-            className="p-1.5 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-all cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Modes Options */}
-        <div className="flex flex-col gap-2.5 my-1 max-h-[60vh] overflow-y-auto pr-1">
-          {modeDetails.map((mode) => {
-            const name = selectedLang === 'EN' ? mode.nameEn : mode.nameEs;
-            const desc = selectedLang === 'EN' ? mode.descEn : mode.descEs;
-            const tag = selectedLang === 'EN' ? mode.tagEn : mode.tagEs;
-            const effectiveMode = chosenStartMode || 'SPANISH';
-            const isSelected = effectiveMode === mode.id;
-
-            const IconComp = mode.id === 'BILINGUAL' ? Sparkles :
-                             mode.id === 'AMERICAN_ENGLISH' ? Compass :
-                             mode.id === 'LIVE_TRANSLATOR' ? Languages :
-                             mode.id === 'LISTEN_ONLY' ? Headphones : MessageSquare;
-
-            return (
-              <button
-                key={mode.id}
-                onClick={() => {
-                  handleModeSelection(mode.id as ConversationMode);
-                  applyChosenMode(mode.id as ConversationMode);
-                  if (isConnected) {
-                    sendText(`[INSTRUCCIÓN DE SISTEMA: El usuario ha seleccionado el modo de conversación: "${name}". Cambia tu estilo e idioma inmediatamente a este modo: "${desc}"]`);
-                  }
-                  setIsModeMenuOpen(false);
-                }}
-                className={`w-full flex items-start gap-3.5 p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
-                  isSelected
-                    ? 'bg-gradient-to-r from-amber-500/25 to-amber-600/15 border-amber-400 text-white shadow-lg ring-1 ring-amber-400/50'
-                    : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/80 hover:text-white hover:border-white/25'
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                  isSelected ? 'bg-amber-400 text-black shadow-md' : 'bg-white/10 text-amber-300'
-                }`}>
-                  <IconComp className="w-5 h-5" />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span style={{ fontFamily: "'Raleway', sans-serif" }} className="text-xs sm:text-sm font-bold tracking-wide">
-                      {name}
-                    </span>
-                    {isSelected ? (
-                      <span className="px-2 py-0.5 bg-amber-400 text-black text-[9px] font-black uppercase rounded-full tracking-wider flex items-center gap-1 shadow-xs">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                        {selectedLang === 'EN' ? 'Active' : 'Activo'}
-                      </span>
-                    ) : tag ? (
-                      <span className="text-[9px] text-white/50 bg-white/5 px-2 py-0.5 rounded-full border border-white/10 font-medium">
-                        {tag}
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="text-[11px] text-white/70 mt-1 leading-snug">
-                    {desc}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Modal Footer */}
-        <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-white/50">
-          <span>VOYAGER USA • {selectedLang === 'EN' ? 'Chat Modes' : 'Modos de Charla'}</span>
-          <button
-            onClick={() => setIsModeMenuOpen(false)}
-            className="px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl transition-all cursor-pointer"
-          >
-            {selectedLang === 'EN' ? 'Close' : 'Cerrar'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )}
 
  {/* Email / Google / Guest Auth Modal */}
   <AuthModal 
