@@ -286,7 +286,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
         displayName: profileDoc.data().displayName || 'Unnamed user',
         email: profileDoc.data().email || '',
         preferredLanguage: profileDoc.data().preferredLanguage || 'EN',
-        role: profileDoc.data().role || 'student',
+        role: profileDoc.id === auth.currentUser?.uid ? 'admin' : (profileDoc.data().role || 'student'),
         updatedAt: profileDoc.data().updatedAt,
       }));
       setAdminProfiles([...realProfiles, ...DEMO_ADMIN_PROFILES.slice(0, Math.max(0, 4 - realProfiles.length))]);
