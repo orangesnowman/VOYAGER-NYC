@@ -64,7 +64,15 @@ interface AdminUserProfile {
   preferredLanguage?: string;
   role?: 'admin' | 'editor' | 'student';
   updatedAt?: { toDate?: () => Date };
+  isDemo?: boolean;
 }
+
+const DEMO_ADMIN_PROFILES: AdminUserProfile[] = [
+  { id: 'demo-editor-ana', displayName: 'Ana Morales', email: 'ana.morales@example.com', preferredLanguage: 'ES', role: 'editor', updatedAt: { toDate: () => new Date('2026-08-16') }, isDemo: true },
+  { id: 'demo-student-diego', displayName: 'Diego López', email: 'diego.lopez@example.com', preferredLanguage: 'ES', role: 'student', updatedAt: { toDate: () => new Date('2026-08-15') }, isDemo: true },
+  { id: 'demo-student-sofia', displayName: 'Sofia Ramirez', email: 'sofia.ramirez@example.com', preferredLanguage: 'EN', role: 'student', updatedAt: { toDate: () => new Date('2026-08-14') }, isDemo: true },
+  { id: 'demo-editor-marcus', displayName: 'Marcus Chen', email: 'marcus.chen@example.com', preferredLanguage: 'EN', role: 'editor', updatedAt: { toDate: () => new Date('2026-08-13') }, isDemo: true },
+];
 
 export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
   selectedLang,
@@ -273,14 +281,15 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
     setAdminProfilesError('');
     try {
       const snapshot = await getDocs(collection(db, 'users'));
-      setAdminProfiles(snapshot.docs.map((profileDoc) => ({
+      const realProfiles = snapshot.docs.map((profileDoc) => ({
         id: profileDoc.id,
         displayName: profileDoc.data().displayName || 'Unnamed user',
         email: profileDoc.data().email || '',
         preferredLanguage: profileDoc.data().preferredLanguage || 'EN',
         role: profileDoc.data().role || 'student',
         updatedAt: profileDoc.data().updatedAt,
-      })));
+      }));
+      setAdminProfiles([...realProfiles, ...DEMO_ADMIN_PROFILES.slice(0, Math.max(0, 4 - realProfiles.length))]);
     } catch (error) {
       console.error('Unable to load administrator profiles', error);
       setAdminProfilesError(selectedLang === 'EN' ? 'User profiles could not be loaded.' : 'No se pudieron cargar los perfiles.');
@@ -288,6 +297,10 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
       setAdminProfilesLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isAdmin) void loadAdminProfiles();
+  }, [isAdmin]);
 
   const getAiStudentSummary = (u: UserProfile, lang: 'EN' | 'ES') => {
     const goalText = u.goal || 'Business English & Networking';
@@ -699,11 +712,16 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
           <div className="pt-1">
             {activeSubTab === 'adminUsers' && isAdmin && (
               <div className="animate-fade-in py-2 space-y-4">
-                <div className="rounded-2xl bg-[#0D224A] text-white p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b-4 border-amber-400">
-                  <div>
+                <div className="rounded-2xl bg-[#0D224A] text-white p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b-4 border-amber-400">
+                  <div className="flex items-center gap-4">
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-amber-300 bg-white/10 shadow-lg">
+                      {renderAvatarContent(user)}
+                    </div>
+                    <div>
                     <div className="text-[11px] tracking-[0.22em] text-amber-300 font-black uppercase">VOYAGER Administrator</div>
                     <h2 className="text-2xl font-bold mt-1">{selectedLang === 'EN' ? 'User Profiles' : 'Perfiles de Usuarios'}</h2>
                     <p className="text-sm text-white/75 mt-1">{selectedLang === 'EN' ? 'Students and editors who have created a VOYAGER account.' : 'Estudiantes y editores que han creado una cuenta de VOYAGER.'}</p>
+                    </div>
                   </div>
                   <button onClick={() => void loadAdminProfiles()} className="rounded-xl border border-white/30 px-4 py-2 text-sm font-bold hover:bg-white/10">
                     {selectedLang === 'EN' ? 'REFRESH' : 'ACTUALIZAR'}
@@ -715,7 +733,13 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
                 ) : adminProfilesError ? (
                   <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{adminProfilesError}</div>
                 ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-neutral-200">
+                  <div className="overflow-hidden rounded-2xl border border-neutral-200">
+                    {adminProfiles.some((profile) => profile.isDemo) && (
+                      <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-800">
+                        {selectedLang === 'EN' ? 'Demo profiles are labeled SAMPLE and are not real accounts.' : 'Los perfiles de demostración están marcados como MUESTRA y no son cuentas reales.'}
+                      </div>
+                    )}
+                    <div className="overflow-x-auto">
                     <table className="w-full min-w-[680px] text-sm">
                       <thead className="bg-neutral-50 text-left text-[11px] uppercase tracking-wider text-neutral-500">
                         <tr><th className="p-3">{selectedLang === 'EN' ? 'Profile' : 'Perfil'}</th><th className="p-3">{selectedLang === 'EN' ? 'Role' : 'Rol'}</th><th className="p-3">{selectedLang === 'EN' ? 'Language' : 'Idioma'}</th><th className="p-3">{selectedLang === 'EN' ? 'Updated' : 'Actualizado'}</th></tr>
@@ -723,7 +747,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
                       <tbody>
                         {adminProfiles.map((profile) => (
                           <tr key={profile.id} className="border-t border-neutral-100">
-                            <td className="p-3"><div className="font-bold text-neutral-900">{profile.displayName}</div><div className="text-neutral-500">{profile.email}</div></td>
+                            <td className="p-3"><div className="flex items-center gap-2 font-bold text-neutral-900">{profile.displayName}{profile.isDemo && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black tracking-wider text-amber-800">{selectedLang === 'EN' ? 'SAMPLE' : 'MUESTRA'}</span>}</div><div className="text-neutral-500">{profile.email}</div></td>
                             <td className="p-3"><span className="rounded-full bg-[#0D224A]/10 px-2.5 py-1 text-xs font-bold uppercase text-[#0D224A]">{profile.role}</span></td>
                             <td className="p-3">{profile.preferredLanguage}</td>
                             <td className="p-3 text-neutral-500">{profile.updatedAt?.toDate ? profile.updatedAt.toDate().toLocaleDateString() : '—'}</td>
@@ -732,6 +756,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
                         {adminProfiles.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-neutral-500">{selectedLang === 'EN' ? 'No profiles have been recorded yet.' : 'Todavía no hay perfiles registrados.'}</td></tr>}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 )}
               </div>
