@@ -376,14 +376,22 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const [authNotification, setAuthNotification] = useState<string | null>(null);
  const [authLoading, setAuthLoading] = useState<boolean>(false);
  const [authError, setAuthError] = useState<string | null>(null);
+ const [isAdminSession, setIsAdminSession] = useState<boolean>(false);
 
  useEffect(() => {
    let active = true;
    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-     if (!active || !firebaseUser) return;
+     if (!active) return;
+     if (!firebaseUser) {
+       setIsAdminSession(false);
+       return;
+     }
      try {
        const token = await firebaseUser.getIdTokenResult(true);
-       if (!active || token.claims.admin !== true) return;
+       if (!active) return;
+       const hasAdminAccess = token.claims.admin === true;
+       setIsAdminSession(hasAdminAccess);
+       if (!hasAdminAccess) return;
        const name = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Administrator';
        const email = firebaseUser.email || '';
        setUserName(name);
@@ -1729,7 +1737,7 @@ ${greetingPrompt}`;
  </div>
 
  {/* Center: USA VOYAGER Logo Copy (Hidden in questionnaire section) */}
- {!(!hasInteracted && hasClickedConnect) && (
+ {!isAdminSession && !(!hasInteracted && hasClickedConnect) && (
  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center text-center pointer-events-none select-none">
 
  <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.12em' }} className="text-2xl sm:text-3xl md:text-[34px] font-black text-[#0D224A] uppercase block leading-none mt-1">
