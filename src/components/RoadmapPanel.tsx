@@ -257,10 +257,13 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
     return onAuthStateChanged(auth, async (fbUser) => {
       if (!fbUser) {
         setIsAdmin(false);
+        setActiveSubTab('welcome');
         return;
       }
       const token = await fbUser.getIdTokenResult(true);
-      setIsAdmin(token.claims.admin === true);
+      const hasAdminAccess = token.claims.admin === true;
+      setIsAdmin(hasAdminAccess);
+      if (hasAdminAccess) setActiveSubTab('adminUsers');
     });
   }, []);
 
