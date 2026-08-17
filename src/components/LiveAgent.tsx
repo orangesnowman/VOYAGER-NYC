@@ -1406,7 +1406,7 @@ ${greetingPrompt}`;
  }
  };
 
- const handleOnboardingNext = () => {
+ const handleOnboardingNext = async () => {
  if (onboardingStep === 1) {
  if (!selectedGoal) return;
  if (selectedGoal === 'PROFESSIONAL') {
@@ -1438,7 +1438,26 @@ ${greetingPrompt}`;
  setOnboardingStep(4);
  } else if (onboardingStep === 4) {
  if (userName.trim() === '' || userEmail.trim() === '' || userPassword.trim() === '') return;
- handleCompleteOnboarding();
+ setAuthLoading(true);
+ setAuthError(null);
+ try {
+   const fullName = `${userName.trim()} ${userLastName.trim()}`.trim();
+   const firebaseUser = await registerWithEmail(fullName, userEmail.trim(), userPassword, selectedLang);
+   setUserName(firebaseUser.displayName || fullName);
+   setUserEmail(firebaseUser.email || userEmail.trim());
+   setUserPassword('');
+   setAuthNotification(selectedLang === 'EN'
+     ? 'Account created. Check your email to verify it.'
+     : 'Cuenta creada. Revisa tu correo para verificarla.');
+   handleCompleteOnboarding();
+ } catch (error: any) {
+   const known: Record<string, string> = selectedLang === 'EN'
+     ? { 'auth/email-already-in-use': 'That email already has an account. Use Sign In instead.', 'auth/weak-password': 'Use a password with at least 6 characters.' }
+     : { 'auth/email-already-in-use': 'Ese correo ya tiene una cuenta. Usa Iniciar Sesión.', 'auth/weak-password': 'Usa una contraseña de al menos 6 caracteres.' };
+   setAuthError(known[error?.code] || (selectedLang === 'EN' ? 'The account could not be created.' : 'No se pudo crear la cuenta.'));
+ } finally {
+   setAuthLoading(false);
+ }
  }
  };
 
@@ -2380,7 +2399,7 @@ ${greetingPrompt}`;
             <button
               type="button"
               onClick={handleOnboardingNext}
-              disabled={!isFormFilled}
+              disabled={!isFormFilled || authLoading}
               className={`w-full py-2.5 px-4 rounded-full border-2 border-[#0D224A] bg-white text-neutral-800 font-bold text-sm flex items-center justify-center gap-2.5 transition-all duration-200 shadow-2xs ${
                 isFormFilled
                   ? 'hover:bg-neutral-50 active:scale-[0.98] cursor-pointer'
@@ -2394,10 +2413,13 @@ ${greetingPrompt}`;
                 <path fill="#00205B" d="M0 9a9 9 0 0 1 9-9h9v18H0V9z"/>
                 <path fill="#FFF" d="M13.5 14.25l.882 2.715h2.855l-2.31 1.678.882 2.715-2.309-1.678-2.309 1.678.882-2.715-2.31-1.678h2.855zM4.5 14.25l.882 2.715h2.855l-2.31 1.678.882 2.715-2.309-1.678-2.309 1.678.882-2.715-2.31-1.678h2.855zM13.5 5.25l.882 2.715h2.855l-2.31 1.678.882 2.715-2.309-1.678-2.309 1.678.882-2.715-2.31-1.678h2.855zM4.5 5.25l.882 2.715h2.855l-2.31 1.678.882 2.715-2.309-1.678-2.309 1.678.882-2.715-2.31-1.678h2.855zM9 9.75l.882 2.715h2.855l-2.31 1.678.882 2.715-2.309-1.678-2.309 1.678.882-2.715-2.31-1.678h2.855z"/>
               </svg>
-              <span>{selectedLang === 'EN' ? 'Continue with Email' : 'Continuar con Correo'}</span>
+              <span>{authLoading
+                ? (selectedLang === 'EN' ? 'Creating account…' : 'Creando cuenta…')
+                : (selectedLang === 'EN' ? 'Continue with Email' : 'Continuar con Correo')}</span>
             </button>
           );
         })()}
+        {authError && <p role="alert" className="mt-2 text-center text-xs font-bold text-red-700">{authError}</p>}
       </div>
 
 
