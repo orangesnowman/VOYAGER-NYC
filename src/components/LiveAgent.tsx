@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { SUGGESTIONS, IMMERSION_CURRICULUM } from '../constants';
 import NycMap, { MapMarker, RouteInfo } from './NycMap';
 import { NycSubwayMap } from './NycSubwayMap';
-import { getAccessToken } from '../services/firebaseAuth';
+import { getAccessToken, registerWithEmail, requestPasswordReset, signInWithEmail, signInWithGoogle } from '../services/firebaseAuth';
 import { parseAndRenderEmojis } from './VoyagerEmoji';
 
 import { ProgressDashboard } from './ProgressDashboard';
@@ -361,16 +361,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
     } catch (e) {}
     return '';
   });
-  const [userPassword, setUserPassword] = useState<string>(() => {
-    try {
-      const saved = localStorage.getItem('voyager_user_account');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.password) return parsed.password;
-      }
-    } catch (e) {}
-    return '';
-  });
+  const [userPassword, setUserPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showPasswordInfo, setShowPasswordInfo] = useState<boolean>(false);
  const [contactMessage, setContactMessage] = useState<string>('');
@@ -381,11 +372,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const [isFadingMascot, setIsFadingMascot] = useState<boolean>(false);
  const [activePolicyModal, setActivePolicyModal] = useState<'privacy' | 'terms' | 'copyright' | 'contact' | null>(null);
  const [authModalMode, setAuthModalMode] = useState<'email' | 'google' | null>(null);
- const [authEmail, setAuthEmail] = useState<string>('');
- const [authPassword, setAuthPassword] = useState<string>('');
- const [authName, setAuthName] = useState<string>('');
- const [authIsRegister, setAuthIsRegister] = useState<boolean>(true);
  const [authNotification, setAuthNotification] = useState<string | null>(null);
+ const [authLoading, setAuthLoading] = useState<boolean>(false);
+ const [authError, setAuthError] = useState<string | null>(null);
 
   const handleGuestLogin = () => {
     const guestName = selectedLang === 'EN' ? 'Guest' : 'Invitado';
@@ -411,9 +400,13 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
     }
   };
 
-  const handleGoogleLogin = () => {
-    const gName = userName || 'Google User';
-    const gEmail = userEmail || 'user@gmail.com';
+  const handleGoogleLogin = async () => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+    const firebaseUser = await signInWithGoogle(selectedLang);
+    const gName = firebaseUser.displayName || (selectedLang === 'EN' ? 'Google User' : 'Usuario de Google');
+    const gEmail = firebaseUser.email || '';
     setUserName(gName);
     setUserEmail(gEmail);
     try {
@@ -433,29 +426,45 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
     } else if (typeof executeConnectFlow === 'function') {
       executeConnectFlow();
     }
+    } catch (error: any) {
+      if (error?.code !== 'auth/popup-closed-by-user') setAuthError(selectedLang === 'EN' ? 'Google sign-in could not be completed.' : 'No se pudo completar el acceso con Google.');
+    } finally {
+      setAuthLoading(false);
+    }
   };
- const handleEmailAuthSubmit = (e: React.FormEvent) => {
+ const handleEmailAuthSubmit = async (e: React.FormEvent, isRegister: boolean, name: string, email: string, password: string) => {
    e.preventDefault();
-   if (!authEmail) return;
-   const finalName = authName.trim() || userName || (selectedLang === 'EN' ? 'Guest' : 'Invitado');
+   if (!email) return;
+   setAuthLoading(true);
+   setAuthError(null);
+   try {
+   const firebaseUser = isRegister ? await registerWithEmail(name, email, password, selectedLang) : await signInWithEmail(email, password);
+   const finalName = firebaseUser.displayName || name.trim() || email.split('@')[0];
    setUserName(finalName);
-   setUserEmail(authEmail);
+   setUserEmail(firebaseUser.email || email);
    try {
      localStorage.setItem('voyager_user_account', JSON.stringify({
        name: finalName,
-       email: authEmail,
-       password: authPassword,
+       email: firebaseUser.email || email,
        provider: 'email',
        loginTime: new Date().toISOString()
      }));
    } catch (e) {}
    setAuthModalMode(null);
-   setAuthNotification(selectedLang === 'EN' ? `Welcome, ${finalName}!` : `¡Bienvenido, ${finalName}!`);
+   setAuthNotification(isRegister ? (selectedLang === 'EN' ? 'Account created. Check your email to verify it.' : 'Cuenta creada. Revisa tu correo para verificarla.') : (selectedLang === 'EN' ? `Welcome back, ${finalName}!` : `¡Bienvenido de nuevo, ${finalName}!`));
    setTimeout(() => {
      setAuthNotification(null);
    }, 4000);
    if (typeof executeConnectFlow === 'function') {
      executeConnectFlow();
+   }
+   } catch (error: any) {
+     const known: Record<string, string> = selectedLang === 'EN'
+       ? { 'auth/email-already-in-use': 'That email already has an account.', 'auth/invalid-credential': 'Incorrect email or password.', 'auth/weak-password': 'Use a password with at least 6 characters.' }
+       : { 'auth/email-already-in-use': 'Ese correo ya tiene una cuenta.', 'auth/invalid-credential': 'El correo o la contraseña son incorrectos.', 'auth/weak-password': 'Usa una contraseña de al menos 6 caracteres.' };
+     setAuthError(known[error?.code] || (selectedLang === 'EN' ? 'Authentication could not be completed.' : 'No se pudo completar el acceso.'));
+   } finally {
+     setAuthLoading(false);
    }
  };
  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -519,7 +528,6 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  name: userName.trim() || (selectedLang === 'EN' ? 'Learner' : 'Estudiante'),
  lastName: userLastName.trim() || undefined,
  email: userEmail.trim() || 'learner@usavoyager.com',
- password: userPassword.trim() || undefined,
  age: userAge.trim() ? parseInt(userAge.trim()) : undefined,
  country: userCountry.trim() || (selectedLang === 'EN' ? 'Not specified' : 'Desconocido'),
  provider: 'Guest' as const,
@@ -542,6 +550,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  };
  } catch (e) {}
  }
+ delete (u as any).password;
  localStorage.setItem('voyager_user_account', JSON.stringify(u));
  }, [userName, userAge, userCountry, userEmail, selectedGoal, selectedLevel, selectedProfSubGoal, selectedProfInterest, selectedSchoolLevel, selectedAcademicGoal, selectedViajanteSubGoal, selectedDocenteProfile, selectedDocenteGoal, selectedLang]);
 
@@ -1144,7 +1153,6 @@ NO respondas a ruidos, habla o ruidos de fondo.]`;
  name: userName.trim() || (selectedLang === 'EN' ? 'Learner' : 'Estudiante'),
  lastName: userLastName.trim() || undefined,
  email: userEmail.trim() || 'learner@usavoyager.com',
- password: userPassword.trim() || undefined,
  age: userAge.trim() ? parseInt(userAge.trim()) : undefined,
  country: userCountry.trim() || (selectedLang === 'EN' ? 'Unknown' : 'Desconocido'),
  provider: 'Guest' as const,
@@ -1167,6 +1175,7 @@ NO respondas a ruidos, habla o ruidos de fondo.]`;
  };
  } catch (e) {}
  }
+ delete (u as any).password;
  localStorage.setItem('voyager_user_account', JSON.stringify(u));
  handleContinuaClick();
  };
@@ -1527,8 +1536,8 @@ ${greetingPrompt}`;
     <h1 style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 2px 12px rgba(0,0,0,0.7)', letterSpacing: '0.12em' }} className="text-2xl sm:text-3xl md:text-[38px] lg:text-[44px] font-black text-white mt-1 uppercase block leading-none">
       VOYAGER<span className="text-[0.3em] font-light text-white/90 align-baseline ml-1 inline-block select-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 300, letterSpacing: "normal" }}>®</span>
     </h1>
-    <span style={{ fontFamily: "'Raleway', 'Allerta', sans-serif", letterSpacing: '0.18em' }} className="text-[10px] sm:text-xs md:text-[13px] font-extrabold text-[#FFD700] uppercase tracking-widest mt-1.5 sm:mt-2 block leading-tight drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
-      {selectedLang === 'EN' ? 'AMERICAN ENGLISH TUTOR' : 'TUTOR DE INGLÉS AMERICANO'}
+    <span style={{ fontFamily: "'Raleway', 'Allerta', sans-serif", letterSpacing: '0.18em' }} className="text-[8px] sm:text-[9.5px] md:text-[10.5px] font-normal text-[#FFD700] uppercase tracking-widest mt-1.5 sm:mt-2 block leading-tight drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+      {selectedLang === 'EN' ? 'YOUR PASSPORT TO AMERICAN ENGLISH' : 'TU PASAPORTE AL INGLÉS AMERICANO'}
     </span>
   </div>
 
@@ -2693,8 +2702,8 @@ ${greetingPrompt}`;
        <h1 style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 2px 12px rgba(0,0,0,0.7)', letterSpacing: '0.12em' }} className="text-2xl sm:text-3xl md:text-[38px] font-black text-white mt-1 uppercase block leading-none">
          VOYAGER<span className="text-[0.3em] font-light text-white/90 align-baseline ml-1 inline-block select-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 300, letterSpacing: "normal" }}>®</span>
        </h1>
-       <span style={{ fontFamily: "'Raleway', 'Allerta', sans-serif", letterSpacing: '0.18em' }} className="text-[10px] sm:text-xs md:text-[13px] font-extrabold text-[#FFD700] uppercase tracking-widest mt-1.5 block leading-tight drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
-         {selectedLang === 'EN' ? 'AMERICAN ENGLISH TUTOR' : 'TUTOR DE INGLÉS AMERICANO'}
+       <span style={{ fontFamily: "'Raleway', 'Allerta', sans-serif", letterSpacing: '0.18em' }} className="text-[8px] sm:text-[9.5px] md:text-[10.5px] font-normal text-[#FFD700] uppercase tracking-widest mt-1.5 block leading-tight drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
+         {selectedLang === 'EN' ? 'YOUR PASSPORT TO AMERICAN ENGLISH' : 'TU PASAPORTE AL INGLÉS AMERICANO'}
        </span>
      </div>
 
@@ -3497,6 +3506,7 @@ Pregunta del usuario: "${text}"]`;
  u = { ...JSON.parse(saved), plan: 'PRO' };
  } catch (e) {}
  }
+ delete (u as any).password;
  localStorage.setItem('voyager_user_account', JSON.stringify(u));
  setRightPanelTab('roadmap');
  }}
@@ -3742,35 +3752,22 @@ Pregunta del usuario: "${text}"]`;
     isOpen={!!authModalMode}
     onClose={() => setAuthModalMode(null)}
     selectedLang={selectedLang}
-    onEmailAuthSubmit={(_e, isRegister, nameVal, emailVal, passVal) => {
-      if (!emailVal) return;
-      const finalName = nameVal.trim() || userName || (selectedLang === 'EN' ? 'Guest' : 'Invitado');
-      setUserName(finalName);
-      setUserEmail(emailVal);
-      try {
-        localStorage.setItem('voyager_user_account', JSON.stringify({
-          name: finalName,
-          email: emailVal,
-          password: passVal,
-          provider: 'email',
-          isRegister,
-          loginTime: new Date().toISOString()
-        }));
-      } catch (e) {}
-      setAuthModalMode(null);
-      const msg = isRegister
-        ? (selectedLang === 'EN' ? `Account created! Welcome, ${finalName}!` : `¡Cuenta creada! Bienvenido, ${finalName}!`)
-        : (selectedLang === 'EN' ? `Welcome back, ${finalName}!` : `¡Bienvenido de nuevo, ${finalName}!`);
-      setAuthNotification(msg);
-      setTimeout(() => {
-        setAuthNotification(null);
-      }, 4000);
-      if (typeof executeConnectFlow === 'function') {
-        executeConnectFlow();
-      }
-    }}
+    onEmailAuthSubmit={handleEmailAuthSubmit}
     onGoogleLogin={handleGoogleLogin}
     onGuestLogin={handleGuestLogin}
+    onPasswordReset={async (email) => {
+      if (!email) { setAuthError(selectedLang === 'EN' ? 'Enter your email first.' : 'Primero escribe tu correo.'); return; }
+      setAuthLoading(true);
+      setAuthError(null);
+      try {
+        await requestPasswordReset(email);
+        setAuthNotification(selectedLang === 'EN' ? 'Password reset email sent.' : 'Correo para restablecer la contraseña enviado.');
+      } catch {
+        setAuthError(selectedLang === 'EN' ? 'The reset email could not be sent.' : 'No se pudo enviar el correo de recuperación.');
+      } finally { setAuthLoading(false); }
+    }}
+    isLoading={authLoading}
+    error={authError}
   />
   </div>
   </div>
