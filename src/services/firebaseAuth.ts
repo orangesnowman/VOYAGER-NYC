@@ -2,12 +2,14 @@ import { initializeApp } from 'firebase/app';
 import {
   createUserWithEmailAndPassword,
   getAuth,
+  getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   updateProfile,
   User,
 } from 'firebase/auth';
@@ -58,7 +60,15 @@ export const signInWithEmail = async (email: string, password: string) => {
 };
 
 export const signInWithGoogle = async (preferredLanguage: 'EN' | 'ES') => {
-  const result = await signInWithPopup(auth, loginProvider);
+  sessionStorage.setItem('voyager_google_login_language', preferredLanguage);
+  await signInWithRedirect(auth, loginProvider);
+};
+
+export const completeGoogleSignIn = async () => {
+  const result = await getRedirectResult(auth);
+  if (!result) return null;
+  const preferredLanguage = sessionStorage.getItem('voyager_google_login_language') === 'ES' ? 'ES' : 'EN';
+  sessionStorage.removeItem('voyager_google_login_language');
   await saveUserProfileSafely(result.user, preferredLanguage);
   return result.user;
 };
