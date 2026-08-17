@@ -583,26 +583,28 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
                   {selectedLang === 'EN' ? 'SIGN OUT' : 'CERRAR SESIÓN'}
                 </button>
 
-                <button 
-                  onClick={() => {
-                    if (isEditingProfile) {
-                      handleUpdateProfile();
-                    } else {
-                      setActiveSubTab('level');
-                      setIsEditingProfile(true);
+                {!isAdmin && (
+                  <button
+                    onClick={() => {
+                      if (isEditingProfile) {
+                        handleUpdateProfile();
+                      } else {
+                        setActiveSubTab('level');
+                        setIsEditingProfile(true);
+                      }
+                    }}
+                    className={`transition-colors uppercase cursor-pointer bg-transparent border-none p-0 font-extrabold text-xs tracking-wider underline underline-offset-4 ${
+                      isEditingProfile
+                        ? 'text-red-600 hover:text-red-700'
+                        : 'text-neutral-700 hover:text-red-600'
+                    }`}
+                  >
+                    {isEditingProfile
+                      ? (selectedLang === 'EN' ? 'SAVE' : 'GUARDAR')
+                      : (selectedLang === 'EN' ? 'EDIT' : 'EDITAR')
                     }
-                  }}
-                  className={`transition-colors uppercase cursor-pointer bg-transparent border-none p-0 font-extrabold text-xs tracking-wider underline underline-offset-4 ${
-                    isEditingProfile 
-                      ? 'text-red-600 hover:text-red-700' 
-                      : 'text-neutral-700 hover:text-red-600'
-                  }`}
-                >
-                  {isEditingProfile
-                    ? (selectedLang === 'EN' ? 'SAVE' : 'GUARDAR')
-                    : (selectedLang === 'EN' ? 'EDIT' : 'EDITAR')
-                  }
-                </button>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -621,6 +623,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
                   <span>{selectedLang === 'EN' ? 'ADMIN · USER PROFILES' : 'ADMIN · PERFILES'}</span>
                 </button>
               )}
+              {!isAdmin && (<>
               <button 
                 onClick={() => {
                   setActiveSubTab('welcome');
@@ -685,6 +688,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
                 <Flame className={`w-4.5 h-4.5 transition-colors ${activeSubTab === 'streak' ? 'text-red-600' : 'text-black group-hover:text-red-600'}`} />
                 <span>{selectedLang === 'EN' ? 'STREAKS' : 'RACHAS'}</span>
               </button>
+              </>)}
             </div>
           </div>
 
