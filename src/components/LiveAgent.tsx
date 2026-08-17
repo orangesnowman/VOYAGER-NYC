@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { SUGGESTIONS, IMMERSION_CURRICULUM } from '../constants';
 import NycMap, { MapMarker, RouteInfo } from './NycMap';
 import { NycSubwayMap } from './NycSubwayMap';
-import { completeGoogleSignIn, getAccessToken, registerWithEmail, requestPasswordReset, signInWithEmail, signInWithGoogle } from '../services/firebaseAuth';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, completeGoogleSignIn, getAccessToken, registerWithEmail, requestPasswordReset, signInWithEmail, signInWithGoogle } from '../services/firebaseAuth';
 import { parseAndRenderEmojis } from './VoyagerEmoji';
 
 import { ProgressDashboard } from './ProgressDashboard';
@@ -375,6 +376,37 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const [authNotification, setAuthNotification] = useState<string | null>(null);
  const [authLoading, setAuthLoading] = useState<boolean>(false);
  const [authError, setAuthError] = useState<string | null>(null);
+
+ useEffect(() => {
+   let active = true;
+   const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+     if (!active || !firebaseUser) return;
+     try {
+       const token = await firebaseUser.getIdTokenResult(true);
+       if (!active || token.claims.admin !== true) return;
+       const name = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Administrator';
+       const email = firebaseUser.email || '';
+       setUserName(name);
+       setUserEmail(email);
+       localStorage.setItem('voyager_user_account', JSON.stringify({
+         name,
+         email,
+         provider: firebaseUser.providerData[0]?.providerId || 'google',
+         loginTime: new Date().toISOString(),
+       }));
+       setAuthModalMode(null);
+       setHasClickedConnect(true);
+       setHasInteracted(true);
+       setRightPanelTab('roadmap');
+     } catch (error) {
+       console.warn('The administrator session could not be routed automatically.', error);
+     }
+   });
+   return () => {
+     active = false;
+     unsubscribe();
+   };
+ }, []);
 
  useEffect(() => {
    let active = true;
