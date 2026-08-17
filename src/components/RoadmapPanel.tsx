@@ -574,16 +574,24 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
           {/* Header & Navigation Row */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3.5 flex-wrap select-none">
-              <span 
+              {isAdmin ? (
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-neutral-200 bg-neutral-100">
+                    {renderAvatarContent(user)}
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-neutral-900">{visitorFullName || 'Administrator'}</div>
+                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">VOYAGER Admin</div>
+                  </div>
+                </div>
+              ) : (<span
                 style={{ fontFamily: '"American Typewriter", "Courier New", Courier, serif' }} 
                 className="text-[42px] md:text-[52.5px] font-normal tracking-tight text-[#1a202c] !font-serif block leading-none"
               >
                 {visitorFullName 
-                  ? (isAdmin
-                    ? (selectedLang === 'EN' ? `${visitorFullName}'s Admin Profile` : `Perfil Admin de ${visitorFullName}`)
-                    : (selectedLang === 'EN' ? `${visitorFullName}'s Profile` : `Perfil de ${visitorFullName}`))
+                  ? (selectedLang === 'EN' ? `${visitorFullName}'s Profile` : `Perfil de ${visitorFullName}`)
                   : (selectedLang === 'EN' ? 'Your Profile' : 'Tu Perfil')}
-              </span>
+              </span>)}
 
               <div className="flex items-center gap-4">
                 <button
@@ -621,22 +629,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 md:gap-5 text-[11.2px] font-extrabold uppercase tracking-wider select-none mt-1">
-              {isAdmin && (
-                <button
-                  onClick={() => {
-                    setActiveSubTab('adminUsers');
-                    void loadAdminProfiles();
-                  }}
-                  className={`group flex items-center gap-1.5 transition-colors uppercase cursor-pointer bg-transparent border-none p-0 ${
-                    activeSubTab === 'adminUsers' ? 'text-amber-600 font-black' : 'text-[#0D224A] hover:text-amber-600'
-                  }`}
-                >
-                  <Users className="w-4.5 h-4.5" />
-                  <span>{selectedLang === 'EN' ? 'ADMIN · USER PROFILES' : 'ADMIN · PERFILES'}</span>
-                </button>
-              )}
-              {!isAdmin && (<>
+            {!isAdmin && (<div className="flex flex-wrap items-center gap-4 md:gap-5 text-[11.2px] font-extrabold uppercase tracking-wider select-none mt-1">
               <button 
                 onClick={() => {
                   setActiveSubTab('welcome');
@@ -701,8 +694,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
                 <Flame className={`w-4.5 h-4.5 transition-colors ${activeSubTab === 'streak' ? 'text-red-600' : 'text-black group-hover:text-red-600'}`} />
                 <span>{selectedLang === 'EN' ? 'STREAKS' : 'RACHAS'}</span>
               </button>
-              </>)}
-            </div>
+            </div>)}
           </div>
 
         {/* MAIN PROFILE DETAILS CONTAINER */}
@@ -712,18 +704,9 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
           <div className="pt-1">
             {activeSubTab === 'adminUsers' && isAdmin && (
               <div className="animate-fade-in py-2 space-y-4">
-                <div className="rounded-2xl bg-[#0D224A] text-white p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b-4 border-amber-400">
-                  <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-amber-300 bg-white/10 shadow-lg">
-                      {renderAvatarContent(user)}
-                    </div>
-                    <div>
-                    <div className="text-[11px] tracking-[0.22em] text-amber-300 font-black uppercase">VOYAGER Administrator</div>
-                    <h2 className="text-2xl font-bold mt-1">{selectedLang === 'EN' ? 'User Profiles' : 'Perfiles de Usuarios'}</h2>
-                    <p className="text-sm text-white/75 mt-1">{selectedLang === 'EN' ? 'Students and editors who have created a VOYAGER account.' : 'Estudiantes y editores que han creado una cuenta de VOYAGER.'}</p>
-                    </div>
-                  </div>
-                  <button onClick={() => void loadAdminProfiles()} className="rounded-xl border border-white/30 px-4 py-2 text-sm font-bold hover:bg-white/10">
+                <div className="flex items-center justify-between gap-4 px-1">
+                  <h2 className="text-2xl font-bold text-neutral-900">{selectedLang === 'EN' ? 'Users' : 'Usuarios'}</h2>
+                  <button onClick={() => void loadAdminProfiles()} className="rounded-xl border border-neutral-300 px-4 py-2 text-xs font-bold text-neutral-700 hover:bg-neutral-50">
                     {selectedLang === 'EN' ? 'REFRESH' : 'ACTUALIZAR'}
                   </button>
                 </div>
@@ -1209,6 +1192,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
         </div>
       </div>
 
+        {!isAdmin && (<>
         {/* Separate Chat messages sibling list */}
         {(() => {
           const profileMessages = chatMessages.filter(msg => msg.tab === 'roadmap');
@@ -1341,6 +1325,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
           />
         </div>
         <div ref={chatEndRef} />
+        </>)}
       </div>
 
       {/* Hidden File Input for Avatar Upload */}
