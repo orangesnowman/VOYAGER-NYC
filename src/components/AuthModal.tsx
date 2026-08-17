@@ -5,9 +5,12 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedLang: 'EN' | 'ES';
-  onEmailAuthSubmit: (e: React.FormEvent, isRegister: boolean, name: string, email: string, pass: string) => void;
-  onGoogleLogin: () => void;
+  onEmailAuthSubmit: (e: React.FormEvent, isRegister: boolean, name: string, email: string, pass: string) => Promise<void>;
+  onGoogleLogin: () => Promise<void>;
   onGuestLogin: () => void;
+  onPasswordReset: (email: string) => Promise<void>;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -17,6 +20,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onEmailAuthSubmit,
   onGoogleLogin,
   onGuestLogin,
+  onPasswordReset,
+  isLoading = false,
+  error,
 }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [firstName, setFirstName] = useState('');
@@ -26,10 +32,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const fullName = `${firstName} ${lastName}`.trim();
-    onEmailAuthSubmit(e, isRegister, fullName, email, password);
+    await onEmailAuthSubmit(e, isRegister, fullName, email, password);
   };
 
   return (
@@ -142,12 +148,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           <button
             type="submit"
+            disabled={isLoading}
             className="w-full py-2.5 px-4 border-2 border-[#1A365D] bg-white hover:bg-neutral-50 text-neutral-800 font-bold text-sm rounded-full transition-all shadow-2xs cursor-pointer active:scale-[0.98] mt-2 flex items-center justify-center gap-2.5"
           >
-            {isRegister 
+            {isLoading ? (selectedLang === 'EN' ? 'Please wait…' : 'Espera…') : isRegister
               ? (selectedLang === 'EN' ? 'Create My Account' : 'Crear Mi Cuenta')
               : (selectedLang === 'EN' ? 'Sign In' : 'Iniciar Sesión')}
           </button>
+          {!isRegister && (
+            <button type="button" disabled={isLoading} onClick={() => onPasswordReset(email)} className="w-full text-xs font-bold text-[#1A365D] hover:underline disabled:opacity-50">
+              {selectedLang === 'EN' ? 'Forgot your password?' : '¿Olvidaste tu contraseña?'}
+            </button>
+          )}
+          {error && <p role="alert" className="text-center text-xs font-bold text-red-700">{error}</p>}
         </form>
 
         <div className="py-2.5 my-2">
@@ -157,10 +170,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Google Login */}
         <button
           type="button"
-          onClick={() => {
-            onClose();
-            onGoogleLogin();
-          }}
+          disabled={isLoading}
+          onClick={onGoogleLogin}
           className="w-full flex items-center justify-center gap-3 py-2.5 border-2 border-[#1A365D] hover:bg-neutral-50 rounded-full text-sm font-semibold text-neutral-800 transition-all cursor-pointer shadow-2xs active:scale-[0.98]"
         >
           <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
