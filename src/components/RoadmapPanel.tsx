@@ -47,6 +47,7 @@ interface UserProfile {
   timePerWeek?: string;
   age?: number;
   avatarUrl?: string;
+  usesGoogleAvatar?: boolean;
   avatarType?: 'user' | 'man' | 'woman' | 'student' | 'astronaut' | 'female_robot' | 'male_robot' | 'custom';
   bookedLesson?: {
     teacherName: string;
@@ -262,7 +263,8 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
         const updated: UserProfile = {
           ...user,
           avatarUrl: reader.result,
-          avatarType: 'custom'
+          avatarType: 'custom',
+          usesGoogleAvatar: false
         };
         saveUser(updated);
         setIsAvatarModalOpen(false);
@@ -275,7 +277,8 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
     const updated: UserProfile = {
       ...user,
       avatarUrl: undefined,
-      avatarType: type
+      avatarType: type,
+      usesGoogleAvatar: false
     };
     saveUser(updated);
     setIsAvatarModalOpen(false);
@@ -425,11 +428,15 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
           } catch (e) {}
         }
 
+        const shouldUseGoogleAvatar = existing.usesGoogleAvatar !== false && Boolean(fbUser.photoURL);
         const newUser: UserProfile = {
           ...existing,
           name: fbUser.displayName || fbUser.email?.split('@')[0] || existing.name || 'Learner',
           email: fbUser.email || existing.email || 'learner@usavoyager.com',
           provider: 'Google',
+          avatarUrl: shouldUseGoogleAvatar ? fbUser.photoURL || undefined : existing.avatarUrl,
+          avatarType: shouldUseGoogleAvatar ? 'custom' : existing.avatarType || 'user',
+          usesGoogleAvatar: shouldUseGoogleAvatar,
           goal: existing.goal || 'Business English & Networking',
           levelEstimate: existing.levelEstimate || 'Intermediate',
           completedDays: existing.completedDays || [1],
