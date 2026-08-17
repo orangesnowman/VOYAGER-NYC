@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, LogOut, Compass, Calendar, Award, CheckCircle2, Circle, Target, ChevronRight, Mail, Key, Users, Sparkles, Activity, BookOpen, Volume2, Apple, Lock, Bot, MessageSquare, Pause, TrendingUp, Play, Flame, Camera, Upload, X, Globe, Heart, Clock } from 'lucide-react';
 import { collection, getDocs } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { googleSignIn, logout, auth, db } from '../services/firebaseAuth';
 import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
@@ -253,7 +254,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
   }, [user, isEditingProfile]);
 
   useEffect(() => {
-    return auth.onAuthStateChanged(async (fbUser) => {
+    return onAuthStateChanged(auth, async (fbUser) => {
       if (!fbUser) {
         setIsAdmin(false);
         return;
@@ -465,7 +466,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
   // Load user from storage on mount
   useEffect(() => {
     // Check Firebase auth state
-    const unsubscribe = auth.onAuthStateChanged((fbUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
       if (fbUser) {
         const saved = localStorage.getItem('voyager_user_account');
         let existing: any = {};
