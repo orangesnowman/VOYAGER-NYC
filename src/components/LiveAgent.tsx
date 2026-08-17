@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { SUGGESTIONS, IMMERSION_CURRICULUM } from '../constants';
 import NycMap, { MapMarker, RouteInfo } from './NycMap';
 import { NycSubwayMap } from './NycSubwayMap';
-import { getAccessToken, registerWithEmail, requestPasswordReset, signInWithEmail, signInWithGoogle } from '../services/firebaseAuth';
+import { completeGoogleSignIn, getAccessToken, registerWithEmail, requestPasswordReset, signInWithEmail, signInWithGoogle } from '../services/firebaseAuth';
 import { parseAndRenderEmojis } from './VoyagerEmoji';
 
 import { ProgressDashboard } from './ProgressDashboard';
@@ -376,6 +376,30 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const [authLoading, setAuthLoading] = useState<boolean>(false);
  const [authError, setAuthError] = useState<string | null>(null);
 
+ useEffect(() => {
+   let active = true;
+   void completeGoogleSignIn().then((firebaseUser) => {
+     if (!active || !firebaseUser) return;
+     const name = firebaseUser.displayName || (selectedLang === 'EN' ? 'Google User' : 'Usuario de Google');
+     const email = firebaseUser.email || '';
+     setUserName(name);
+     setUserEmail(email);
+     localStorage.setItem('voyager_user_account', JSON.stringify({
+       name,
+       email,
+       provider: 'google',
+       loginTime: new Date().toISOString(),
+     }));
+     setAuthNotification(selectedLang === 'EN' ? 'Logged in with Google!' : '¡Sesión iniciada con Google!');
+     setHasClickedConnect(true);
+     setHasInteracted(true);
+     setRightPanelTab('roadmap');
+   }).catch(() => {
+     if (active) setAuthError(selectedLang === 'EN' ? 'Google sign-in could not be completed.' : 'No se pudo completar el acceso con Google.');
+   });
+   return () => { active = false; };
+ }, []);
+
   const handleGuestLogin = () => {
     const guestName = selectedLang === 'EN' ? 'Guest' : 'Invitado';
     setUserName(guestName);
@@ -404,31 +428,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
     setAuthLoading(true);
     setAuthError(null);
     try {
-    const firebaseUser = await signInWithGoogle(selectedLang);
-    const gName = firebaseUser.displayName || (selectedLang === 'EN' ? 'Google User' : 'Usuario de Google');
-    const gEmail = firebaseUser.email || '';
-    setUserName(gName);
-    setUserEmail(gEmail);
-    try {
-      localStorage.setItem('voyager_user_account', JSON.stringify({
-        name: gName,
-        email: gEmail,
-        provider: 'google',
-        loginTime: new Date().toISOString()
-      }));
-    } catch (e) {}
-    setAuthNotification(selectedLang === 'EN' ? 'Logged in with Google!' : '¡Sesión iniciada con Google!');
-    setTimeout(() => {
-      setAuthNotification(null);
-    }, 4000);
-    if (onboardingStep === 4) {
-      handleContinuaClick();
-    } else if (typeof executeConnectFlow === 'function') {
-      executeConnectFlow();
-    }
+      await signInWithGoogle(selectedLang);
     } catch (error: any) {
-      if (error?.code !== 'auth/popup-closed-by-user') setAuthError(selectedLang === 'EN' ? 'Google sign-in could not be completed.' : 'No se pudo completar el acceso con Google.');
-    } finally {
+      setAuthError(selectedLang === 'EN' ? 'Google sign-in could not be completed.' : 'No se pudo completar el acceso con Google.');
       setAuthLoading(false);
     }
   };
