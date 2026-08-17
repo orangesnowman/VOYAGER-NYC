@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, LogOut, Compass, Calendar, Award, CheckCircle2, Circle, Target, ChevronRight, Mail, Key, Users, Sparkles, Activity, BookOpen, Volume2, Apple, Lock, Bot, MessageSquare, Pause, TrendingUp, Play, Flame, Camera, Upload, X, Globe, Heart, Clock } from 'lucide-react';
+import { collection, getDocs } from 'firebase/firestore';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { googleSignIn, logout, auth } from '../services/firebaseAuth';
+import { googleSignIn, logout, auth, db } from '../services/firebaseAuth';
 import voyagerRobot from '../assets/images/voyager_robot_1783082204380.png';
 import { IMMERSION_CURRICULUM } from '../constants';
 import { TeacherInsightsPanel } from './TeacherInsightsPanel';
@@ -53,6 +54,15 @@ interface UserProfile {
     teacherName: string;
     dateTime: string;
   };
+}
+
+interface AdminUserProfile {
+  id: string;
+  displayName: string;
+  email: string;
+  preferredLanguage?: string;
+  role?: 'admin' | 'editor' | 'student';
+  updatedAt?: { toDate?: () => Date };
 }
 
 export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
@@ -205,7 +215,11 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
   const [editInterests, setEditInterests] = useState(user.interests || (selectedLang === 'EN' ? 'Travel, technology, music' : 'Viajes, tecnología, música'));
   const [editTimePerWeek, setEditTimePerWeek] = useState(user.timePerWeek || (selectedLang === 'EN' ? '5 hours per week' : '5 horas por semana'));
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState<'welcome' | 'level' | 'lessons' | 'achievements' | 'streak'>('welcome');
+  const [activeSubTab, setActiveSubTab] = useState<'welcome' | 'adminUsers' | 'level' | 'lessons' | 'achievements' | 'streak'>('welcome');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminProfiles, setAdminProfiles] = useState<AdminUserProfile[]>([]);
+  const [adminProfilesLoading, setAdminProfilesLoading] = useState(false);
+  const [adminProfilesError, setAdminProfilesError] = useState('');
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const avatarFileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -237,6 +251,39 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
       setEditTimePerWeek(user.timePerWeek || (selectedLang === 'EN' ? '3.5 hrs / week' : '3.5 hrs / semana'));
     }
   }, [user, isEditingProfile]);
+
+  useEffect(() => {
+    return auth.onAuthStateChanged(async (fbUser) => {
+      if (!fbUser) {
+        setIsAdmin(false);
+        return;
+      }
+      const token = await fbUser.getIdTokenResult(true);
+      setIsAdmin(token.claims.admin === true);
+    });
+  }, []);
+
+  const loadAdminProfiles = async () => {
+    if (!isAdmin) return;
+    setAdminProfilesLoading(true);
+    setAdminProfilesError('');
+    try {
+      const snapshot = await getDocs(collection(db, 'users'));
+      setAdminProfiles(snapshot.docs.map((profileDoc) => ({
+        id: profileDoc.id,
+        displayName: profileDoc.data().displayName || 'Unnamed user',
+        email: profileDoc.data().email || '',
+        preferredLanguage: profileDoc.data().preferredLanguage || 'EN',
+        role: profileDoc.data().role || 'student',
+        updatedAt: profileDoc.data().updatedAt,
+      })));
+    } catch (error) {
+      console.error('Unable to load administrator profiles', error);
+      setAdminProfilesError(selectedLang === 'EN' ? 'User profiles could not be loaded.' : 'No se pudieron cargar los perfiles.');
+    } finally {
+      setAdminProfilesLoading(false);
+    }
+  };
 
   const getAiStudentSummary = (u: UserProfile, lang: 'EN' | 'ES') => {
     const goalText = u.goal || 'Business English & Networking';
@@ -515,7 +562,9 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
                 className="text-[42px] md:text-[52.5px] font-normal tracking-tight text-[#1a202c] !font-serif block leading-none"
               >
                 {visitorFullName 
-                  ? (selectedLang === 'EN' ? `${visitorFullName}'s Profile` : `Perfil de ${visitorFullName}`) 
+                  ? (isAdmin
+                    ? (selectedLang === 'EN' ? `${visitorFullName}'s Admin Profile` : `Perfil Admin de ${visitorFullName}`)
+                    : (selectedLang === 'EN' ? `${visitorFullName}'s Profile` : `Perfil de ${visitorFullName}`))
                   : (selectedLang === 'EN' ? 'Your Profile' : 'Tu Perfil')}
               </span>
 
@@ -554,6 +603,20 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-4 md:gap-5 text-[11.2px] font-extrabold uppercase tracking-wider select-none mt-1">
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setActiveSubTab('adminUsers');
+                    void loadAdminProfiles();
+                  }}
+                  className={`group flex items-center gap-1.5 transition-colors uppercase cursor-pointer bg-transparent border-none p-0 ${
+                    activeSubTab === 'adminUsers' ? 'text-amber-600 font-black' : 'text-[#0D224A] hover:text-amber-600'
+                  }`}
+                >
+                  <Users className="w-4.5 h-4.5" />
+                  <span>{selectedLang === 'EN' ? 'ADMIN · USER PROFILES' : 'ADMIN · PERFILES'}</span>
+                </button>
+              )}
               <button 
                 onClick={() => {
                   setActiveSubTab('welcome');
@@ -626,6 +689,46 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
 
           {/* Tab Body Content */}
           <div className="pt-1">
+            {activeSubTab === 'adminUsers' && isAdmin && (
+              <div className="animate-fade-in py-2 space-y-4">
+                <div className="rounded-2xl bg-[#0D224A] text-white p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b-4 border-amber-400">
+                  <div>
+                    <div className="text-[11px] tracking-[0.22em] text-amber-300 font-black uppercase">VOYAGER Administrator</div>
+                    <h2 className="text-2xl font-bold mt-1">{selectedLang === 'EN' ? 'User Profiles' : 'Perfiles de Usuarios'}</h2>
+                    <p className="text-sm text-white/75 mt-1">{selectedLang === 'EN' ? 'Students and editors who have created a VOYAGER account.' : 'Estudiantes y editores que han creado una cuenta de VOYAGER.'}</p>
+                  </div>
+                  <button onClick={() => void loadAdminProfiles()} className="rounded-xl border border-white/30 px-4 py-2 text-sm font-bold hover:bg-white/10">
+                    {selectedLang === 'EN' ? 'REFRESH' : 'ACTUALIZAR'}
+                  </button>
+                </div>
+
+                {adminProfilesLoading ? (
+                  <div className="py-10 text-center text-neutral-500">{selectedLang === 'EN' ? 'Loading profiles…' : 'Cargando perfiles…'}</div>
+                ) : adminProfilesError ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{adminProfilesError}</div>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-neutral-200">
+                    <table className="w-full min-w-[680px] text-sm">
+                      <thead className="bg-neutral-50 text-left text-[11px] uppercase tracking-wider text-neutral-500">
+                        <tr><th className="p-3">{selectedLang === 'EN' ? 'Profile' : 'Perfil'}</th><th className="p-3">{selectedLang === 'EN' ? 'Role' : 'Rol'}</th><th className="p-3">{selectedLang === 'EN' ? 'Language' : 'Idioma'}</th><th className="p-3">{selectedLang === 'EN' ? 'Updated' : 'Actualizado'}</th></tr>
+                      </thead>
+                      <tbody>
+                        {adminProfiles.map((profile) => (
+                          <tr key={profile.id} className="border-t border-neutral-100">
+                            <td className="p-3"><div className="font-bold text-neutral-900">{profile.displayName}</div><div className="text-neutral-500">{profile.email}</div></td>
+                            <td className="p-3"><span className="rounded-full bg-[#0D224A]/10 px-2.5 py-1 text-xs font-bold uppercase text-[#0D224A]">{profile.role}</span></td>
+                            <td className="p-3">{profile.preferredLanguage}</td>
+                            <td className="p-3 text-neutral-500">{profile.updatedAt?.toDate ? profile.updatedAt.toDate().toLocaleDateString() : '—'}</td>
+                          </tr>
+                        ))}
+                        {adminProfiles.length === 0 && <tr><td colSpan={4} className="p-8 text-center text-neutral-500">{selectedLang === 'EN' ? 'No profiles have been recorded yet.' : 'Todavía no hay perfiles registrados.'}</td></tr>}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
             {activeSubTab === 'welcome' && (
               <div className="animate-fade-in py-2">
                 {/* Minimalist 2-Column Identity Card */}
