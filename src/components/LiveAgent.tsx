@@ -441,6 +441,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
    setAuthError(null);
    try {
    const firebaseUser = isRegister ? await registerWithEmail(name, email, password, selectedLang) : await signInWithEmail(email, password);
+   const token = await firebaseUser.getIdTokenResult(true);
+   const hasAdminAccess = token.claims.admin === true;
    const finalName = firebaseUser.displayName || name.trim() || email.split('@')[0];
    setUserName(finalName);
    setUserEmail(firebaseUser.email || email);
@@ -457,7 +459,11 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
    setTimeout(() => {
      setAuthNotification(null);
    }, 4000);
-   if (typeof executeConnectFlow === 'function') {
+   if (hasAdminAccess) {
+     setHasClickedConnect(true);
+     setHasInteracted(true);
+     setRightPanelTab('roadmap');
+   } else if (typeof executeConnectFlow === 'function') {
      executeConnectFlow();
    }
    } catch (error: any) {
