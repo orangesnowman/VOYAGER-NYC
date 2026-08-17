@@ -47,6 +47,7 @@ interface UserProfile {
   timePerWeek?: string;
   age?: number;
   avatarUrl?: string;
+  usesGoogleAvatar?: boolean;
   avatarType?: 'user' | 'man' | 'woman' | 'student' | 'astronaut' | 'female_robot' | 'male_robot' | 'custom';
   bookedLesson?: {
     teacherName: string;
@@ -262,7 +263,8 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
         const updated: UserProfile = {
           ...user,
           avatarUrl: reader.result,
-          avatarType: 'custom'
+          avatarType: 'custom',
+          usesGoogleAvatar: false
         };
         saveUser(updated);
         setIsAvatarModalOpen(false);
@@ -275,7 +277,8 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
     const updated: UserProfile = {
       ...user,
       avatarUrl: undefined,
-      avatarType: type
+      avatarType: type,
+      usesGoogleAvatar: false
     };
     saveUser(updated);
     setIsAvatarModalOpen(false);
@@ -425,11 +428,15 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
           } catch (e) {}
         }
 
+        const shouldUseGoogleAvatar = existing.usesGoogleAvatar !== false && Boolean(fbUser.photoURL);
         const newUser: UserProfile = {
           ...existing,
           name: fbUser.displayName || fbUser.email?.split('@')[0] || existing.name || 'Learner',
           email: fbUser.email || existing.email || 'learner@usavoyager.com',
           provider: 'Google',
+          avatarUrl: shouldUseGoogleAvatar ? fbUser.photoURL || undefined : existing.avatarUrl,
+          avatarType: shouldUseGoogleAvatar ? 'custom' : existing.avatarType || 'user',
+          usesGoogleAvatar: shouldUseGoogleAvatar,
           goal: existing.goal || 'Business English & Networking',
           levelEstimate: existing.levelEstimate || 'Intermediate',
           completedDays: existing.completedDays || [1],
@@ -453,8 +460,12 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
   const handleLogout = async () => {
     try {
       await logout();
-    } catch (e) {}
-    saveUser(defaultUser);
+    } catch (e) {
+      console.error('Unable to sign out from Firebase', e);
+    } finally {
+      localStorage.removeItem('voyager_user_account');
+      window.location.reload();
+    }
   };
 
   const handleUpdateProfile = () => {
@@ -508,26 +519,38 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
                   : (selectedLang === 'EN' ? 'Your Profile' : 'Tu Perfil')}
               </span>
 
-              <button 
-                onClick={() => {
-                  if (isEditingProfile) {
-                    handleUpdateProfile();
-                  } else {
-                    setActiveSubTab('level');
-                    setIsEditingProfile(true);
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 bg-transparent border-none p-0 text-xs font-extrabold uppercase tracking-wider text-neutral-700 underline underline-offset-4 transition-colors hover:text-red-600"
+                  title={selectedLang === 'EN' ? 'Sign out' : 'Cerrar sesión'}
+                >
+                  <LogOut className="h-4 w-4" />
+                  {selectedLang === 'EN' ? 'SIGN OUT' : 'CERRAR SESIÓN'}
+                </button>
+
+                <button 
+                  onClick={() => {
+                    if (isEditingProfile) {
+                      handleUpdateProfile();
+                    } else {
+                      setActiveSubTab('level');
+                      setIsEditingProfile(true);
+                    }
+                  }}
+                  className={`transition-colors uppercase cursor-pointer bg-transparent border-none p-0 font-extrabold text-xs tracking-wider underline underline-offset-4 ${
+                    isEditingProfile 
+                      ? 'text-red-600 hover:text-red-700' 
+                      : 'text-neutral-700 hover:text-red-600'
+                  }`}
+                >
+                  {isEditingProfile
+                    ? (selectedLang === 'EN' ? 'SAVE' : 'GUARDAR')
+                    : (selectedLang === 'EN' ? 'EDIT' : 'EDITAR')
                   }
-                }}
-                className={`transition-colors uppercase cursor-pointer bg-transparent border-none p-0 font-extrabold text-xs tracking-wider underline underline-offset-4 ${
-                  isEditingProfile 
-                    ? 'text-red-600 hover:text-red-700' 
-                    : 'text-neutral-700 hover:text-red-600'
-                }`}
-              >
-                {isEditingProfile
-                  ? (selectedLang === 'EN' ? 'SAVE' : 'GUARDAR')
-                  : (selectedLang === 'EN' ? 'EDIT' : 'EDITAR')
-                }
-              </button>
+                </button>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-4 md:gap-5 text-[11.2px] font-extrabold uppercase tracking-wider select-none mt-1">
