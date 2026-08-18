@@ -80,7 +80,16 @@ export const signInWithGoogle = async (preferredLanguage: 'EN' | 'ES') => {
     localStorage.setItem('voyager_teacher_invite', teacherInvite);
     localStorage.setItem('voyager_post_login_destination', 'teachers');
   }
+  const isMobile = window.matchMedia('(max-width: 768px)').matches
+    || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (teacherInvite && isMobile) {
+    const credential = await signInWithPopup(auth, loginProvider);
+    await saveUserProfileSafely(credential.user, preferredLanguage);
+    sessionStorage.removeItem('voyager_google_login_language');
+    return credential.user;
+  }
   await signInWithRedirect(auth, loginProvider);
+  return null;
 };
 
 export const completeGoogleSignIn = async () => {
