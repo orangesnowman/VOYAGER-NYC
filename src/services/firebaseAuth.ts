@@ -13,12 +13,23 @@ import {
   updateProfile,
   User,
 } from 'firebase/auth';
-import { doc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, getFirestore, serverTimestamp, setDoc } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+export type VoyagerRole = 'student' | 'editor' | 'admin' | 'partner';
+
+export interface VoyagerUserProfile {
+  displayName?: string;
+  email?: string;
+  preferredLanguage?: 'EN' | 'ES';
+  role?: VoyagerRole;
+  onboardingCompleted?: boolean;
+  [key: string]: unknown;
+}
 
 const loginProvider = new GoogleAuthProvider();
 loginProvider.setCustomParameters({ prompt: 'select_account' });
@@ -44,6 +55,19 @@ const saveUserProfileSafely = async (user: User, preferredLanguage: 'EN' | 'ES')
   } catch (error) {
     console.warn('The Firebase account is active, but its Firestore profile could not be saved.', error);
   }
+};
+
+export const loadUserProfile = async (user: User): Promise<VoyagerUserProfile | null> => {
+  const snapshot = await getDoc(doc(db, 'users', user.uid));
+  return snapshot.exists() ? snapshot.data() as VoyagerUserProfile : null;
+};
+
+export const markOnboardingComplete = async (user: User, profile: Partial<VoyagerUserProfile> = {}) => {
+  await setDoc(doc(db, 'users', user.uid), {
+    ...profile,
+    onboardingCompleted: true,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
 };
 
 export const registerWithEmail = async (name: string, email: string, password: string, preferredLanguage: 'EN' | 'ES', company = '') => {
