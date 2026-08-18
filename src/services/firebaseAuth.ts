@@ -75,6 +75,11 @@ export const signInWithEmail = async (email: string, password: string) => {
 
 export const signInWithGoogle = async (preferredLanguage: 'EN' | 'ES') => {
   sessionStorage.setItem('voyager_google_login_language', preferredLanguage);
+  const teacherInvite = new URLSearchParams(window.location.search).get('teacherInvite');
+  if (teacherInvite) {
+    localStorage.setItem('voyager_teacher_invite', teacherInvite);
+    localStorage.setItem('voyager_post_login_destination', 'teachers');
+  }
   await signInWithRedirect(auth, loginProvider);
 };
 
