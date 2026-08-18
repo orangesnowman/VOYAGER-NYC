@@ -64,6 +64,12 @@ interface AdminUserProfile {
   preferredLanguage?: string;
   role?: 'admin' | 'editor' | 'student';
   updatedAt?: { toDate?: () => Date };
+  company?: string;
+  accountType?: 'corporate' | 'individual';
+  approvalStatus?: 'active' | 'pending';
+  country?: string;
+  levelEstimate?: string;
+  goal?: string;
   isDemo?: boolean;
 }
 
@@ -77,10 +83,10 @@ interface TeacherInvitation {
 }
 
 const DEMO_ADMIN_PROFILES: AdminUserProfile[] = [
-  { id: 'demo-editor-ana', displayName: 'Ana Morales', email: 'ana.morales@example.com', preferredLanguage: 'ES', role: 'editor', updatedAt: { toDate: () => new Date('2026-08-16') }, isDemo: true },
-  { id: 'demo-student-diego', displayName: 'Diego López', email: 'diego.lopez@example.com', preferredLanguage: 'ES', role: 'student', updatedAt: { toDate: () => new Date('2026-08-15') }, isDemo: true },
-  { id: 'demo-student-sofia', displayName: 'Sofia Ramirez', email: 'sofia.ramirez@example.com', preferredLanguage: 'EN', role: 'student', updatedAt: { toDate: () => new Date('2026-08-14') }, isDemo: true },
-  { id: 'demo-editor-marcus', displayName: 'Marcus Chen', email: 'marcus.chen@example.com', preferredLanguage: 'EN', role: 'editor', updatedAt: { toDate: () => new Date('2026-08-13') }, isDemo: true },
+  { id: 'demo-editor-ana', displayName: 'Ana Morales', email: 'ana.morales@example.com', preferredLanguage: 'ES', role: 'editor', company: 'VOYAGER Academy', accountType: 'corporate', approvalStatus: 'active', country: 'Costa Rica', goal: 'Student coaching', updatedAt: { toDate: () => new Date('2026-08-16') }, isDemo: true },
+  { id: 'demo-student-diego', displayName: 'Diego López', email: 'diego.lopez@example.com', preferredLanguage: 'ES', role: 'student', company: 'Soluciones Delta', accountType: 'corporate', approvalStatus: 'active', country: 'Mexico', levelEstimate: 'Intermediate', goal: 'Business English', updatedAt: { toDate: () => new Date('2026-08-15') }, isDemo: true },
+  { id: 'demo-student-sofia', displayName: 'Sofia Ramirez', email: 'sofia.ramirez@example.com', preferredLanguage: 'EN', role: 'student', accountType: 'individual', approvalStatus: 'active', country: 'Colombia', levelEstimate: 'Beginner', goal: 'Travel', updatedAt: { toDate: () => new Date('2026-08-14') }, isDemo: true },
+  { id: 'demo-editor-marcus', displayName: 'Marcus Chen', email: 'marcus.chen@example.com', preferredLanguage: 'EN', role: 'editor', company: 'Northstar Learning', accountType: 'corporate', approvalStatus: 'active', country: 'United States', goal: 'Student coaching', updatedAt: { toDate: () => new Date('2026-08-13') }, isDemo: true },
 ];
 
 export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
@@ -245,6 +251,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState('');
   const [createdInvitation, setCreatedInvitation] = useState<TeacherInvitation | null>(null);
+  const [selectedAdminProfile, setSelectedAdminProfile] = useState<AdminUserProfile | null>(null);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const avatarFileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -304,6 +311,12 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
         preferredLanguage: profileDoc.data().preferredLanguage || 'EN',
         role: profileDoc.id === auth.currentUser?.uid ? 'admin' : (profileDoc.data().role || 'student'),
         updatedAt: profileDoc.data().updatedAt,
+        company: profileDoc.data().company || '',
+        accountType: profileDoc.data().accountType || 'individual',
+        approvalStatus: profileDoc.data().approvalStatus || 'active',
+        country: profileDoc.data().country || '',
+        levelEstimate: profileDoc.data().levelEstimate || '',
+        goal: profileDoc.data().goal || '',
       }));
       setAdminProfiles([...realProfiles, ...DEMO_ADMIN_PROFILES.slice(0, Math.max(0, 4 - realProfiles.length))]);
     } catch (error) {
@@ -813,7 +826,7 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
                       </thead>
                       <tbody>
                         {adminProfiles.map((profile) => (
-                          <tr key={profile.id} className="border-t border-neutral-100">
+                          <tr key={profile.id} role="button" tabIndex={0} onClick={() => setSelectedAdminProfile(profile)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setSelectedAdminProfile(profile); }} className="cursor-pointer border-t border-neutral-100 transition-colors hover:bg-[#0D224A]/[0.04] focus:bg-[#0D224A]/[0.06] focus:outline-none">
                             <td className="p-3"><div className="flex items-center gap-2 font-bold text-neutral-900">{profile.displayName}{profile.isDemo && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black tracking-wider text-amber-800">{selectedLang === 'EN' ? 'SAMPLE' : 'MUESTRA'}</span>}</div><div className="text-neutral-500">{profile.email}</div></td>
                             <td className="p-3"><span className="rounded-full bg-[#0D224A]/10 px-2.5 py-1 text-xs font-bold uppercase text-[#0D224A]">{profile.role}</span></td>
                             <td className="p-3">{profile.preferredLanguage}</td>
@@ -826,6 +839,34 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {selectedAdminProfile && (
+              <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/55 p-4" onMouseDown={() => setSelectedAdminProfile(null)}>
+                <div className="w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
+                  <div className="bg-[#0D224A] p-6 text-white">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/15 text-2xl font-black">{selectedAdminProfile.displayName.charAt(0).toUpperCase()}</div>
+                        <div><div className="flex items-center gap-2"><h3 className="text-2xl font-black">{selectedAdminProfile.displayName}</h3>{selectedAdminProfile.isDemo && <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[9px] font-black text-[#0D224A]">{selectedLang === 'EN' ? 'SAMPLE' : 'MUESTRA'}</span>}</div><p className="mt-1 text-sm text-white/70">{selectedAdminProfile.email}</p></div>
+                      </div>
+                      <button onClick={() => setSelectedAdminProfile(null)} className="rounded-full p-2 hover:bg-white/10"><X className="h-5 w-5" /></button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 p-6 sm:grid-cols-2">
+                    {[
+                      [selectedLang === 'EN' ? 'Role' : 'Rol', selectedAdminProfile.role || 'student'],
+                      [selectedLang === 'EN' ? 'Language' : 'Idioma', selectedAdminProfile.preferredLanguage || '—'],
+                      [selectedLang === 'EN' ? 'Company' : 'Empresa', selectedAdminProfile.company || (selectedLang === 'EN' ? 'Individual account' : 'Cuenta individual')],
+                      [selectedLang === 'EN' ? 'Account status' : 'Estado de cuenta', selectedAdminProfile.approvalStatus || 'active'],
+                      [selectedLang === 'EN' ? 'Country' : 'País', selectedAdminProfile.country || '—'],
+                      [selectedLang === 'EN' ? 'English level' : 'Nivel de inglés', selectedAdminProfile.levelEstimate || '—'],
+                      [selectedLang === 'EN' ? 'Learning goal' : 'Meta de aprendizaje', selectedAdminProfile.goal || '—'],
+                      [selectedLang === 'EN' ? 'Last updated' : 'Última actualización', selectedAdminProfile.updatedAt?.toDate ? selectedAdminProfile.updatedAt.toDate().toLocaleDateString() : '—'],
+                    ].map(([label, value]) => <div key={label} className="rounded-2xl bg-neutral-50 p-4"><div className="text-[10px] font-black uppercase tracking-wider text-neutral-500">{label}</div><div className="mt-1 font-bold capitalize text-neutral-900">{value}</div></div>)}
+                  </div>
+                </div>
               </div>
             )}
 
