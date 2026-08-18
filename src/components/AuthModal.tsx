@@ -5,7 +5,7 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedLang: 'EN' | 'ES';
-  onEmailAuthSubmit: (e: React.FormEvent, isRegister: boolean, name: string, email: string, pass: string) => Promise<void>;
+  onEmailAuthSubmit: (e: React.FormEvent, isRegister: boolean, name: string, email: string, pass: string, company: string) => Promise<void>;
   onGoogleLogin: () => Promise<void>;
   onGuestLogin: () => void;
   onPasswordReset: (email: string) => Promise<void>;
@@ -29,13 +29,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [company, setCompany] = useState('');
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const fullName = `${firstName} ${lastName}`.trim();
-    await onEmailAuthSubmit(e, isRegister, fullName, email, password);
+    await onEmailAuthSubmit(e, isRegister, fullName, email, password, company);
   };
 
   return (
@@ -52,11 +53,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="text-center mb-5">
           <h3 style={{ fontFamily: "'Raleway', sans-serif" }} className="text-2xl font-extrabold text-[#1A365D]">
             {selectedLang === 'EN' 
-              ? (isRegister ? 'Create Account' : 'Sign In') 
-              : (isRegister ? 'Crear Cuenta' : 'Iniciar Sesión')}
+              ? (isRegister ? 'Create Corporate Account' : 'Corporate Sign In')
+              : (isRegister ? 'Crear Cuenta Corporativa' : 'Acceso Corporativo')}
           </h3>
           <p className="text-xs sm:text-sm text-black font-semibold mt-1 font-medium">
-            {selectedLang === 'EN' ? 'Use your Google account or email to log in to your account' : 'Utiliza tu cuenta de Google o tu correo electrónico para entrar a tu cuenta'}
+            {selectedLang === 'EN' ? 'Use your work email or continue with Google' : 'Utiliza tu correo de trabajo o continúa con Google'}
           </p>
         </div>
 
@@ -88,6 +89,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-3.5">
           {isRegister && (
+            <div className="space-y-3.5">
             <div className="grid grid-cols-2 gap-2.5">
               <div>
                 <label className="block text-xs font-extrabold text-neutral-700 uppercase tracking-wider mb-1">
@@ -116,11 +118,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 />
               </div>
             </div>
+              <div>
+                <label className="block text-xs font-extrabold text-neutral-700 uppercase tracking-wider mb-1">
+                  {selectedLang === 'EN' ? 'Company or Organization' : 'EMPRESA U ORGANIZACIÓN'}
+                </label>
+                <input type="text" required value={company} onChange={(e) => setCompany(e.target.value)} placeholder={selectedLang === 'EN' ? 'Company name' : 'Nombre de la empresa'} className="w-full px-4 py-2.5 border-2 border-[#1A365D] rounded-full text-sm font-bold bg-white text-neutral-800 placeholder-neutral-400 focus:outline-none shadow-2xs" />
+              </div>
+            </div>
           )}
 
           <div>
             <label className="block text-xs font-extrabold text-neutral-700 uppercase tracking-wider mb-1">
-              {selectedLang === 'EN' ? 'E-mail Address' : 'CORREO ELECTRÓNICO'}
+            {selectedLang === 'EN' ? 'Work E-mail Address' : 'CORREO CORPORATIVO'}
             </label>
             <input 
               type="email" 
@@ -152,8 +161,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             className="w-full py-2.5 px-4 border-2 border-[#1A365D] bg-white hover:bg-neutral-50 text-neutral-800 font-bold text-sm rounded-full transition-all shadow-2xs cursor-pointer active:scale-[0.98] mt-2 flex items-center justify-center gap-2.5"
           >
             {isLoading ? (selectedLang === 'EN' ? 'Please wait…' : 'Espera…') : isRegister
-              ? (selectedLang === 'EN' ? 'Create My Account' : 'Crear Mi Cuenta')
-              : (selectedLang === 'EN' ? 'Sign In' : 'Iniciar Sesión')}
+              ? (selectedLang === 'EN' ? 'Create Corporate Account' : 'Crear Cuenta Corporativa')
+              : (selectedLang === 'EN' ? 'Sign In with Work Email' : 'Entrar con Correo Corporativo')}
           </button>
           {!isRegister && (
             <button type="button" disabled={isLoading} onClick={() => onPasswordReset(email)} className="w-full text-xs font-bold text-[#1A365D] hover:underline disabled:opacity-50">

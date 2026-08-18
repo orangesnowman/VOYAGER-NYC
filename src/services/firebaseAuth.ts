@@ -46,16 +46,30 @@ const saveUserProfileSafely = async (user: User, preferredLanguage: 'EN' | 'ES')
   }
 };
 
-export const registerWithEmail = async (name: string, email: string, password: string, preferredLanguage: 'EN' | 'ES') => {
+export const registerWithEmail = async (name: string, email: string, password: string, preferredLanguage: 'EN' | 'ES', company = '') => {
   const credential = await createUserWithEmailAndPassword(auth, email, password);
   if (name.trim()) await updateProfile(credential.user, { displayName: name.trim() });
   await sendEmailVerification(credential.user);
   await saveUserProfileSafely(credential.user, preferredLanguage);
+  await setDoc(doc(db, 'users', credential.user.uid), {
+    company: company.trim(),
+    accountType: company.trim() ? 'corporate' : 'individual',
+    approvalStatus: company.trim() ? 'pending' : 'active',
+    role: 'student',
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
   return credential.user;
 };
 
 export const signInWithEmail = async (email: string, password: string) => {
   const credential = await signInWithEmailAndPassword(auth, email, password);
+  if (!credential.user.emailVerified) {
+    await sendEmailVerification(credential.user);
+    await auth.signOut();
+    const error = new Error('Email verification required') as Error & { code?: string };
+    error.code = 'auth/email-not-verified';
+    throw error;
+  }
   return credential.user;
 };
 

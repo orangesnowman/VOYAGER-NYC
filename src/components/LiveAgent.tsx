@@ -512,13 +512,13 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
       setAuthLoading(false);
     }
   };
- const handleEmailAuthSubmit = async (e: React.FormEvent, isRegister: boolean, name: string, email: string, password: string) => {
+ const handleEmailAuthSubmit = async (e: React.FormEvent, isRegister: boolean, name: string, email: string, password: string, company: string) => {
    e.preventDefault();
    if (!email) return;
    setAuthLoading(true);
    setAuthError(null);
    try {
-   const firebaseUser = isRegister ? await registerWithEmail(name, email, password, selectedLang) : await signInWithEmail(email, password);
+   const firebaseUser = isRegister ? await registerWithEmail(name, email, password, selectedLang, company) : await signInWithEmail(email, password);
    const token = await firebaseUser.getIdTokenResult(true);
    const hasAdminAccess = token.claims.admin === true;
    const finalName = firebaseUser.displayName || name.trim() || email.split('@')[0];
@@ -533,11 +533,13 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
      }));
    } catch (e) {}
    setAuthModalMode(null);
-   setAuthNotification(isRegister ? (selectedLang === 'EN' ? 'Account created. Check your email to verify it.' : 'Cuenta creada. Revisa tu correo para verificarla.') : (selectedLang === 'EN' ? `Welcome back, ${finalName}!` : `¡Bienvenido de nuevo, ${finalName}!`));
+   setAuthNotification(isRegister ? (selectedLang === 'EN' ? 'Corporate account created. Verify your work email before signing in.' : 'Cuenta corporativa creada. Verifica tu correo de trabajo antes de entrar.') : (selectedLang === 'EN' ? `Welcome back, ${finalName}!` : `¡Bienvenido de nuevo, ${finalName}!`));
    setTimeout(() => {
      setAuthNotification(null);
    }, 4000);
-   if (hasAdminAccess) {
+   if (isRegister) {
+     await auth.signOut();
+   } else if (hasAdminAccess) {
      setHasClickedConnect(true);
      setHasInteracted(true);
      setRightPanelTab('roadmap');
@@ -546,8 +548,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
    }
    } catch (error: any) {
      const known: Record<string, string> = selectedLang === 'EN'
-       ? { 'auth/email-already-in-use': 'That email already has an account.', 'auth/invalid-credential': 'Incorrect email or password.', 'auth/weak-password': 'Use a password with at least 6 characters.' }
-       : { 'auth/email-already-in-use': 'Ese correo ya tiene una cuenta.', 'auth/invalid-credential': 'El correo o la contraseña son incorrectos.', 'auth/weak-password': 'Usa una contraseña de al menos 6 caracteres.' };
+       ? { 'auth/email-already-in-use': 'That email already has an account.', 'auth/invalid-credential': 'Incorrect email or password.', 'auth/weak-password': 'Use a password with at least 6 characters.', 'auth/email-not-verified': 'Verify your work email before signing in. We sent a new verification message.' }
+       : { 'auth/email-already-in-use': 'Ese correo ya tiene una cuenta.', 'auth/invalid-credential': 'El correo o la contraseña son incorrectos.', 'auth/weak-password': 'Usa una contraseña de al menos 6 caracteres.', 'auth/email-not-verified': 'Verifica tu correo de trabajo antes de entrar. Enviamos un nuevo mensaje de verificación.' };
      setAuthError(known[error?.code] || (selectedLang === 'EN' ? 'Authentication could not be completed.' : 'No se pudo completar el acceso.'));
    } finally {
      setAuthLoading(false);
