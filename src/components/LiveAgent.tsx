@@ -2874,13 +2874,13 @@ ${greetingPrompt}`;
      {/* Top Center Logo */}
      <div className="pt-1 flex flex-col items-center justify-center text-center select-none z-20">
        <span style={{ fontFamily: '"Allerta Stencil", sans-serif', letterSpacing: '0.25em' }} className="text-[10px] sm:text-xs font-bold text-white/90 uppercase tracking-widest block leading-none">
-         {selectedLang === 'EN' ? 'I AM USA' : 'YO SOY USA'}
+         {isAdminSession ? 'YO SOY' : (selectedLang === 'EN' ? 'I AM USA' : 'YO SOY USA')}
        </span>
-       <h1 style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 2px 12px rgba(0,0,0,0.7)', letterSpacing: '0.12em' }} className="text-2xl sm:text-3xl md:text-[38px] font-black text-white mt-1 uppercase block leading-none">
-         VOYAGER<span className="text-[0.3em] font-light text-white/90 align-baseline ml-1 inline-block select-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 300, letterSpacing: "normal" }}>®</span>
+       <h1 style={{ fontFamily: '"Allerta Stencil", sans-serif', textShadow: '0 2px 12px rgba(0,0,0,0.7)', letterSpacing: isAdminSession ? '0.06em' : '0.12em' }} className="text-2xl sm:text-3xl md:text-[38px] font-black text-white mt-1 uppercase block leading-none">
+         {isAdminSession ? 'VOYAGER COPILOT' : <>VOYAGER<span className="text-[0.3em] font-light text-white/90 align-baseline ml-1 inline-block select-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 300, letterSpacing: "normal" }}>®</span></>}
        </h1>
        <span style={{ fontFamily: "'Raleway', 'Allerta', sans-serif", letterSpacing: '0.18em' }} className="text-[8px] sm:text-[9.5px] md:text-[10.5px] font-normal text-[#FFD700] uppercase tracking-widest mt-1.5 block leading-tight drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">
-         {selectedLang === 'EN' ? 'YOUR PASSPORT TO AMERICAN ENGLISH' : 'TU PASAPORTE AL INGLÉS AMERICANO'}
+         {isAdminSession ? 'TU ASISTENTE DE ESTRATEGIA' : (selectedLang === 'EN' ? 'YOUR PASSPORT TO AMERICAN ENGLISH' : 'TU PASAPORTE AL INGLÉS AMERICANO')}
        </span>
      </div>
 
