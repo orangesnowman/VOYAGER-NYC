@@ -735,33 +735,38 @@ async function startServer() {
   });
 
   app.post("/api/admin/teacher-invitations", requireAdmin, async (req, res) => {
-    const name = String(req.body?.name || "").trim();
-    const email = String(req.body?.email || "").trim().toLowerCase();
-    if (!name || !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: "Valid name and email are required" });
+    try {
+      const name = String(req.body?.name || "").trim();
+      const email = String(req.body?.email || "").trim().toLowerCase();
+      if (!name || !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: "Valid name and email are required" });
 
-    const invitationToken = crypto.randomBytes(32).toString("base64url");
-    const tokenHash = crypto.createHash("sha256").update(invitationToken).digest("hex");
-    const expiresAt = Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const invitation = {
-      name,
-      email,
-      role: "editor",
-      status: "invited",
-      tokenHash,
-      createdAt: Timestamp.now(),
-      expiresAt,
-      invitedBy: res.locals.firebaseUser.uid,
-    };
-    const document = await adminDb.collection("teacherInvitations").add(invitation);
-    const origin = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
-    res.status(201).json({
-      id: document.id,
-      name,
-      email,
-      status: invitation.status,
-      expiresAt: expiresAt.toDate().toISOString(),
-      invitationUrl: `${origin}/?teacherInvite=${encodeURIComponent(invitationToken)}`,
-    });
+      const invitationToken = crypto.randomBytes(32).toString("base64url");
+      const tokenHash = crypto.createHash("sha256").update(invitationToken).digest("hex");
+      const expiresAt = Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const invitation = {
+        name,
+        email,
+        role: "editor",
+        status: "invited",
+        tokenHash,
+        createdAt: Timestamp.now(),
+        expiresAt,
+        invitedBy: res.locals.firebaseUser.uid,
+      };
+      const document = await adminDb.collection("teacherInvitations").add(invitation);
+      const origin = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
+      res.status(201).json({
+        id: document.id,
+        name,
+        email,
+        status: invitation.status,
+        expiresAt: expiresAt.toDate().toISOString(),
+        invitationUrl: `${origin}/?teacherInvite=${encodeURIComponent(invitationToken)}`,
+      });
+    } catch (error) {
+      console.error("Unable to create teacher invitation", error);
+      res.status(503).json({ error: "The invitation service is temporarily unavailable. Please try again." });
+    }
   });
 
   app.post("/api/teacher-invitations/accept", async (req, res) => {

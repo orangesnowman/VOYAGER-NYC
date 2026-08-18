@@ -351,7 +351,9 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
         body: JSON.stringify({ name: inviteName, email: inviteEmail }),
       });
-      const result = await response.json();
+      const responseText = await response.text();
+      let result: any = {};
+      try { result = responseText ? JSON.parse(responseText) : {}; } catch { result = { error: selectedLang === 'EN' ? 'The invitation service is temporarily unavailable.' : 'El servicio de invitaciones no está disponible temporalmente.' }; }
       if (!response.ok) throw new Error(result.error || 'Unable to create invitation');
       setCreatedInvitation(result);
       await loadTeacherInvitations();
