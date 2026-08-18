@@ -45,6 +45,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* Close button */}
         <button 
           onClick={onClose}
+          aria-label={selectedLang === 'EN' ? 'Close sign in' : 'Cerrar inicio de sesión'}
           className="absolute top-4 right-4 text-neutral-400 hover:text-neutral-800 transition-colors p-1.5 rounded-full hover:bg-neutral-100 cursor-pointer"
         >
           <X className="w-5 h-5" />
@@ -53,11 +54,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="text-center mb-5">
           <h3 style={{ fontFamily: "'Raleway', sans-serif" }} className="text-2xl font-extrabold text-[#1A365D]">
             {selectedLang === 'EN' 
-              ? (isRegister ? 'Create Corporate Account' : 'Corporate Sign In')
-              : (isRegister ? 'Crear Cuenta Corporativa' : 'Acceso Corporativo')}
+              ? (isRegister ? 'Create Your Account' : 'Welcome Back')
+              : (isRegister ? 'Crear tu Cuenta' : 'Bienvenido de Nuevo')}
           </h3>
           <p className="text-xs sm:text-sm text-black font-semibold mt-1 font-medium">
-            {selectedLang === 'EN' ? 'Use your work email or continue with Google' : 'Utiliza tu correo de trabajo o continúa con Google'}
+            {selectedLang === 'EN' ? 'Use your email or continue with Google' : 'Utiliza tu correo o continúa con Google'}
           </p>
         </div>
 
@@ -122,14 +123,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <label className="block text-xs font-extrabold text-neutral-700 uppercase tracking-wider mb-1">
                   {selectedLang === 'EN' ? 'Company or Organization' : 'EMPRESA U ORGANIZACIÓN'}
                 </label>
-                <input type="text" required value={company} onChange={(e) => setCompany(e.target.value)} placeholder={selectedLang === 'EN' ? 'Company name' : 'Nombre de la empresa'} className="w-full px-4 py-2.5 border-2 border-[#1A365D] rounded-full text-sm font-bold bg-white text-neutral-800 placeholder-neutral-400 focus:outline-none shadow-2xs" />
+                <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} placeholder={selectedLang === 'EN' ? 'Optional' : 'Opcional'} className="w-full px-4 py-2.5 border-2 border-[#1A365D] rounded-full text-sm font-bold bg-white text-neutral-800 placeholder-neutral-400 focus:outline-none shadow-2xs" />
               </div>
             </div>
           )}
 
           <div>
             <label className="block text-xs font-extrabold text-neutral-700 uppercase tracking-wider mb-1">
-            {selectedLang === 'EN' ? 'Work E-mail Address' : 'CORREO CORPORATIVO'}
+            {selectedLang === 'EN' ? 'E-mail Address' : 'CORREO ELECTRÓNICO'}
             </label>
             <input 
               type="email" 
@@ -161,8 +162,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             className="w-full py-2.5 px-4 border-2 border-[#1A365D] bg-white hover:bg-neutral-50 text-neutral-800 font-bold text-sm rounded-full transition-all shadow-2xs cursor-pointer active:scale-[0.98] mt-2 flex items-center justify-center gap-2.5"
           >
             {isLoading ? (selectedLang === 'EN' ? 'Please wait…' : 'Espera…') : isRegister
-              ? (selectedLang === 'EN' ? 'Create Corporate Account' : 'Crear Cuenta Corporativa')
-              : (selectedLang === 'EN' ? 'Sign In with Work Email' : 'Entrar con Correo Corporativo')}
+              ? (selectedLang === 'EN' ? 'Create Account' : 'Crear Cuenta')
+              : (selectedLang === 'EN' ? 'Sign In with Email' : 'Entrar con Correo')}
           </button>
           {!isRegister && (
             <button type="button" disabled={isLoading} onClick={() => onPasswordReset(email)} className="w-full text-xs font-bold text-[#1A365D] hover:underline disabled:opacity-50">

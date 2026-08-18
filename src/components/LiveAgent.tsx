@@ -3,7 +3,7 @@ import { SUGGESTIONS, IMMERSION_CURRICULUM } from '../constants';
 import NycMap, { MapMarker, RouteInfo } from './NycMap';
 import { NycSubwayMap } from './NycSubwayMap';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth, completeGoogleSignIn, getAccessToken, registerWithEmail, requestPasswordReset, signInWithEmail, signInWithGoogle } from '../services/firebaseAuth';
+import { auth, completeGoogleSignIn, getAccessToken, loadUserProfile, markOnboardingComplete, registerWithEmail, requestPasswordReset, signInWithEmail, signInWithGoogle, VoyagerRole } from '../services/firebaseAuth';
 import { parseAndRenderEmojis } from './VoyagerEmoji';
 
 import { ProgressDashboard } from './ProgressDashboard';
@@ -377,6 +377,10 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const [authLoading, setAuthLoading] = useState<boolean>(false);
  const [authError, setAuthError] = useState<string | null>(null);
  const [isAdminSession, setIsAdminSession] = useState<boolean>(false);
+ const [authBootstrapState, setAuthBootstrapState] = useState<'checking' | 'signed-out' | 'ready' | 'error'>('checking');
+ const [authBootstrapError, setAuthBootstrapError] = useState<string | null>(null);
+ const [authRetryKey, setAuthRetryKey] = useState(0);
+ const [currentRole, setCurrentRole] = useState<VoyagerRole | null>(null);
  const teacherInviteInProgress = useRef(false);
 
  useEffect(() => {
@@ -422,79 +426,80 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  }, [selectedLang]);
 
  useEffect(() => {
+   void completeGoogleSignIn().catch(() => {
+     setAuthError(selectedLang === 'EN' ? 'Google sign-in could not be completed.' : 'No se pudo completar el acceso con Google.');
+   });
+ }, [selectedLang]);
+
+ useEffect(() => {
    let active = true;
+   setAuthBootstrapState('checking');
+   setAuthBootstrapError(null);
    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
      if (!active) return;
      if (!firebaseUser) {
        setIsAdminSession(false);
+       setCurrentRole(null);
+       setAuthBootstrapState('signed-out');
        return;
      }
      try {
-       const token = await firebaseUser.getIdTokenResult(true);
+       const [token, profileResult] = await Promise.all([
+         firebaseUser.getIdTokenResult(true),
+         loadUserProfile(firebaseUser).catch((profileError) => {
+           console.warn('The account is active, but its profile could not be loaded.', profileError);
+           return null;
+         }),
+       ]);
        if (!active) return;
-       const hasAdminAccess = token.claims.admin === true;
-       const hasEditorAccess = token.claims.editor === true || token.claims.role === 'editor';
-       setIsAdminSession(hasAdminAccess);
-       if (!hasAdminAccess && !hasEditorAccess) return;
-       const name = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || (hasAdminAccess ? 'Administrator' : 'Teacher');
-       const email = firebaseUser.email || '';
-       setUserName(name);
-       setUserEmail(email);
+       const claimedRole = typeof token.claims.role === 'string' ? token.claims.role : null;
+       const role: VoyagerRole = token.claims.admin === true
+         ? 'admin'
+         : token.claims.editor === true || claimedRole === 'editor'
+           ? 'editor'
+           : claimedRole === 'partner' || profileResult?.role === 'partner'
+             ? 'partner'
+             : 'student';
+       const name = firebaseUser.displayName || profileResult?.displayName || firebaseUser.email?.split('@')[0] || 'Voyager';
+       const email = firebaseUser.email || profileResult?.email || '';
+       const onboardingInProgress = localStorage.getItem('voyager_onboarding_in_progress') === 'true';
+       if (onboardingInProgress) {
+         await markOnboardingComplete(firebaseUser, { preferredLanguage: selectedLang, role });
+         localStorage.removeItem('voyager_onboarding_in_progress');
+       }
+       localStorage.setItem(`voyager_onboarding_completed_${firebaseUser.uid}`, 'true');
        localStorage.setItem('voyager_user_account', JSON.stringify({
          name,
          email,
-         provider: firebaseUser.providerData[0]?.providerId || 'google',
-         role: hasAdminAccess ? 'admin' : 'editor',
+         photoURL: firebaseUser.photoURL || '',
+         provider: firebaseUser.providerData[0]?.providerId || 'firebase',
+         role,
          loginTime: new Date().toISOString(),
        }));
+       setUserName(name);
+       setUserEmail(email);
+       setCurrentRole(role);
+       setIsAdminSession(role === 'admin');
        setAuthModalMode(null);
        setHasClickedConnect(true);
        setHasInteracted(true);
-       setRightPanelTab(hasAdminAccess ? 'roadmap' : 'teachers');
-     } catch (error) {
-       console.warn('The privileged session could not be routed automatically.', error);
+       setRightPanelTab(role === 'editor' ? 'teachers' : 'roadmap');
+       setAuthLoading(false);
+       setAuthBootstrapState('ready');
+     } catch (bootstrapError) {
+       console.error('Authentication bootstrap failed.', bootstrapError);
+       if (!active) return;
+       setAuthBootstrapError(selectedLang === 'EN'
+         ? 'We could not load your account. Your data is safe; please try again.'
+         : 'No pudimos cargar tu cuenta. Tus datos están seguros; inténtalo de nuevo.');
+       setAuthBootstrapState('error');
      }
    });
    return () => {
      active = false;
      unsubscribe();
    };
- }, []);
-
- useEffect(() => {
-   let active = true;
-   void completeGoogleSignIn().then((firebaseUser) => {
-     if (!active || !firebaseUser) return;
-     void firebaseUser.getIdTokenResult(true).then((token) => {
-       if (!active) return;
-       const hasAdminAccess = token.claims.admin === true;
-       const hasEditorAccess = token.claims.editor === true || token.claims.role === 'editor';
-       const name = firebaseUser.displayName || (selectedLang === 'EN' ? 'Google User' : 'Usuario de Google');
-       const email = firebaseUser.email || '';
-       setUserName(name);
-       setUserEmail(email);
-       localStorage.setItem('voyager_user_account', JSON.stringify({
-         name,
-         email,
-         provider: 'google',
-         role: hasAdminAccess ? 'admin' : hasEditorAccess ? 'editor' : 'student',
-         loginTime: new Date().toISOString(),
-       }));
-       setAuthNotification(hasEditorAccess
-         ? (selectedLang === 'EN' ? 'Welcome to your teacher profile!' : '¡Bienvenida a tu perfil de profesora!')
-         : (selectedLang === 'EN' ? 'Logged in with Google!' : '¡Sesión iniciada con Google!'));
-       setHasClickedConnect(true);
-       setHasInteracted(true);
-       setRightPanelTab(hasAdminAccess ? 'roadmap' : hasEditorAccess ? 'teachers' : 'roadmap');
-       if (hasEditorAccess) {
-         localStorage.removeItem('voyager_post_login_destination');
-       }
-     });
-   }).catch(() => {
-     if (active) setAuthError(selectedLang === 'EN' ? 'Google sign-in could not be completed.' : 'No se pudo completar el acceso con Google.');
-   });
-   return () => { active = false; };
- }, []);
+ }, [authRetryKey, selectedLang]);
 
   const handleGuestLogin = () => {
     const guestName = selectedLang === 'EN' ? 'Guest' : 'Invitado';
@@ -520,7 +525,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
     }
   };
 
-  const handleGoogleLogin = async () => {
+ const handleGoogleLogin = async () => {
     setAuthLoading(true);
     setAuthError(null);
     try {
@@ -559,16 +564,6 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
    }, 4000);
    if (isRegister) {
      await auth.signOut();
-   } else if (hasAdminAccess) {
-     setHasClickedConnect(true);
-     setHasInteracted(true);
-     setRightPanelTab('roadmap');
-   } else if (hasEditorAccess) {
-     setHasClickedConnect(true);
-     setHasInteracted(true);
-     setRightPanelTab('teachers');
-   } else if (typeof executeConnectFlow === 'function') {
-     executeConnectFlow();
    }
    } catch (error: any) {
      const known: Record<string, string> = selectedLang === 'EN'
@@ -1157,6 +1152,7 @@ NO respondas a ruidos, habla o ruidos de fondo.]`;
 
  // Connect Click handler
  const handleConnectClick = () => {
+   localStorage.setItem('voyager_onboarding_in_progress', 'true');
    executeConnectFlow();
  };
 
@@ -1218,7 +1214,7 @@ NO respondas a ruidos, habla o ruidos de fondo.]`;
     setChosenStartMode(mode);
   };
 
- const handleCompleteOnboarding = () => {
+ const handleCompleteOnboarding = async () => {
  const saved = localStorage.getItem('voyager_user_account');
  const getGoalText = () => {
  if (selectedGoal === 'PROFESSIONAL') {
@@ -1289,6 +1285,18 @@ NO respondas a ruidos, habla o ruidos de fondo.]`;
  }
  delete (u as any).password;
  localStorage.setItem('voyager_user_account', JSON.stringify(u));
+ if (auth.currentUser) {
+   try {
+     await markOnboardingComplete(auth.currentUser, {
+       preferredLanguage: selectedLang,
+       role: currentRole || 'student',
+     });
+     localStorage.setItem(`voyager_onboarding_completed_${auth.currentUser.uid}`, 'true');
+   } catch (profileError) {
+     console.warn('Onboarding finished locally, but the profile could not be updated.', profileError);
+   }
+ }
+ localStorage.removeItem('voyager_onboarding_in_progress');
  handleContinuaClick();
  };
 
@@ -1642,8 +1650,35 @@ ${greetingPrompt}`;
  ? 'Write or dictate...' 
  : 'Escribe o dicta...';
 
+ if (authBootstrapState === 'checking') {
+   return (
+     <div className="min-h-[100dvh] w-full bg-[#071126] text-white flex flex-col items-center justify-center gap-6 px-6 text-center">
+       <img src={voyagerRobot} alt="Voyager" className="w-36 h-36 object-contain animate-pulse" />
+       <div>
+         <p className="text-xl font-black tracking-wide">VOYAGER</p>
+         <p className="mt-2 text-sm text-white/75">{selectedLang === 'EN' ? 'Preparing your passport…' : 'Preparando tu pasaporte…'}</p>
+       </div>
+       <div className="h-1.5 w-44 overflow-hidden rounded-full bg-white/15"><div className="h-full w-1/2 animate-pulse rounded-full bg-[#FFD700]" /></div>
+     </div>
+   );
+ }
+
+ if (authBootstrapState === 'error') {
+   return (
+     <div className="min-h-[100dvh] w-full bg-[#071126] text-white flex flex-col items-center justify-center gap-5 px-6 text-center">
+       <img src={voyagerRobot} alt="Voyager" className="w-32 h-32 object-contain" />
+       <h1 className="text-2xl font-black">{selectedLang === 'EN' ? 'We hit some turbulence' : 'Encontramos turbulencia'}</h1>
+       <p className="max-w-md text-white/75">{authBootstrapError}</p>
+       <button onClick={() => setAuthRetryKey((value) => value + 1)} className="rounded-full bg-[#FFD700] px-7 py-3 font-black text-[#071126] hover:bg-yellow-300">
+         {selectedLang === 'EN' ? 'Try again' : 'Intentar de nuevo'}
+       </button>
+     </div>
+   );
+ }
+
  return (
  <div 
+ data-user-role={currentRole || 'visitor'}
  className="relative h-[100dvh] md:h-screen w-full bg-[#000000] flex items-center justify-center p-0 md:px-2 md:py-0.5 overflow-hidden select-none"
  style={{
  backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0)',
@@ -1720,15 +1755,23 @@ ${greetingPrompt}`;
  {!hasClickedConnect ? (
  /* Disconnected Landing Screen inside the Cover */
  <>
- <div className="flex-1 flex items-center justify-center pt-4 pb-2 w-full relative z-10">
+ <div className="flex-1 flex flex-col items-center justify-center pt-4 pb-2 px-6 w-full relative z-10">
  <img 
  src="https://lh3.googleusercontent.com/d/1uCm4fqE6Qfxg1lm1FsCbo35fVQcI_E5k" 
  alt="Voyager USA Mascot" 
  referrerPolicy="no-referrer"
- onClick={handleConnectClick}
- title={selectedLang === 'EN' ? 'Click to Connect' : 'Haz clic para conectar'}
- className="w-[240px] h-[240px] sm:w-[300px] sm:h-[300px] md:w-[380px] md:h-[380px] max-w-[95%] max-h-[45vh] object-contain animate-float-zero-g cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300 mix-blend-multiply" 
+ className="w-[190px] h-[190px] sm:w-[240px] sm:h-[240px] md:w-[280px] md:h-[280px] max-w-[95%] max-h-[36vh] object-contain animate-float-zero-g transition-all duration-300 mix-blend-multiply"
  />
+ <h2 className="mt-2 text-2xl sm:text-3xl font-black text-[#0D224A]">{selectedLang === 'EN' ? 'Welcome to VOYAGER' : 'Bienvenido a VOYAGER'}</h2>
+ <p className="mt-2 mb-5 max-w-md text-sm font-semibold text-neutral-600">{selectedLang === 'EN' ? 'Your passport to American English.' : 'Tu pasaporte al inglés americano.'}</p>
+ <div className="w-full max-w-sm space-y-3">
+   <button onClick={handleConnectClick} className="w-full rounded-full bg-[#0D224A] px-6 py-3.5 text-sm font-black text-white hover:bg-[#16366f] active:scale-[0.98]">
+     {selectedLang === 'EN' ? "I'm new — start onboarding" : 'Soy nuevo — comenzar onboarding'}
+   </button>
+   <button onClick={() => { localStorage.removeItem('voyager_onboarding_in_progress'); setAuthError(null); setAuthModalMode('email'); }} className="w-full rounded-full border-2 border-[#0D224A] bg-white px-6 py-3 text-sm font-black text-[#0D224A] hover:bg-slate-50 active:scale-[0.98]">
+     {selectedLang === 'EN' ? 'I already have an account' : 'Ya tengo una cuenta'}
+   </button>
+ </div>
  </div>
 
 
