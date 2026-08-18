@@ -780,14 +780,17 @@ async function startServer() {
       if (snapshot.empty) return res.status(404).json({ error: "Invitation not found" });
       const document = snapshot.docs[0];
       const invitation = document.data();
-      if (invitation.status !== "invited" || invitation.expiresAt.toMillis() < Date.now()) return res.status(410).json({ error: "Invitation has expired" });
       if (!decoded.email || decoded.email.toLowerCase() !== invitation.email) return res.status(403).json({ error: "Sign in with the invited email address" });
+      if (invitation.status !== "invited" && invitation.status !== "accepted") return res.status(410).json({ error: "Invitation is no longer active" });
+      if (invitation.status === "invited" && invitation.expiresAt.toMillis() < Date.now()) return res.status(410).json({ error: "Invitation has expired" });
 
       const user = await adminAuth.getUser(decoded.uid);
       await adminAuth.setCustomUserClaims(decoded.uid, { ...(user.customClaims || {}), editor: true, role: "editor" });
       await adminDb.collection("users").doc(decoded.uid).set({ displayName: user.displayName || invitation.name, email: decoded.email, role: "editor", updatedAt: Timestamp.now() }, { merge: true });
-      await document.ref.update({ status: "accepted", acceptedAt: Timestamp.now(), acceptedBy: decoded.uid });
-      res.json({ ok: true, role: "editor" });
+      if (invitation.status === "invited") {
+        await document.ref.update({ status: "accepted", acceptedAt: Timestamp.now(), acceptedBy: decoded.uid });
+      }
+      res.json({ ok: true, role: "editor", alreadyAccepted: invitation.status === "accepted" });
     } catch (error) {
       console.error("Unable to accept teacher invitation", error);
       res.status(401).json({ error: "Invitation could not be accepted" });

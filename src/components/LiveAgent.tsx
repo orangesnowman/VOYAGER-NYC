@@ -380,8 +380,11 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const teacherInviteInProgress = useRef(false);
 
  useEffect(() => {
-   const invitationToken = new URLSearchParams(window.location.search).get('teacherInvite');
+   const invitationToken = new URLSearchParams(window.location.search).get('teacherInvite')
+     || localStorage.getItem('voyager_teacher_invite');
    if (!invitationToken) return;
+   localStorage.setItem('voyager_teacher_invite', invitationToken);
+   localStorage.setItem('voyager_post_login_destination', 'teachers');
    setAuthNotification(selectedLang === 'EN'
      ? 'Sign in with the invited Google account to activate teacher access.'
      : 'Inicia sesión con la cuenta de Google invitada para activar el acceso de profesora.');
@@ -402,6 +405,8 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
        const cleanUrl = new URL(window.location.href);
        cleanUrl.searchParams.delete('teacherInvite');
        window.history.replaceState({}, '', cleanUrl.toString());
+       localStorage.removeItem('voyager_teacher_invite');
+       localStorage.removeItem('voyager_post_login_destination');
        setAuthNotification(selectedLang === 'EN' ? 'Teacher access activated!' : '¡Acceso de profesora activado!');
        setHasClickedConnect(true);
        setHasInteracted(true);
@@ -481,6 +486,9 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
        setHasClickedConnect(true);
        setHasInteracted(true);
        setRightPanelTab(hasAdminAccess ? 'roadmap' : hasEditorAccess ? 'teachers' : 'roadmap');
+       if (hasEditorAccess) {
+         localStorage.removeItem('voyager_post_login_destination');
+       }
      });
    }).catch(() => {
      if (active) setAuthError(selectedLang === 'EN' ? 'Google sign-in could not be completed.' : 'No se pudo completar el acceso con Google.');
