@@ -428,9 +428,10 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
        const token = await firebaseUser.getIdTokenResult(true);
        if (!active) return;
        const hasAdminAccess = token.claims.admin === true;
+       const hasEditorAccess = token.claims.editor === true || token.claims.role === 'editor';
        setIsAdminSession(hasAdminAccess);
-       if (!hasAdminAccess) return;
-       const name = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Administrator';
+       if (!hasAdminAccess && !hasEditorAccess) return;
+       const name = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || (hasAdminAccess ? 'Administrator' : 'Teacher');
        const email = firebaseUser.email || '';
        setUserName(name);
        setUserEmail(email);
@@ -438,14 +439,15 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
          name,
          email,
          provider: firebaseUser.providerData[0]?.providerId || 'google',
+         role: hasAdminAccess ? 'admin' : 'editor',
          loginTime: new Date().toISOString(),
        }));
        setAuthModalMode(null);
        setHasClickedConnect(true);
        setHasInteracted(true);
-       setRightPanelTab('roadmap');
+       setRightPanelTab(hasAdminAccess ? 'roadmap' : 'teachers');
      } catch (error) {
-       console.warn('The administrator session could not be routed automatically.', error);
+       console.warn('The privileged session could not be routed automatically.', error);
      }
    });
    return () => {
@@ -458,20 +460,28 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
    let active = true;
    void completeGoogleSignIn().then((firebaseUser) => {
      if (!active || !firebaseUser) return;
-     const name = firebaseUser.displayName || (selectedLang === 'EN' ? 'Google User' : 'Usuario de Google');
-     const email = firebaseUser.email || '';
-     setUserName(name);
-     setUserEmail(email);
-     localStorage.setItem('voyager_user_account', JSON.stringify({
-       name,
-       email,
-       provider: 'google',
-       loginTime: new Date().toISOString(),
-     }));
-     setAuthNotification(selectedLang === 'EN' ? 'Logged in with Google!' : '¡Sesión iniciada con Google!');
-     setHasClickedConnect(true);
-     setHasInteracted(true);
-     setRightPanelTab('roadmap');
+     void firebaseUser.getIdTokenResult(true).then((token) => {
+       if (!active) return;
+       const hasAdminAccess = token.claims.admin === true;
+       const hasEditorAccess = token.claims.editor === true || token.claims.role === 'editor';
+       const name = firebaseUser.displayName || (selectedLang === 'EN' ? 'Google User' : 'Usuario de Google');
+       const email = firebaseUser.email || '';
+       setUserName(name);
+       setUserEmail(email);
+       localStorage.setItem('voyager_user_account', JSON.stringify({
+         name,
+         email,
+         provider: 'google',
+         role: hasAdminAccess ? 'admin' : hasEditorAccess ? 'editor' : 'student',
+         loginTime: new Date().toISOString(),
+       }));
+       setAuthNotification(hasEditorAccess
+         ? (selectedLang === 'EN' ? 'Welcome to your teacher profile!' : '¡Bienvenida a tu perfil de profesora!')
+         : (selectedLang === 'EN' ? 'Logged in with Google!' : '¡Sesión iniciada con Google!'));
+       setHasClickedConnect(true);
+       setHasInteracted(true);
+       setRightPanelTab(hasAdminAccess ? 'roadmap' : hasEditorAccess ? 'teachers' : 'roadmap');
+     });
    }).catch(() => {
      if (active) setAuthError(selectedLang === 'EN' ? 'Google sign-in could not be completed.' : 'No se pudo completar el acceso con Google.');
    });
@@ -521,6 +531,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
    const firebaseUser = isRegister ? await registerWithEmail(name, email, password, selectedLang, company) : await signInWithEmail(email, password);
    const token = await firebaseUser.getIdTokenResult(true);
    const hasAdminAccess = token.claims.admin === true;
+   const hasEditorAccess = token.claims.editor === true || token.claims.role === 'editor';
    const finalName = firebaseUser.displayName || name.trim() || email.split('@')[0];
    setUserName(finalName);
    setUserEmail(firebaseUser.email || email);
@@ -529,6 +540,7 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
        name: finalName,
        email: firebaseUser.email || email,
        provider: 'email',
+       role: hasAdminAccess ? 'admin' : hasEditorAccess ? 'editor' : 'student',
        loginTime: new Date().toISOString()
      }));
    } catch (e) {}
@@ -543,6 +555,10 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
      setHasClickedConnect(true);
      setHasInteracted(true);
      setRightPanelTab('roadmap');
+   } else if (hasEditorAccess) {
+     setHasClickedConnect(true);
+     setHasInteracted(true);
+     setRightPanelTab('teachers');
    } else if (typeof executeConnectFlow === 'function') {
      executeConnectFlow();
    }
