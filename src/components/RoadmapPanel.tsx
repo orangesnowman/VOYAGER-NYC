@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, LogOut, Compass, Calendar, Award, CheckCircle2, Circle, Target, ChevronRight, Mail, Key, Users, Sparkles, Activity, BookOpen, Volume2, Apple, Lock, Bot, MessageSquare, Pause, TrendingUp, Play, Flame, Camera, Upload, X, Globe, Heart, Clock } from 'lucide-react';
+import { User, LogOut, Compass, Calendar, Award, CheckCircle2, Circle, Target, ChevronRight, Mail, Key, Users, Sparkles, Activity, BookOpen, Volume2, Apple, Lock, Bot, MessageSquare, Pause, TrendingUp, Play, Flame, Camera, Upload, X, Globe, Heart, Clock, UserPlus, Copy, Send } from 'lucide-react';
 import { collection, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -65,6 +65,15 @@ interface AdminUserProfile {
   role?: 'admin' | 'editor' | 'student';
   updatedAt?: { toDate?: () => Date };
   isDemo?: boolean;
+}
+
+interface TeacherInvitation {
+  id: string;
+  name: string;
+  email: string;
+  status: 'invited' | 'accepted' | 'expired';
+  expiresAt?: string;
+  invitationUrl?: string;
 }
 
 const DEMO_ADMIN_PROFILES: AdminUserProfile[] = [
@@ -229,6 +238,13 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
   const [adminProfiles, setAdminProfiles] = useState<AdminUserProfile[]>([]);
   const [adminProfilesLoading, setAdminProfilesLoading] = useState(false);
   const [adminProfilesError, setAdminProfilesError] = useState('');
+  const [teacherInvitations, setTeacherInvitations] = useState<TeacherInvitation[]>([]);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteName, setInviteName] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+  const [createdInvitation, setCreatedInvitation] = useState<TeacherInvitation | null>(null);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const avatarFileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -298,8 +314,55 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
     }
   };
 
+  const loadTeacherInvitations = async () => {
+    if (!isAdmin || !auth.currentUser) return;
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const response = await fetch('/api/admin/teacher-invitations', { headers: { Authorization: `Bearer ${idToken}` } });
+      if (!response.ok) throw new Error('Unable to load invitations');
+      setTeacherInvitations(await response.json());
+    } catch (error) {
+      console.error('Unable to load teacher invitations', error);
+    }
+  };
+
+  const createTeacherInvitation = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!auth.currentUser) return;
+    setInviteLoading(true);
+    setInviteError('');
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const response = await fetch('/api/admin/teacher-invitations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({ name: inviteName, email: inviteEmail }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to create invitation');
+      setCreatedInvitation(result);
+      await loadTeacherInvitations();
+    } catch (error) {
+      setInviteError(error instanceof Error ? error.message : 'Unable to create invitation');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const emailTeacherInvitation = () => {
+    if (!createdInvitation?.invitationUrl) return;
+    const subject = selectedLang === 'EN' ? 'Your VOYAGER teacher invitation' : 'Tu invitación como profesora de VOYAGER';
+    const body = selectedLang === 'EN'
+      ? `Hello ${createdInvitation.name},\n\nYou have been invited to join VOYAGER as a teacher. Sign in with ${createdInvitation.email} using this secure link:\n\n${createdInvitation.invitationUrl}\n\nThis invitation expires in 7 days.`
+      : `Hola ${createdInvitation.name},\n\nHas sido invitada a VOYAGER como profesora. Inicia sesión con ${createdInvitation.email} usando este enlace seguro:\n\n${createdInvitation.invitationUrl}\n\nLa invitación vence en 7 días.`;
+    window.location.href = `mailto:${encodeURIComponent(createdInvitation.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
   useEffect(() => {
-    if (isAdmin) void loadAdminProfiles();
+    if (isAdmin) {
+      void loadAdminProfiles();
+      void loadTeacherInvitations();
+    }
   }, [isAdmin]);
 
   const getAiStudentSummary = (u: UserProfile, lang: 'EN' | 'ES') => {
@@ -706,10 +769,31 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
               <div className="animate-fade-in py-2 space-y-4">
                 <div className="flex items-center justify-between gap-4 px-1">
                   <h2 className="text-2xl font-bold text-neutral-900">{selectedLang === 'EN' ? 'Users' : 'Usuarios'}</h2>
-                  <button onClick={() => void loadAdminProfiles()} className="rounded-xl border border-neutral-300 px-4 py-2 text-xs font-bold text-neutral-700 hover:bg-neutral-50">
-                    {selectedLang === 'EN' ? 'REFRESH' : 'ACTUALIZAR'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => { setCreatedInvitation(null); setInviteError(''); setIsInviteModalOpen(true); }} className="flex items-center gap-2 rounded-xl bg-[#0D224A] px-4 py-2 text-xs font-bold text-white hover:bg-[#18386f]">
+                      <UserPlus className="h-4 w-4" /> {selectedLang === 'EN' ? 'INVITE TEACHER' : 'INVITAR PROFESORA'}
+                    </button>
+                    <button onClick={() => { void loadAdminProfiles(); void loadTeacherInvitations(); }} className="rounded-xl border border-neutral-300 px-4 py-2 text-xs font-bold text-neutral-700 hover:bg-neutral-50">
+                      {selectedLang === 'EN' ? 'REFRESH' : 'ACTUALIZAR'}
+                    </button>
+                  </div>
                 </div>
+
+                {teacherInvitations.length > 0 && (
+                  <div className="rounded-2xl border border-neutral-200 p-4">
+                    <h3 className="mb-3 text-sm font-black uppercase tracking-wide text-neutral-700">{selectedLang === 'EN' ? 'Teacher invitations' : 'Invitaciones de profesoras'}</h3>
+                    <div className="space-y-2">
+                      {teacherInvitations.map((invitation) => (
+                        <div key={invitation.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-neutral-50 px-3 py-2 text-sm">
+                          <div><span className="font-bold">{invitation.name}</span><span className="ml-2 text-neutral-500">{invitation.email}</span></div>
+                          <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${invitation.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}>
+                            {invitation.status === 'accepted' ? (selectedLang === 'EN' ? 'Accepted' : 'Aceptada') : (selectedLang === 'EN' ? 'Pending' : 'Pendiente')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {adminProfilesLoading ? (
                   <div className="py-10 text-center text-neutral-500">{selectedLang === 'EN' ? 'Loading profiles…' : 'Cargando perfiles…'}</div>
@@ -742,6 +826,34 @@ export const RoadmapPanel: React.FC<RoadmapPanelProps> = ({
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {isInviteModalOpen && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4" onMouseDown={() => setIsInviteModalOpen(false)}>
+                <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
+                  <div className="mb-5 flex items-start justify-between gap-4">
+                    <div><h3 className="text-2xl font-black text-[#0D224A]">{selectedLang === 'EN' ? 'Invite a teacher' : 'Invitar a una profesora'}</h3><p className="mt-1 text-sm text-neutral-500">{selectedLang === 'EN' ? 'Editorial access to her classes and student monitoring.' : 'Acceso editorial a sus clases y seguimiento de estudiantes.'}</p></div>
+                    <button onClick={() => setIsInviteModalOpen(false)} className="rounded-full p-2 hover:bg-neutral-100"><X className="h-5 w-5" /></button>
+                  </div>
+                  {!createdInvitation ? (
+                    <form onSubmit={createTeacherInvitation} className="space-y-4">
+                      <label className="block text-sm font-bold text-neutral-700">{selectedLang === 'EN' ? 'Name' : 'Nombre'}<input required value={inviteName} onChange={(event) => setInviteName(event.target.value)} className="mt-1.5 w-full rounded-xl border border-neutral-300 px-4 py-3 font-normal outline-none focus:border-[#0D224A]" /></label>
+                      <label className="block text-sm font-bold text-neutral-700">{selectedLang === 'EN' ? 'Email' : 'Correo electrónico'}<input required type="email" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} className="mt-1.5 w-full rounded-xl border border-neutral-300 px-4 py-3 font-normal outline-none focus:border-[#0D224A]" /></label>
+                      {inviteError && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{inviteError}</p>}
+                      <button disabled={inviteLoading} className="w-full rounded-xl bg-[#0D224A] px-4 py-3 font-black text-white disabled:opacity-60">{inviteLoading ? (selectedLang === 'EN' ? 'CREATING…' : 'CREANDO…') : (selectedLang === 'EN' ? 'CREATE SECURE INVITATION' : 'CREAR INVITACIÓN SEGURA')}</button>
+                    </form>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-800">{selectedLang === 'EN' ? 'Invitation created. It expires in 7 days and only works with the invited email.' : 'Invitación creada. Vence en 7 días y solo funciona con el correo invitado.'}</div>
+                      <div className="break-all rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-600">{createdInvitation.invitationUrl}</div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button onClick={() => void navigator.clipboard.writeText(createdInvitation.invitationUrl || '')} className="flex items-center justify-center gap-2 rounded-xl border border-neutral-300 px-3 py-3 text-sm font-bold"><Copy className="h-4 w-4" />{selectedLang === 'EN' ? 'Copy link' : 'Copiar enlace'}</button>
+                        <button onClick={emailTeacherInvitation} className="flex items-center justify-center gap-2 rounded-xl bg-[#0D224A] px-3 py-3 text-sm font-bold text-white"><Send className="h-4 w-4" />{selectedLang === 'EN' ? 'Open email' : 'Abrir correo'}</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

@@ -377,6 +377,44 @@ const LiveAgent: React.FC<LiveAgentProps> = ({ isWidgetMode = false, onClose }) 
  const [authLoading, setAuthLoading] = useState<boolean>(false);
  const [authError, setAuthError] = useState<string | null>(null);
  const [isAdminSession, setIsAdminSession] = useState<boolean>(false);
+ const teacherInviteInProgress = useRef(false);
+
+ useEffect(() => {
+   const invitationToken = new URLSearchParams(window.location.search).get('teacherInvite');
+   if (!invitationToken) return;
+   setAuthNotification(selectedLang === 'EN'
+     ? 'Sign in with the invited Google account to activate teacher access.'
+     : 'Inicia sesión con la cuenta de Google invitada para activar el acceso de profesora.');
+   const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+     if (!firebaseUser || teacherInviteInProgress.current) return;
+     teacherInviteInProgress.current = true;
+     void (async () => {
+     try {
+       const idToken = await firebaseUser.getIdToken();
+       const response = await fetch('/api/teacher-invitations/accept', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+         body: JSON.stringify({ token: invitationToken }),
+       });
+       const result = await response.json();
+       if (!response.ok) throw new Error(result.error || 'Invitation could not be accepted');
+       await firebaseUser.getIdToken(true);
+       const cleanUrl = new URL(window.location.href);
+       cleanUrl.searchParams.delete('teacherInvite');
+       window.history.replaceState({}, '', cleanUrl.toString());
+       setAuthNotification(selectedLang === 'EN' ? 'Teacher access activated!' : '¡Acceso de profesora activado!');
+       setHasClickedConnect(true);
+       setHasInteracted(true);
+       setRightPanelTab('teachers');
+     } catch (error) {
+       setAuthError(error instanceof Error ? error.message : (selectedLang === 'EN' ? 'Invitation could not be accepted.' : 'No se pudo aceptar la invitación.'));
+     } finally {
+       teacherInviteInProgress.current = false;
+     }
+     })();
+   });
+   return () => unsubscribe();
+ }, [selectedLang]);
 
  useEffect(() => {
    let active = true;

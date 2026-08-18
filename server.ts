@@ -2,7 +2,11 @@ import express from "express";
 import http from "node:http";
 import path from "node:path";
 import fs from "node:fs";
+import crypto from "node:crypto";
 import { WebSocketServer, WebSocket } from "ws";
+import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "./src/constants";
 import { googleWorkspace } from "./src/services/googleWorkspace";
@@ -687,6 +691,103 @@ async function startServer() {
   });
 
   app.use(express.json());
+  app.set("trust proxy", 1);
+
+  if (getApps().length === 0) {
+    initializeApp({ credential: applicationDefault(), projectId: "voyager-usa-ada71" });
+  }
+  const adminAuth = getAuth();
+  const adminDb = getFirestore();
+
+  const requireAdmin = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    try {
+      const token = req.headers.authorization?.replace(/^Bearer\s+/i, "");
+      if (!token) return res.status(401).json({ error: "Authentication required" });
+      const decoded = await adminAuth.verifyIdToken(token);
+      if (decoded.admin !== true) return res.status(403).json({ error: "Administrator access required" });
+      res.locals.firebaseUser = decoded;
+      next();
+    } catch {
+      res.status(401).json({ error: "Invalid authentication token" });
+    }
+  };
+
+  app.get("/api/admin/teacher-invitations", requireAdmin, async (_req, res) => {
+    try {
+      const snapshot = await adminDb.collection("teacherInvitations").orderBy("createdAt", "desc").limit(50).get();
+      res.json(snapshot.docs.map((document) => {
+        const invitation = document.data();
+        return {
+          id: document.id,
+          name: invitation.name,
+          email: invitation.email,
+          role: invitation.role,
+          status: invitation.status,
+          createdAt: invitation.createdAt?.toDate?.().toISOString(),
+          expiresAt: invitation.expiresAt?.toDate?.().toISOString(),
+          acceptedAt: invitation.acceptedAt?.toDate?.().toISOString(),
+        };
+      }));
+    } catch (error) {
+      console.error("Unable to list teacher invitations", error);
+      res.status(500).json({ error: "Teacher invitations could not be loaded" });
+    }
+  });
+
+  app.post("/api/admin/teacher-invitations", requireAdmin, async (req, res) => {
+    const name = String(req.body?.name || "").trim();
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!name || !/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ error: "Valid name and email are required" });
+
+    const invitationToken = crypto.randomBytes(32).toString("base64url");
+    const tokenHash = crypto.createHash("sha256").update(invitationToken).digest("hex");
+    const expiresAt = Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const invitation = {
+      name,
+      email,
+      role: "editor",
+      status: "invited",
+      tokenHash,
+      createdAt: Timestamp.now(),
+      expiresAt,
+      invitedBy: res.locals.firebaseUser.uid,
+    };
+    const document = await adminDb.collection("teacherInvitations").add(invitation);
+    const origin = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
+    res.status(201).json({
+      id: document.id,
+      name,
+      email,
+      status: invitation.status,
+      expiresAt: expiresAt.toDate().toISOString(),
+      invitationUrl: `${origin}/?teacherInvite=${encodeURIComponent(invitationToken)}`,
+    });
+  });
+
+  app.post("/api/teacher-invitations/accept", async (req, res) => {
+    try {
+      const idToken = req.headers.authorization?.replace(/^Bearer\s+/i, "");
+      const invitationToken = String(req.body?.token || "");
+      if (!idToken || !invitationToken) return res.status(400).json({ error: "Invitation and authentication are required" });
+      const decoded = await adminAuth.verifyIdToken(idToken);
+      const tokenHash = crypto.createHash("sha256").update(invitationToken).digest("hex");
+      const snapshot = await adminDb.collection("teacherInvitations").where("tokenHash", "==", tokenHash).limit(1).get();
+      if (snapshot.empty) return res.status(404).json({ error: "Invitation not found" });
+      const document = snapshot.docs[0];
+      const invitation = document.data();
+      if (invitation.status !== "invited" || invitation.expiresAt.toMillis() < Date.now()) return res.status(410).json({ error: "Invitation has expired" });
+      if (!decoded.email || decoded.email.toLowerCase() !== invitation.email) return res.status(403).json({ error: "Sign in with the invited email address" });
+
+      const user = await adminAuth.getUser(decoded.uid);
+      await adminAuth.setCustomUserClaims(decoded.uid, { ...(user.customClaims || {}), editor: true, role: "editor" });
+      await adminDb.collection("users").doc(decoded.uid).set({ displayName: user.displayName || invitation.name, email: decoded.email, role: "editor", updatedAt: Timestamp.now() }, { merge: true });
+      await document.ref.update({ status: "accepted", acceptedAt: Timestamp.now(), acceptedBy: decoded.uid });
+      res.json({ ok: true, role: "editor" });
+    } catch (error) {
+      console.error("Unable to accept teacher invitation", error);
+      res.status(401).json({ error: "Invitation could not be accepted" });
+    }
+  });
 
   const LEADS_FILE = path.join(process.cwd(), "leads.json");
 
