@@ -38,6 +38,7 @@ const tasksProvider = new GoogleAuthProvider();
 tasksProvider.addScope('https://www.googleapis.com/auth/tasks');
 
 let cachedTasksAccessToken: string | null = null;
+const tasksAuthListeners = new Set<(user: User, token: string) => void>();
 
 const saveUserProfile = async (user: User, preferredLanguage: 'EN' | 'ES' = 'EN') => {
   await setDoc(doc(db, 'users', user.uid), {
@@ -133,16 +134,24 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
   const credential = GoogleAuthProvider.credentialFromResult(result);
   if (!credential?.accessToken) throw new Error('Google Tasks permission was not granted');
   cachedTasksAccessToken = credential.accessToken;
+  tasksAuthListeners.forEach((listener) => listener(result.user, cachedTasksAccessToken!));
   return { user: result.user, accessToken: cachedTasksAccessToken };
 };
 
 export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
   onAuthFailure?: () => void,
-) => onAuthStateChanged(auth, (user) => {
-  if (user && cachedTasksAccessToken) onAuthSuccess?.(user, cachedTasksAccessToken);
-  else onAuthFailure?.();
-});
+) => {
+  if (onAuthSuccess) tasksAuthListeners.add(onAuthSuccess);
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user && cachedTasksAccessToken) onAuthSuccess?.(user, cachedTasksAccessToken);
+    else onAuthFailure?.();
+  });
+  return () => {
+    unsubscribe();
+    if (onAuthSuccess) tasksAuthListeners.delete(onAuthSuccess);
+  };
+};
 
 export const getAccessToken = async () => cachedTasksAccessToken;
 
