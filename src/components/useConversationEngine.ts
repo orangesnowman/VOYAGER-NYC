@@ -78,6 +78,7 @@ export function useConversationEngine(
     userCountry: profile?.country,
     userGoal: profile?.goal,
     userLevel: profile?.levelEstimate,
+    activeTab,
     onUserTranscription: (text) => {
       if (onUserVoiceTranscription) {
         onUserVoiceTranscription(text);

@@ -24,6 +24,7 @@ interface UseConversationSessionConfig {
   userCountry?: string;
   userGoal?: string;
   userLevel?: string;
+  activeTab?: string;
 }
 
 export function useConversationSession(config: UseConversationSessionConfig) {
@@ -48,6 +49,7 @@ export function useConversationSession(config: UseConversationSessionConfig) {
     userCountry,
     userGoal,
     userLevel,
+    activeTab,
   } = config;
 
   const [isConnected, setIsConnected] = useState(false);
@@ -262,18 +264,33 @@ export function useConversationSession(config: UseConversationSessionConfig) {
                                 : isEnglishOnlyMode ? 'AMERICAN_ENGLISH'
                                 : 'BILINGUAL';
 
-              let greetingPrompt = ConversationModePolicy.getSystemInstructionsForMode(currentMode, {
-                initialPrompt,
-                selectedLang,
-                userName,
-                userAge,
-                userCountry,
-                userGoal,
-                userLevel
-              });
+              let greetingPrompt = "";
+              const isOralTest = initialPrompt && (
+                initialPrompt.includes('OFFICIAL USCIS') ||
+                initialPrompt.includes('CIVICS TEST') ||
+                initialPrompt.includes('NATURALIZATION CIVICS')
+              );
 
-              if (memory) {
-                greetingPrompt += memory.getMemoryPayloadForPrompt();
+              if (isOralTest) {
+                greetingPrompt = initialPrompt;
+              } else {
+                greetingPrompt = ConversationModePolicy.getSystemInstructionsForMode(currentMode, {
+                  initialPrompt,
+                  selectedLang,
+                  userName,
+                  userAge,
+                  userCountry,
+                  userGoal,
+                  userLevel
+                });
+
+                if (activeTab === 'civics') {
+                  greetingPrompt += '\n\n' + ConversationModePolicy.getCivicsSystemInstructions();
+                }
+
+                if (memory) {
+                  greetingPrompt += memory.getMemoryPayloadForPrompt();
+                }
               }
               
               if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -378,7 +395,12 @@ REGLA CRÍTICA: NO digas nada más, NO saludes con "Hola", NO preguntes "¿Qué 
       playbackRef.current.stop();
     }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.pause();
+      window.speechSynthesis.cancel();
+    }
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      try {
+        wsRef.current.send(JSON.stringify({ text: '[INSTRUCCIÓN DE SISTEMA: La conversación está en PAUSA. No envíes más respuestas ni audio.]' }));
+      } catch (e) {}
     }
   }, []);
 
